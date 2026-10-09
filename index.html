@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Local Impresión 3D</title>
+<meta name="description" content="Recorrido 3D interactivo del local de exhibición y taller de impresión 3D: mobiliario, materiales, costos, fabricación y armado paso a paso.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app" class="is-loading">
+
+  <div id="stage">
+    <canvas id="gl" aria-label="Modelo 3D del local. Arrastra para girar, usa la rueda para acercar y haz clic en un mueble para ver su ficha."></canvas>
+    <div id="labels" aria-hidden="true"></div>
+  </div>
+
+  <header id="top">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 34 12v16L20 36 6 28V12z M20 20 34 12 M20 20 6 12 M20 20v16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+      <div class="brand-text">
+        <span class="brand-name">IMPRESIÓN <b>3D</b></span>
+        <span class="brand-sub">Local de exhibición y taller · 6.00 × 7.00 m</span>
+      </div>
+    </div>
+    <div class="top-scroll">
+      <nav id="views" class="seg" aria-label="Vistas del local">
+        <button type="button" data-view="fachada" class="is-on">Fachada</button>
+        <button type="button" data-view="interior">Interior</button>
+        <button type="button" data-view="taller">Taller</button>
+        <button type="button" data-view="aerea">Aérea</button>
+        <button type="button" data-view="planta">Planta</button>
+      </nav>
+      <div id="tools">
+        <button type="button" id="btn-inv" class="btn" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Mobiliario</button>
+        <button type="button" id="btn-montaje" class="btn"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16V9l6-5 6 5v7M8 16v-4h4v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>Montaje</button>
+        <button type="button" id="btn-budget" class="btn"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16V8M10 16V4M16 16v-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Presupuesto</button>
+        <button type="button" id="btn-mats" class="btn"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3 17 7l-7 4-7-4zM3 10.5l7 4 7-4M3 14l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Materiales</button>
+        <button type="button" id="btn-labels" class="btn" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.6 7.6 10.4 6.8v6.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Números</button>
+      </div>
+    </div>
+  </header>
+
+  <aside id="inv" class="pane" hidden aria-label="Mobiliario y equipos">
+    <div class="inv-head">
+      <h2>Mobiliario y equipos</h2>
+      <p>20 elementos del plano. Elige uno para ver materiales, costos y armado.</p>
+      <div class="chips" id="inv-filter" role="group" aria-label="Filtrar por origen">
+        <button type="button" data-f="todos" class="chip is-on">Todos <i>20</i></button>
+        <button type="button" data-f="fabrica" class="chip">Se fabrica <i>13</i></button>
+        <button type="button" data-f="compra" class="chip">Se compra <i>7</i></button>
+      </div>
+    </div>
+    <ol id="inv-list"></ol>
+    <button type="button" class="inv-foot" id="inv-total"></button>
+  </aside>
+
+  <aside id="mont" class="pane" hidden aria-label="Orden de fabricación y montaje"></aside>
+
+  <section id="panel" class="pane" hidden aria-label="Ficha del elemento"></section>
+
+  <div id="dock">
+    <p id="hint"><span class="hint-desk">Arrastra para girar · rueda para acercar · clic derecho para desplazar · <b>clic en un mueble</b> para ver su ficha</span><span class="hint-touch">Arrastra para girar · pellizca para acercar · <b>toca un mueble</b> para ver su ficha</span></p>
+    <div id="actions" class="pane" hidden>
+      <button type="button" id="act-explode" class="btn btn-lg" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v4M10 14v4M2 10h4M14 10h4M7.5 7.5h5v5h-5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Explosionar</span></button>
+      <button type="button" id="act-play" class="btn btn-lg btn-led"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4.5v11l9-5.5z" fill="currentColor"/></svg><span>Ver armado</span></button>
+      <button type="button" id="act-spin" class="btn btn-lg" aria-pressed="false" title="Girar alrededor del mueble"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10a6 6 0 1 1-2-4.5M14.5 2.5v3.3h-3.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Girar</span></button>
+    </div>
+    <div id="stepper" class="pane" hidden>
+      <div class="st-cap"><span class="st-n" id="st-n"></span><span class="st-t" id="st-t"></span><span class="st-src" id="st-src"></span></div>
+      <div class="st-row">
+        <button type="button" id="st-prev" class="ibtn" aria-label="Paso anterior"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button type="button" id="st-play" class="ibtn ibtn-led" aria-label="Pausar"></button>
+        <button type="button" id="st-next" class="ibtn" aria-label="Paso siguiente"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="st-dots" id="st-dots"></div>
+        <button type="button" id="st-exit" class="btn">Terminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="zoom" class="pane" role="group" aria-label="Acercar y alejar">
+    <button type="button" id="z-in" class="ibtn" aria-label="Acercar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button type="button" id="z-out" class="ibtn" aria-label="Alejar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <div id="tip" hidden></div>
+
+  <div id="modal" hidden>
+    <div class="modal-card pane" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header class="modal-head"><h2 id="modal-title"></h2><button type="button" class="ibtn" id="modal-close" aria-label="Cerrar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="intro">
+    <svg class="intro-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 34 12v16L20 36 6 28V12z M20 20 34 12 M20 20 6 12 M20 20v16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    <p class="intro-name">IMPRESIÓN <b>3D</b></p>
+    <p class="intro-sub">Diseña · Imprime · Crea</p>
+    <p class="intro-msg" id="intro-msg">Preparando el local…</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/geo.js"></script>
+<script src="js/room.js"></script>
+<script src="js/furniture.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
