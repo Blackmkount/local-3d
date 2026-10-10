@@ -570,8 +570,8 @@
     const fab = DATA.items.filter((i) => i.origen === 'fabrica').sort((a, b) => b.total - a.total), buy = DATA.items.filter((i) => i.origen === 'compra').sort((a, b) => b.total - a.total);
     const row = (i) => ({ n: i.n, label: i.short, v: i.total });
     openModal('Presupuesto del local',
-      '<div class="kpis"><div><span>Total en materiales y equipos</span><b class="mono">' + cop(P.total) + '</b></div><div><span>13 elementos que se fabrican</span><b class="mono">' + cop(P.fabricado) + '</b></div><div><span>7 productos que se compran</span><b class="mono">' + cop(P.comprado) + '</b></div></div>' +
-      '<p class="lead">Casi la mitad del total, ' + cop(P.impresoras) + ', son las cuatro impresoras 3D. La cifra no incluye mano de obra, transporte, instalación eléctrica ni plantas.</p>' +
+      '<div class="kpis"><div><span>Total en materiales y equipos</span><b class="mono">' + cop(P.total) + '</b></div><div><span>12 elementos que se fabrican</span><b class="mono">' + cop(P.fabricado) + '</b></div><div><span>8 productos que se compran</span><b class="mono">' + cop(P.comprado) + '</b></div></div>' +
+      '<p class="lead">Más del 40 % del total, ' + cop(P.impresoras) + ', son las cuatro impresoras 3D. La cifra no incluye mano de obra, transporte, instalación eléctrica ni plantas.</p>' +
       '<div class="cols"><section><h3>Se fabrica <small>materiales por mueble</small></h3>' + barList(fab.map(row), fab[0].total, 'is-click') + '<p class="note">El mueble bajo y el mesón concentran más de un tercio del costo de fabricación. La mampara es el cuarto costo aunque solo tiene dos piezas, porque el vidrio templado se paga por metro cuadrado.</p></section>' +
       '<section><h3>Se compra <small>escala propia</small></h3>' + barList(buy.map(row), buy[0].total, 'is-click') + '<p class="note">El escritorio completo cuesta menos que un solo taburete.</p></section></div>' +
       '<div class="cols"><section><h3>Por tipo de insumo</h3>' + barList(P.rubros.map((r) => ({ label: r.r, v: r.c, sub: r.q })), P.rubros[0].c) + '</section>' +
@@ -625,8 +625,6 @@
 
   /* -------------------------------------------------------- montaje del local */
   function montInsts(tag) {
-    if (tag === '14e') return [F.items[14].insts[2]];
-    if (tag === '14i') return F.items[14].insts.filter((o, i) => i !== 2);
     return F.items[tag].insts;
   }
   function openMontaje() {

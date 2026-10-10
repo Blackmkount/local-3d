@@ -28,6 +28,11 @@ fascia, de modo que la luz que escapa por detrás dibuja un halo sobre el panel.
 cepillado (forro de pilares, cielo del vano y nariz de la fascia) con una línea de luz LED, tres luminarias empotradas en
 el alero que iluminan la entrada y un umbral de acero inoxidable en la línea de fachada.
 
+En cada pilar, hacia el pasillo del centro comercial, va una **pantalla de 55" en vertical** (Hisense QLED 55Q6QV,
+centrada en el pilar de 0.75 m y con la base a 0.90 m del piso). Las dos reproducen el mismo video, sincronizado, que
+invita a entrar (ver más abajo). Reemplazan al tótem de categorías y a la pantalla de 43" del plano original. Frente a
+la fachada no hay matera: los tres maceteros del local quedan adentro.
+
 Las letras se generan a partir del archivo `assets/blackforge-logo.svg` (sus trazos están en `js/brand.js`): si cambia
 el logotipo, basta con reemplazar los trazos y la fachada, la barra superior y la pantalla de inicio se actualizan.
 
@@ -79,6 +84,36 @@ Para poner otro video basta con reemplazar el archivo, con el mismo nombre:
 El video solo corre mientras la pantalla está a la vista, para no gastar batería. Se ve en la página publicada (GitHub
 Pages) o servida desde un servidor local; al abrir `index.html` con doble clic el navegador no deja usar el video dentro
 del 3D y la pantalla muestra la imagen fija. Tampoco se reproduce si el sistema tiene activado *reducir movimiento*.
+
+## Video de las pantallas exteriores
+
+Las dos pantallas de los pilares reproducen en bucle, sin sonido, `assets/video/pantalla-exterior.mp4` (y
+`pantalla-exterior.webm`). Es un video vertical de 24 segundos pensado para quien pasa caminando por el pasillo: pocos
+textos, grandes, y una pieza en movimiento que llama la atención. Cuenta en cinco momentos por qué entrar a BlackForge:
+
+1. **¿Lo imaginas?** Un robot de juguete aparece dibujado en líneas ámbar, como en el programa de diseño.
+   «Si lo puedes imaginar, lo imprimimos.»
+2. **Lo hacemos realidad.** La boquilla lo levanta capa por capa; la franja recién depositada brilla de calor y en
+   pantalla corren la capa, el avance, la temperatura de la boquilla y el material.
+3. **Piezas únicas.** El robot terminado se suma a una vitrina giratoria que va dejando al frente cada categoría de la
+   tienda: Figuras (el robot), Decoración (un jarrón facetado), Regalos (un corazón), Personalizados (un llavero con
+   «TU NOMBRE») y Prototipos (un engranaje).
+4. **El mundo de la impresión 3D.** Tres razones para entrar: mirar las impresoras trabajando en vivo, traer una idea
+   para diseñarla juntos y llevarse la pieza hecha en el taller.
+5. **Entra y crea.** El logotipo de BlackForge, «Te esperamos aquí mismo» y una flecha que invita a pasar.
+
+Empieza y termina en negro para que el bucle no tenga saltos. Las dos pantallas comparten un solo video en la página,
+así que siempre muestran el mismo cuadro; mientras carga, o si no se puede reproducir, muestran la portada (el cierre
+«Entra y crea»). En el local real basta con cargar el mismo archivo en una memoria USB en cada televisor.
+
+Se genera igual que el de la pantalla de 75", con el código de `tools/video-exterior/` (textos y tiempos al comienzo de
+`video.js`):
+
+1. Con el servidor local, abrir `http://localhost:8000/tools/video-exterior/` para verlo en vivo (`?t=12.5` congela ese instante).
+2. Renderizar los 720 cuadros con `node tools/video-exterior/render.js`.
+3. Armar los archivos con
+   `ffmpeg -framerate 30 -i tools/video-exterior/frames/f%04d.png -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 20 -movflags +faststart assets/video/pantalla-exterior.mp4`
+   y `ffmpeg -framerate 30 -i tools/video-exterior/frames/f%04d.png -c:v libvpx-vp9 -pix_fmt yuv420p -b:v 0 -crf 33 assets/video/pantalla-exterior.webm`.
 
 ## Interfaz
 
@@ -149,7 +184,7 @@ así los navegadores descargan la versión nueva en lugar de usar la guardada en
 | `index.html` | Estructura de la página |
 | `css/styles.css` | Apariencia de la interfaz (vidrio oscuro, animaciones) |
 | `assets/blackforge-logo.svg` | Logotipo de BlackForge (original) |
-| `assets/video/` | Video en bucle de la pantalla de 75" (MP4 y WebM) |
+| `assets/video/` | Videos en bucle de la pantalla de 75" y de las dos pantallas exteriores (MP4 y WebM) |
 | `js/brand.js` | Trazos del logotipo, para la barra superior, la pantalla de inicio y las letras de la fachada |
 | `js/data.js` | **Datos del proyecto**: 20 elementos, catálogo de precios, presupuesto, montaje |
 | `js/furniture.js` | Los muebles modelados pieza por pieza: medidas, material y paso de armado de cada una |
@@ -161,14 +196,15 @@ así los navegadores descargan la versión nueva en lugar de usar la guardada en
 | `js/app.js` | Interacción: selección, explosionado, armado, fichas, presupuesto y búsqueda |
 | `tools/build-artifact.py` | Empaqueta todo en un solo archivo HTML para compartirlo |
 | `tools/video-pantalla/` | Generador del video de la pantalla de 75" (escena, textos y render cuadro a cuadro) |
+| `tools/video-exterior/` | Generador del video de las pantallas exteriores |
 
 ## De dónde salen los datos
 
 - **Planta de distribución y mobiliario**: posición y medidas de los 20 elementos.
 - **Taller Impresión 3D — Mobiliario, materiales y fabricación** (9 de octubre de 2026): despiece, costos, fabricación, ensamble y razones de cada material.
 
-Los precios son los publicados en línea el 9 de octubre de 2026, en pesos colombianos. El total
-($36.092.821) no incluye mano de obra, transporte, instalación eléctrica, plantas ni el canal
+Los precios son los publicados en línea el 9 de octubre de 2026 (el del televisor de 55", el 10 de octubre), en pesos
+colombianos. El total ($38.788.078) no incluye mano de obra, transporte, instalación eléctrica, plantas ni el canal
 perimetral de la mampara. Las medidas del plano se estimaron desde la imagen del local y deben
 verificarse en sitio antes de pedir el corte.
 
@@ -179,6 +215,10 @@ verificarse en sitio antes de pedir el corte.
 - Son interpretación del modelo: la altura del cielo (3.00 m), el diseño de la fachada y de las luces de techo, las figuras de exhibición y la forma exacta de los productos comprados. Se dibujaron para parecerse a las imágenes de referencia.
 - El panel perforado se muestra blanco, como en la imagen; la lámina cotizada viene en negro.
 - Los taburetes se muestran sin espaldar, como en la imagen; el producto cotizado (silla para bar Palermo) lo tiene.
+- Las dos pantallas de 55" de los pilares reemplazan al tótem de categorías y a la pantalla de 43" del plano, y el
+  macetero que estaba fuera del pilar derecho se quitó: el local tiene tres maceteros, todos adentro. Sin el tótem, las
+  dos láminas Plomo siguen siendo necesarias (las puertas no caben en una), así que su costo se reparte entre el mesón y
+  la estantería retroiluminada.
 - El diseño de la fachada (panel negro, marco de bronce, letras corpóreas, luminarias del alero y umbral) es una propuesta del modelo; no viene de los documentos ni tiene costo en el presupuesto.
 - Las texturas de los materiales, la potencia y orientación de cada luminaria y el pasillo del centro comercial son interpretación: sirven para juzgar el ambiente, no reemplazan un estudio de iluminación.
 
