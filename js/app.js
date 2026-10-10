@@ -112,7 +112,10 @@
     S.sel = it; S.inst = o || it.insts[0]; S.mode = 'solid'; S.step = -1; S.playing = false; S.hl = null; S.tab = opt.tab || 'resumen';
     R.hideDiv = it.zone === 'trastienda'; R.keepPillars = it.zone === 'fachada';
     S.plan = false; S.view = null; $$('#views button').forEach((b) => b.classList.remove('is-on'));
+    const swap = !$('#panel').hidden;
     renderPanel(); $('#panel').hidden = false; $('#tip').hidden = true; S.hover = null;
+    if (swap) { const pn = $('#panel'); pn.classList.remove('is-swap'); void pn.offsetWidth; pn.classList.add('is-swap'); }
+    $('#panel').classList.remove('is-tall');
     if (app.classList.contains('is-narrow')) toggleInv(false);
     $('#hint').hidden = true;
     const canAnim = it.insts[0].steps > 1 || it.insts[0].parts.length > 1;
@@ -410,9 +413,10 @@
   }
 
   /* ------------------------------------------------------------- inventario */
+  const norm = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   function buildInventory() {
-    $('#inv-list').innerHTML = DATA.items.map((d) =>
-      '<li data-o="' + d.origen + '"><button type="button" class="inv-row" data-n="' + d.n + '">' +
+    $('#inv-list').innerHTML = DATA.items.map((d, i) =>
+      '<li data-o="' + d.origen + '" data-q="' + esc(norm(d.n + ' ' + d.short + ' ' + d.name + ' ' + d.grupo)) + '" style="--i:' + i + '"><button type="button" class="inv-row" data-n="' + d.n + '">' +
       '<span class="num">' + d.n + '</span><span class="inv-name">' + esc(d.short) + '<small>' + (d.origen === 'fabrica' ? 'Se fabrica' : 'Se compra') + (d.cant !== '1' ? ' · ' + esc(d.cant.split(' ')[0]) + ' u.' : '') + '</small></span>' +
       '<span class="inv-cost">' + cop(d.total) + '</span></button></li>').join('');
     $('#inv-total').innerHTML = '<span>Total del local<small>materiales y equipos</small></span><b>' + cop(DATA.presupuesto.total) + '</b>';
@@ -422,9 +426,25 @@
     $('#inv-filter').addEventListener('click', (e) => {
       const b = e.target.closest('.chip'); if (!b) return;
       S.filter = b.dataset.f; $$('#inv-filter .chip').forEach((c) => c.classList.toggle('is-on', c === b));
-      $$('#inv-list li').forEach((li) => { li.hidden = S.filter !== 'todos' && li.dataset.o !== S.filter; });
+      filterInv();
+    });
+    const q = $('#inv-search');
+    q.addEventListener('input', filterInv);
+    q.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && q.value) { e.stopPropagation(); q.value = ''; filterInv(); }
+      else if (e.key === 'Enter') { const li = $$('#inv-list li').find((x) => !x.hidden); if (li) select(+li.firstChild.dataset.n, null, { force: S.mode !== 'solid' }); }
     });
     $('#inv-total').addEventListener('click', openBudget);
+  }
+  /* filtro por origen y búsqueda sin tildes ni mayúsculas, por número, nombre o grupo */
+  function filterInv() {
+    const words = norm($('#inv-search').value.trim()).split(/\s+/).filter(Boolean);
+    let shown = 0;
+    $$('#inv-list li').forEach((li) => {
+      const ok = (S.filter === 'todos' || li.dataset.o === S.filter) && words.every((w) => li.dataset.q.includes(w));
+      li.hidden = !ok; if (ok) shown++;
+    });
+    $('#inv-empty').hidden = shown > 0;
   }
   function markInv() { $$('#inv-list .inv-row').forEach((b) => b.classList.toggle('is-on', !!S.sel && +b.dataset.n === S.sel.n)); }
   function toggleInv(on) {
@@ -435,7 +455,7 @@
   }
 
   /* -------------------------------------------------------------------- ficha */
-  const TABS = [['resumen', 'Resumen'], ['mats', 'Materiales y costos'], ['fab', 'Fabricación'], ['ens', 'Ensamble'], ['why', 'Por qué']];
+  const TABS = [['resumen', 'Resumen'], ['mats', 'Materiales'], ['fab', 'Fabricación'], ['ens', 'Ensamble'], ['why', 'Por qué']];
   function barList(rows, max, cls) {
     return '<ul class="bars ' + (cls || '') + '">' + rows.map((r) =>
       '<li' + (r.n ? ' data-n="' + r.n + '" tabindex="0" role="button"' : '') + ' title="' + esc(r.label) + ': ' + cop(r.v) + (r.sub ? ' — ' + esc(r.sub) : '') + '">' +
@@ -446,7 +466,7 @@
   function renderPanel() {
     const it = S.sel, d = byN[it.n], p = $('#panel');
     const fab = d.origen === 'fabrica', hasParts = new Set(); it.insts[0].parts.forEach((x) => hasParts.add(x.userData.mk));
-    const tabs = TABS.filter((t) => (t[0] !== 'fab' || d.fab.length)).map((t) => [t[0], !fab && t[0] === 'mats' ? 'Producto y costo' : !fab && t[0] === 'ens' ? 'Instalación' : t[1]]);
+    const tabs = TABS.filter((t) => (t[0] !== 'fab' || d.fab.length)).map((t) => [t[0], !fab && t[0] === 'mats' ? 'Producto' : !fab && t[0] === 'ens' ? 'Instalación' : t[1]]);
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = 'resumen';
     const idx = DATA.items.indexOf(d), prev = DATA.items[(idx + 19) % 20], next = DATA.items[(idx + 1) % 20];
     const top = d.mats.slice().sort((a, b) => b.costo - a.costo).slice(0, 5), maxC = top[0] ? top[0].costo : 1;
@@ -481,16 +501,19 @@
     sec.why = '<ul class="why">' + d.why.map((w) => '<li><h4>' + esc(w.t) + '</h4><p>' + esc(w.d) + '</p></li>').join('') + '</ul>';
 
     p.innerHTML =
+      '<div class="grabber" aria-hidden="true"></div>' +
       '<header class="p-head">' +
         '<div class="p-top"><span class="num num-lg">' + d.n + '</span><span class="pill pill-' + d.origen + '">' + (fab ? 'Se fabrica' + (d.origenNota ? ' · ' + esc(d.origenNota) : '') : 'Se compra') + '</span><span class="p-group">' + esc(d.grupo) + '</span>' +
-        '<button type="button" class="ibtn" id="p-close" aria-label="Cerrar ficha"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>' +
+        '<div class="p-acts"><button type="button" class="ibtn ibtn-fill" id="p-share" aria-label="Copiar enlace a esta ficha" title="Copiar enlace"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12.4V3.2M6.6 6.4 10 3l3.4 3.4M6.2 9H4.6v8h10.8V9h-1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+        '<button type="button" class="ibtn ibtn-fill" id="p-close" aria-label="Cerrar ficha" title="Cerrar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div></div>' +
         '<h2>' + esc(d.name) + '</h2>' +
         '<div class="p-cost"><b class="mono">' + cop(d.total) + '</b><span>' + (fab ? 'en materiales' : (d.cant !== '1' ? esc(d.cant) + ' unidades' : 'producto')) + ' · ' + esc(d.dims) + '</span></div>' +
       '</header>' +
-      '<div class="tabs" role="tablist">' + tabs.map((t) => '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === S.tab) + '">' + t[1] + '</button>').join('') + '</div>' +
+      '<div class="tabs seg" role="tablist">' + tabs.map((t) => '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === S.tab) + '">' + t[1] + '</button>').join('') + '</div>' +
       '<div class="p-body">' + tabs.map((t) => '<section role="tabpanel" data-panel="' + t[0] + '"' + (t[0] === S.tab ? '' : ' hidden') + '>' + sec[t[0]] + '</section>').join('') + '</div>' +
       '<footer class="p-foot"><button type="button" class="btn" data-go="' + prev.n + '"><span class="num">' + prev.n + '</span>' + esc(prev.short) + '</button><button type="button" class="btn" data-go="' + next.n + '">' + esc(next.short) + '<span class="num">' + next.n + '</span></button></footer>';
     $('.p-body', p).scrollTop = 0;
+    L.ui.seg($('.tabs', p));
   }
   function setHL(key) { if (S.mode === 'asm') key = null; if (S.hl === key) return; S.hl = key; $$('#panel .mat').forEach((li) => li.classList.toggle('is-on', !!key && li.dataset.key === key)); refreshEdges(); }
   function bindPanel() {
@@ -498,6 +521,7 @@
     p.addEventListener('click', (e) => {
       const t = e.target;
       if (t.closest('#p-close')) return deselect();
+      if (t.closest('#p-share')) return shareLink();
       const tab = t.closest('[data-tab]');
       if (tab) { S.tab = tab.dataset.tab; $$('[data-tab]', p).forEach((b) => b.setAttribute('aria-selected', b === tab)); $$('[data-panel]', p).forEach((s) => { s.hidden = s.dataset.panel !== S.tab; }); $('.p-body', p).scrollTop = 0; setHL(null); return; }
       const go = t.closest('[data-go]'); if (go) return select(+go.dataset.go, null, { tab: S.tab, force: true });
@@ -512,14 +536,36 @@
   }
 
   /* ------------------------------------------------------------------ modales */
-  let lastFocus = null;
-  function openModal(title, html, cls) {
+  /* ventanas al estilo macOS: crecen desde el botón que las abrió, se arrastran por la barra de título,
+     el semáforo cierra, minimiza hacia ese botón o amplía */
+  let lastFocus = null, lastPress = null, lastPressT = 0, winDrag = null;
+  document.addEventListener('pointerdown', (e) => { const b = e.target.closest && e.target.closest('button, .inv-foot'); if (b) { lastPress = b; lastPressT = performance.now(); } }, true);
+  function openModal(title, html, cls, from) {
     lastFocus = document.activeElement;
+    const card = $('.modal-card');
     $('#modal-title').textContent = title; $('#modal-body').innerHTML = html; $('#modal-body').scrollTop = 0;
-    $('.modal-card').className = 'modal-card pane ' + (cls || '');
-    $('#modal').hidden = false; $('#modal-close').focus();
+    card.className = 'modal-card window ' + (cls || '');
+    if (winDrag) winDrag.reset();
+    S.winFrom = from || (lastPress && performance.now() - lastPressT < 1500 ? lastPress : lastFocus);
+    $('#modal').classList.remove('is-min');
+    $('#modal').hidden = false;
+    L.ui.originFrom(card, S.winFrom);
+    $('#modal-close').focus({ preventScroll: true });
   }
-  function closeModal() { if ($('#modal').hidden) return; $('#modal').hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+  function closeModal(min) {
+    if ($('#modal').hidden) return;
+    if (!$('#lightbox').hidden) closeLightbox();
+    if (min === true) { L.ui.originFrom($('.modal-card'), S.winFrom); $('#modal').classList.add('is-min'); }
+    $('#modal').hidden = true;
+    restoreFocus(lastFocus, $('#modal'));
+  }
+  /* devuelve el foco a quien abrió la capa; si no hay a quién, lo saca de la capa que se cierra */
+  function restoreFocus(to, layer) {
+    const ae = document.activeElement;
+    if (to && to !== document.body && to.focus && document.contains(to)) to.focus({ preventScroll: true });
+    else if (ae && layer.contains(ae)) ae.blur();
+  }
+  function zoomModal() { $('.modal-card').classList.toggle('is-zoomed'); if (winDrag) winDrag.reset(); }
   function openBudget() {
     const P = DATA.presupuesto;
     const fab = DATA.items.filter((i) => i.origen === 'fabrica').sort((a, b) => b.total - a.total), buy = DATA.items.filter((i) => i.origen === 'compra').sort((a, b) => b.total - a.total);
@@ -544,6 +590,73 @@
       '<p class="note">Dos consecuencias prácticas: el vidrio templado se pide a medida porque se templa después de cortado, así que la posición de bisagras y manija se define con la vidriería antes de fabricar. Y el aglomerado RH resiste humedad ambiental, no agua: todo canto expuesto debe ir enchapado.</p>' +
       DATA.catalogo.map((g) => '<h3>' + esc(g.grupo) + '</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Material</th><th>Presentación</th><th>Precio (COP)</th><th>Proveedor</th><th>Nota</th></tr></thead><tbody>' +
         g.filas.map((f) => '<tr><td><a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.m) + '</a></td><td>' + esc(f.pres) + '</td><td class="mono">' + esc(f.precio) + '</td><td>' + esc(f.prov) + '</td><td>' + esc(f.nota) + '</td></tr>').join('') + '</tbody></table></div>').join(''), 'is-wide');
+  }
+
+  /* --------------------------------------------- renders y exportación a .glb */
+  function openRenders() {
+    openModal('Renders fotorrealistas', $('#tpl-renders').innerHTML, 'is-wide');
+    // un render que todavía no se generó se muestra como pendiente, no como imagen rota
+    $$('#modal .gal img').forEach((img) => {
+      const miss = () => img.closest('figure').classList.add('is-missing');
+      if (img.complete && !img.naturalWidth && img.src) miss(); else img.addEventListener('error', miss);
+    });
+  }
+  let lbK = 0;
+  function galItems() { return $$('#modal .gal figure:not(.is-missing)'); }
+  function showLightbox(k, fromThumb) {
+    const items = galItems(); if (!items.length) return;
+    const all = $$('#modal .gal figure');
+    let f = fromThumb ? fromThumb.closest('figure') : null;
+    if (f && f.classList.contains('is-missing')) return;
+    if (!f) { const i = (k + items.length) % items.length; f = items[i]; }
+    lbK = all.indexOf(f);
+    const img = $('img', f), big = $('#lb-img'), first = $('#lightbox').hidden;
+    big.style.transition = 'none'; big.style.transform = '';
+    big.src = img.currentSrc || img.src; big.alt = img.alt;
+    $('#lb-cap').innerHTML = '<b>' + esc($('b', f).textContent) + '</b>' + esc($('figcaption', f).lastChild.textContent);
+    $('#lightbox').hidden = false; $('#lb-close').focus({ preventScroll: true });
+    if (first && fromThumb) {
+      const r = img.getBoundingClientRect();
+      (big.decode ? big.decode() : Promise.resolve()).then(() => L.ui.flipFrom(big, r), () => {});
+    } else { const fig = $('.lb-fig'); fig.classList.remove('is-swap'); void fig.offsetWidth; fig.classList.add('is-swap'); }
+  }
+  function stepLightbox(d) { const items = galItems(), cur = items.indexOf($$('#modal .gal figure')[lbK]); showLightbox(cur + d); }
+  function closeLightbox() {
+    if ($('#lightbox').hidden) return false;
+    const b = $('#modal .gal button[data-k="' + lbK + '"]');
+    if (b) L.ui.flipTo($('#lb-img'), b.getBoundingClientRect());
+    $('#lightbox').hidden = true; restoreFocus(b, $('#lightbox'));
+    return true;
+  }
+  /* enlace directo a la ficha (#m7) */
+  function copyText(t) {
+    const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.opacity = '0';
+    document.body.appendChild(a); a.select(); let ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+    a.remove(); return ok;
+  }
+  function shareLink() {
+    const it = S.sel; if (!it) return;
+    const url = location.href.split('#')[0] + '#m' + it.n, name = byN[it.n].short;
+    const ok = () => L.ui.toast('Enlace copiado', 'Abre directamente la ficha de ' + name + '.', 'link');
+    const fail = () => (copyText(url) ? ok() : L.ui.toast('No se pudo copiar', url, 'err', 8000));
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, fail); else fail();
+  }
+  async function downloadGLB(btn) {
+    const st = $('#dl-status');
+    btn.disabled = true; st.textContent = 'Preparando el modelo…';
+    try {
+      exitMontaje(true); deselect(true);
+      const views = ['fachada', 'interior', 'taller', 'aerea', 'planta'].map((k) => Object.assign({ name: k === 'aerea' ? 'Aérea' : k[0].toUpperCase() + k.slice(1) }, VIEWS[k]));
+      const bytes = await L.exporter.download({ views }), mb = (bytes / 1048576).toFixed(1).replace('.', ',');
+      st.textContent = 'Listo: local-impresion-3d.glb (' + mb + ' MB).';
+      L.ui.toast('Modelo 3D listo', 'local-impresion-3d.glb · ' + mb + ' MB. Ábrelo en Unreal Engine, Blender o Twinmotion.', 'cube', 6000);
+    } catch (err) {
+      console.error(err);
+      st.textContent = 'No se pudo generar el archivo (' + (err && err.message ? err.message : 'error') + '). Revisa la conexión: el exportador se descarga en ese momento.';
+      L.ui.toast('No se pudo exportar', 'Revisa la conexión: el exportador se descarga al pedir el archivo.', 'err', 7000);
+    }
+    btn.disabled = false;
   }
 
   /* -------------------------------------------------------- montaje del local */
@@ -605,12 +718,131 @@
     if (!quiet) goView('aerea');
   }
 
+  /* --------------------------------------------------- búsqueda (Spotlight) */
+  const SIC = {
+    view: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.8 6.8h3.1l1.4-2h5.4l1.4 2h3.1v9.4H2.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="11.3" r="2.8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    chart: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 16V9M10 16V4.5M15.5 16v-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    stack: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3 17 7l-7 4-7-4zM3 10.5l7 4 7-4M3 14l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+    photo: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.8" y="4" width="14.4" height="12" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m3.4 14.2 4-4 3 3 2-2 4 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="13.2" cy="7.6" r="1.3" fill="currentColor"/></svg>',
+    house: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16.2V9l6-5 6 5v7.2M8 16.2v-4h4v4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>',
+    pin: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17.4s-5.2-4.6-5.2-8.6a5.2 5.2 0 1 1 10.4 0c0 4-5.2 8.6-5.2 8.6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="8.8" r="1.8" fill="currentColor"/></svg>',
+    cube: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.6 16.4 6.3v7.4L10 17.4 3.6 13.7V6.3zM10 10l6.4-3.7M10 10 3.6 6.3M10 10v7.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>'
+  };
+  const SP = { list: [], k: 0, from: null };
+  function spotEntries() {
+    if (SP.all) return SP.all;
+    const items = DATA.items.map((d) => ({ sec: 'Mobiliario', ic: String(d.n), t: d.short, s: d.name + ' · ' + (d.origen === 'fabrica' ? 'se fabrica' : 'se compra'), r: cop(d.total), q: norm(d.n + ' ' + d.short + ' ' + d.name + ' ' + d.grupo + ' ' + (d.origen === 'fabrica' ? 'fabrica' : 'compra')), run: () => select(d.n, null, { force: true }) }));
+    const views = [['fachada', 'Fachada'], ['interior', 'Interior'], ['taller', 'Taller'], ['aerea', 'Aérea'], ['planta', 'Planta']].map((v) => ({ sec: 'Vistas', ic: SIC.view, t: 'Vista ' + v[1], s: 'Llevar la cámara a esta vista', q: norm('vista camara ' + v[1]), run: () => goView(v[0]) }));
+    const acts = [
+      { ic: SIC.chart, t: 'Presupuesto', s: 'Total, costo por mueble, por insumo, por tienda y plan de corte', q: 'presupuesto costo total precio dinero corte', run: () => openBudget() },
+      { ic: SIC.stack, t: 'Materiales y procesos', s: 'Catálogo de precios y cómo se fabrica cada material', q: 'materiales catalogo procesos precios tiendas', run: () => openMats() },
+      { ic: SIC.photo, t: 'Renders fotorrealistas', s: 'Imágenes del local hechas con Blender Cycles', q: 'renders fotos imagenes galeria blender cycles', run: () => openRenders() },
+      { ic: SIC.house, t: 'Montaje del local', s: 'Orden de fabricación y montaje en seis pasos', q: 'montaje armado fabricacion orden pasos', run: () => openMontaje() },
+      { ic: SIC.pin, t: 'Números del plano', s: 'Mostrar u ocultar el número de cada elemento', q: 'numeros rotulos etiquetas plano', run: () => $('#btn-labels').click() },
+      { ic: SIC.cube, t: 'Descargar modelo 3D (.glb)', s: 'Para Unreal Engine, Blender, Twinmotion o D5', q: 'descargar exportar glb gltf unreal blender twinmotion modelo', run: () => { openRenders(); const b = $('#dl-glb'); if (b) downloadGLB(b); } }
+    ].map((a) => Object.assign({ sec: 'Acciones' }, a, { q: norm(a.q + ' ' + a.t) }));
+    return (SP.all = acts.concat(views, items));
+  }
+  function spotRender() {
+    const q = norm($('#spot-q').value.trim()), words = q.split(/\s+/).filter(Boolean);
+    let list = spotEntries().filter((e) => words.every((w) => e.q.includes(w)));
+    if (q) list = list.map((e, i) => [e, (norm(e.t).startsWith(q) ? 0 : 1) * 1000 + i]).sort((a, b) => a[1] - b[1]).map((a) => a[0]);
+    SP.list = list; SP.k = Math.min(SP.k, Math.max(0, list.length - 1));
+    let sec = '', html = '';
+    list.forEach((e, i) => {
+      if (!q && e.sec !== sec) { sec = e.sec; html += '<li class="spot-sec" role="presentation">' + sec + '</li>'; }
+      html += '<li class="spot-item' + (i === SP.k ? ' is-on' : '') + '" role="option" id="spot-o' + i + '" data-i="' + i + '" aria-selected="' + (i === SP.k) + '"><span class="spot-ic">' + e.ic + '</span><span><b>' + esc(e.t) + '</b><small>' + esc(e.s) + '</small></span><em>' + (e.r || '') + '</em></li>';
+    });
+    $('#spot-list').innerHTML = html || '<li class="spot-empty">Sin resultados para «' + esc($('#spot-q').value.trim()) + '»</li>';
+    $('#spot-q').setAttribute('aria-activedescendant', list.length ? 'spot-o' + SP.k : '');
+  }
+  function spotMove(k) {
+    if (!SP.list.length) return;
+    SP.k = (k + SP.list.length) % SP.list.length;
+    $$('#spot-list .spot-item').forEach((li) => { const on = +li.dataset.i === SP.k; li.classList.toggle('is-on', on); li.setAttribute('aria-selected', on); if (on) li.scrollIntoView({ block: 'nearest' }); });
+    $('#spot-q').setAttribute('aria-activedescendant', 'spot-o' + SP.k);
+  }
+  function openSpot() {
+    if (!$('#spot').hidden) return;
+    SP.from = document.activeElement; SP.k = 0;
+    $('#spot-q').value = ''; spotRender();
+    $('#spot').hidden = false; $('#spot-q').focus();
+  }
+  function closeSpot(keep) {
+    if ($('#spot').hidden) return;
+    $('#spot').hidden = true;
+    if (keep) $('#spot-q').blur(); else restoreFocus(SP.from, $('#spot'));
+  }
+  function runSpot(i) {
+    const e = SP.list[i]; if (!e) return;
+    closeSpot(true);
+    if (!$('#modal').hidden) closeModal();
+    e.run();
+  }
+  function bindSpot() {
+    const q = $('#spot-q');
+    q.addEventListener('input', () => { SP.k = 0; spotRender(); });
+    q.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); spotMove(SP.k + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); spotMove(SP.k - 1); }
+      else if (e.key === 'Enter') { e.preventDefault(); runSpot(SP.k); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeSpot(); }
+    });
+    $('#spot-list').addEventListener('pointermove', (e) => { const li = e.target.closest('.spot-item'); if (li && +li.dataset.i !== SP.k) spotMove(+li.dataset.i); });
+    $('#spot-list').addEventListener('click', (e) => { const li = e.target.closest('.spot-item'); if (li) runSpot(+li.dataset.i); });
+    $('#spot').addEventListener('click', (e) => { if (e.target.id === 'spot') closeSpot(); });
+    $('#btn-search').addEventListener('click', openSpot);
+  }
+
+  /* ----------------------------------- ficha como hoja inferior en pantallas angostas */
+  function bindSheet() {
+    const p = $('#panel');
+    let y0 = null, dy = 0, t0 = 0, tap = false;
+    p.addEventListener('pointerdown', (e) => {
+      if (!app.classList.contains('is-narrow') || !e.target.closest('.grabber, .p-head') || e.target.closest('button')) return;
+      y0 = e.clientY; dy = 0; t0 = performance.now(); tap = !!e.target.closest('.grabber');
+      p.classList.add('is-dragging');
+      try { p.setPointerCapture(e.pointerId); } catch (err) { /* sin captura */ }
+    });
+    p.addEventListener('pointermove', (e) => {
+      if (y0 == null) return;
+      dy = e.clientY - y0;
+      p.style.translate = '0 ' + (dy < 0 ? dy * 0.25 : dy).toFixed(1) + 'px';    // hacia arriba ofrece resistencia
+    });
+    const end = () => {
+      if (y0 == null) return;
+      const v = dy / Math.max(1, performance.now() - t0);
+      y0 = null; p.classList.remove('is-dragging'); p.style.translate = '';
+      const tall = p.classList.contains('is-tall');
+      if (Math.abs(dy) < 5 && tap) p.classList.toggle('is-tall');
+      else if (dy > 110 || v > 0.6) { if (tall) p.classList.remove('is-tall'); else return deselect(); }
+      else if (dy < -40 || v < -0.5) p.classList.add('is-tall');
+      else return;
+      setTimeout(layout, 520);
+    };
+    p.addEventListener('pointerup', end); p.addEventListener('pointercancel', end);
+  }
+
   /* ------------------------------------------------------------------- eventos */
   function bindUI() {
+    const U = L.ui;
+    ['#panel', '#inv', '#mont'].forEach((q) => U.animated($(q), 460));
+    ['#actions', '#stepper', '#hint'].forEach((q) => U.animated($(q), 340));
+    U.animated($('#tip'), 150); U.animated($('#modal'), 520); U.animated($('#lightbox'), 400); U.animated($('#spot'), 280);
+    U.seg($('#views')); U.seg($('#inv-filter'));
+    $('#kbd-k').textContent = U.isMac ? '⌘K' : 'Ctrl K';
+    $('#btn-search').title = 'Buscar muebles, vistas y acciones (' + (U.isMac ? '⌘K' : 'Ctrl+K') + ')';
+    winDrag = U.windowDrag($('.modal-card'), $('.modal-head'), zoomModal);
+    bindSpot(); bindSheet();
     $('#views').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) goView(b.dataset.view); });
     $('#btn-inv').addEventListener('click', () => toggleInv());
     $('#btn-budget').addEventListener('click', openBudget);
     $('#btn-mats').addEventListener('click', openMats);
+    $('#btn-renders').addEventListener('click', openRenders);
+    $('#lb-close').addEventListener('click', closeLightbox);
+    $('#lb-prev').addEventListener('click', () => stepLightbox(-1));
+    $('#lb-next').addEventListener('click', () => stepLightbox(1));
+    $('#lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') closeLightbox(); });
     $('#btn-montaje').addEventListener('click', () => (S.mont ? exitMontaje() : openMontaje()));
     $('#btn-labels').addEventListener('click', () => { S.labels = !(S.labels || S.plan); if (!S.labels && S.plan) { S.plan = false; } syncLabels(); });
     $('#act-explode').addEventListener('click', () => setExplode(S.mode !== 'exploded'));
@@ -629,6 +861,10 @@
     $('#z-out').addEventListener('click', () => E.zoomBy(1.28));
     $('#modal').addEventListener('click', (e) => {
       if (e.target.id === 'modal' || e.target.closest('#modal-close')) return closeModal();
+      if (e.target.closest('#modal-min')) return closeModal(true);
+      if (e.target.closest('#modal-zoom')) return zoomModal();
+      const gb = e.target.closest('.gal button[data-k]'); if (gb) return showLightbox(+gb.dataset.k, gb);
+      const dl = e.target.closest('#dl-glb'); if (dl) return downloadGLB(dl);
       const li = e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); }
     });
     $('#modal').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest && e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); } } });
@@ -644,6 +880,14 @@
     });
     bindPanel();
     window.addEventListener('keydown', (e) => {
+      // ⌘K / Ctrl+K o «/» abren la búsqueda, como Spotlight
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if ($('#spot').hidden) openSpot(); else closeSpot(); return; }
+      if (!$('#spot').hidden) { if (e.key === 'Escape') closeSpot(); return; }
+      if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); openSpot(); return; }
+      if (!$('#lightbox').hidden) {
+        if (e.key === 'Escape') closeLightbox(); else if (e.key === 'ArrowRight') stepLightbox(1); else if (e.key === 'ArrowLeft') stepLightbox(-1);
+        return;
+      }
       if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.mode === 'asm') return exitAsm(); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
       if (!$('#modal').hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
       if (!S.sel) return;
@@ -663,6 +907,7 @@
     try {
       E.init($('#gl'));
       R.build(E.scene); F.build();
+      E.finalize(); E.captureEnv();
     } catch (err) {
       console.error(err);
       $('#intro-msg').textContent = 'Este navegador no pudo iniciar el modelo 3D (WebGL).';
@@ -685,6 +930,6 @@
       });
     }));
   }
-  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, toggleInv, state: S };
+  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openRenders, openSpot, closeSpot, toggleInv, layout, state: S };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

@@ -12,18 +12,39 @@
   G.rand = rand;
   G.reseed = (s) => { seed = s >>> 0; };
 
-  /* Caja con UV a escala real y la veta a lo largo de la dimensión mayor */
-  G.box = function (sx, sy, sz, grain) {
-    const g = new T.BoxGeometry(sx, sy, sz);
+  /* Caja con UV a escala real y la veta a lo largo de la dimensión mayor.
+     Las aristas llevan un redondeo de canto (bev, por defecto 2.2 mm, como el
+     canto PVC de un tablero): atrapa un hilo de luz en cada borde, que es lo que
+     hace que un mueble se vea fabricado y no dibujado. */
+  G.bevel = 0.0022;
+  G.box = function (sx, sy, sz, grain, bev) {
     const dims = [sx, sy, sz];
     const ga = grain != null ? grain : (sx >= sy && sx >= sz ? 0 : (sy >= sz ? 1 : 2));
+    const r = bev != null ? bev : Math.min(G.bevel, Math.min(sx, sy, sz) * 0.3);
+    const seg = r > 0.0003 ? 3 : 1;
+    const g = new T.BoxGeometry(sx, sy, sz, seg, seg, seg);
+    const pos = g.attributes.position, nor = g.attributes.normal, uv = g.attributes.uv;
+    if (seg === 3) {
+      // cada eje: los vértices del borde (±s/2) van al arco y los interiores (±s/6) al límite de la cara plana
+      const h = [sx / 2 - r, sy / 2 - r, sz / 2 - r], t = [sx / 3, sy / 3, sz / 3], p = [0, 0, 0], n = [0, 0, 0];
+      for (let i = 0; i < pos.count; i++) {
+        p[0] = pos.getX(i); p[1] = pos.getY(i); p[2] = pos.getZ(i);
+        let l = 0;
+        for (let a = 0; a < 3; a++) { n[a] = Math.abs(p[a]) > t[a] ? Math.sign(p[a]) : 0; l += n[a] * n[a]; }
+        l = 1 / Math.sqrt(l);
+        for (let a = 0; a < 3; a++) { n[a] *= l; p[a] = Math.sign(p[a]) * h[a] + n[a] * r; }
+        pos.setXYZ(i, p[0], p[1], p[2]); nor.setXYZ(i, n[0], n[1], n[2]);
+      }
+    }
+    // UV desde la posición: la veta sigue de una cara a la siguiente, como una chapa que envuelve el canto
     const faces = [[2, 1], [2, 1], [0, 2], [0, 2], [0, 1], [0, 1]];   // ejes (u, v) de cada cara
-    const uv = g.attributes.uv, ou = rand(), ov = rand();
+    const per = pos.count / 6, ou = rand(), ov = rand();
     for (let f = 0; f < 6; f++) {
       const ua = faces[f][0], va = faces[f][1];
-      for (let i = 0; i < 4; i++) {
-        const k = f * 4 + i, u = uv.getX(k) * dims[ua], v = uv.getY(k) * dims[va];
-        if (va === ga) uv.setXY(k, v / TL + ou, u / TW + ov); else uv.setXY(k, u / TL + ou, v / TW + ov);
+      for (let i = f * per; i < (f + 1) * per; i++) {
+        const u = [pos.getX(i), pos.getY(i), pos.getZ(i)];
+        const cu = u[ua] + dims[ua] / 2, cv = u[va] + dims[va] / 2;
+        if (va === ga) uv.setXY(i, cv / TL + ou, cu / TW + ov); else uv.setXY(i, cu / TL + ou, cv / TW + ov);
       }
     }
     return g;
@@ -49,7 +70,10 @@
   };
   /* Tablero horizontal a partir de un contorno en planta; y ∈ [0, t] */
   G.slab = function (shape, t, wood) {
-    const g = new T.ExtrudeGeometry(shape, { depth: t, bevelEnabled: false, curveSegments: 10 });
+    // las tapas de madera llevan el mismo canto redondeado que los tableros
+    const b = wood ? Math.min(G.bevel, t * 0.3) : 0;
+    const g = new T.ExtrudeGeometry(shape, b ? { depth: t - 2 * b, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelOffset: -b, bevelSegments: 2, curveSegments: 14 } : { depth: t, bevelEnabled: false, curveSegments: 10 });
+    if (b) g.translate(0, 0, b);
     if (wood) { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / TL, uv.getY(i) / TW); }
     g.rotateX(-Math.PI / 2);
     return g;

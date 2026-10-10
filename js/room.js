@@ -14,7 +14,7 @@
   R.wx = wx; R.wz = wz;
 
   function box(mat, X0, y0, D0, sx, sy, sd, opt) {
-    const m = new T.Mesh(new T.BoxGeometry(sx, sy, sd), mat);
+    const m = new T.Mesh(G.box(sx, sy, sd, null, opt && opt.bev != null ? opt.bev : 0), mat);
     m.position.set(wx(X0) + sx / 2, y0 + sy / 2, wz(D0) - sd / 2);
     m.receiveShadow = true; if (opt && opt.cast) m.castShadow = true;
     return m;
@@ -53,19 +53,20 @@
     const M = L.mats;
     const root = new T.Group(); scene.add(root);
     R.root = root;
-    const always = new T.Group(); root.add(always);
+    const always = new T.Group(); always.name = 'Local'; root.add(always);
 
     /* ---------------------------------------------------- muros perimetrales */
     const left = new T.Group(); left.add(box(M.muro, -TH, 0, 0, TH, HC, DP + TH));
     const right = new T.Group(); right.add(box(M.muro, W, 0, 0, TH, HC, DP + TH));
     const back = new T.Group(); back.add(box(M.muro, -TH, 0, DP, W + TH * 2, HC, TH));
+    left.name = 'Muro izquierdo'; right.name = 'Muro derecho'; back.name = 'Muro de fondo';
     root.add(left, right, back);
     E.addShell(left, (c) => c.x > -3.25);
     E.addShell(right, (c) => c.x < 3.25);
     E.addShell(back, (c) => c.z > -3.75);
 
     /* -------------------------------------------- división sala / trastienda */
-    const div = new T.Group(); root.add(div);
+    const div = new T.Group(); div.name = 'División sala-trastienda'; root.add(div);
     div.add(box(M.listonFondo, 0, 0, 5.5, 3.9, HC, 0.1));
     const sl = [];
     for (let i = 0; i < 65; i++) G.pushBox(sl, wx(0.012 + i * 0.06), 0, wz(5.5), 0.034, HS, 0.022, 0xffffff);
@@ -87,17 +88,17 @@
 
     /* ----------------------------------------------------------------- fachada */
     // pilares: sostienen el tótem y la pantalla; solo se apartan si tapan lo que se está mirando
-    const pilL = new T.Group(), pilR = new T.Group(); root.add(pilL, pilR);
+    const pilL = new T.Group(), pilR = new T.Group(); pilL.name = 'Pilar izquierdo'; pilR.name = 'Pilar derecho'; root.add(pilL, pilR);
     pilL.add(box(M.carbon, -TH, 0, -PD, 0.6 + TH, HS, PD, { cast: true }));
     pilR.add(box(M.carbon, 5.4, 0, -PD, 0.6 + TH, HS, PD, { cast: true }));
-    const fac = new T.Group(); root.add(fac);
+    const fac = new T.Group(); fac.name = 'Fachada y pasillo'; root.add(fac);
     fac.add(box(M.carbon, -TH, HS, -PD - 0.06, W + TH * 2, HF - HS, PD + 0.06));
-    const mall = M.muro.clone(); mall.color.set(0xe6e1d8);
+    const mall = M.muro.clone(); mall.color.set(0xe6e1d8); mall.name = 'muroPasillo';
     fac.add(box(mall, -TH - 14, 0, -0.14, 14, HF + 2.6, 0.14));
     fac.add(box(mall, W + TH, 0, -0.14, 14, HF + 2.6, 0.14));
     fac.add(box(mall, -TH, HF, -0.14, W + TH * 2, 2.6, 0.14));
     const sTex = signTexture(); R.signTex = sTex;
-    const signM = new T.MeshBasicMaterial({ map: sTex, transparent: true, toneMapped: false, depthWrite: false });
+    const signM = new T.MeshBasicMaterial({ map: sTex, transparent: true, toneMapped: false, depthWrite: false }); signM.name = 'letrero';
     const sign = new T.Mesh(new T.PlaneGeometry(5.36, 0.67), signM);
     sign.position.set(0.28, HS + (HF - HS) / 2, wz(-PD - 0.06) + 0.004); fac.add(sign);
     const halo = new T.Mesh(new T.PlaneGeometry(4.6, 1.0), E.glowMaterial(E.softDot(), 0xffffff, 0.16));
@@ -127,7 +128,7 @@
     E.addShell(pilR, (c, st) => R.keepPillars || !blocks(c, st, 2.1, 3.45, 0, 3.1, 3.3, 4.1));
 
     /* -------------------------------------------------------------------- cielo */
-    const ceil = new T.Group(); root.add(ceil);
+    const ceil = new T.Group(); ceil.name = 'Cielo y luminarias'; root.add(ceil);
     const slab = box(M.cielo, 0, HC, 0, W, 0.08, DP); ceil.add(slab);
     // descolgado perimetral de la sala de ventas
     ceil.add(box(M.cielo, 0, HS, 0, 0.5, HC - HS, 5.0));
@@ -152,6 +153,8 @@
         head.position.set(wx(X) + dir * 0.03, HC - 0.13, wz(D)); head.rotation.z = dir * 0.5; ceil.add(head);
         const lens = new T.Mesh(new T.CircleGeometry(0.03, 12), spotL);
         lens.position.set(wx(X) + dir * 0.062, HC - 0.187, wz(D)); lens.rotation.set(Math.PI / 2, dir * 0.5, 0); ceil.add(lens);
+        // dos de cada cinco proyectores encienden un foco real sobre la exhibición del muro
+        if (i === 1 || i === 3) E.spot(new T.Vector3(wx(X) + dir * 0.07, HC - 0.2, wz(D)), new T.Vector3(wx(X < 3 ? 0.3 : 5.7), 1.15, wz(D + 0.05)), 5.5, 0.42, 0.75);
       }
     };
     rail(1.45); rail(4.55);
@@ -172,7 +175,10 @@
       const wire = new T.Mesh(new T.CylinderGeometry(0.003, 0.003, h, 5), blk); wire.position.set(wx(p[0]), HC - h / 2, wz(p[1])); ceil.add(wire);
       const lamp = new T.Mesh(new T.CylinderGeometry(0.028, 0.028, 0.2, 12), blk); lamp.position.set(wx(p[0]), HC - h - 0.1, wz(p[1])); ceil.add(lamp);
       const tip = new T.Mesh(new T.CircleGeometry(0.024, 12), M.ledBlanco); tip.rotation.x = Math.PI / 2; tip.position.set(wx(p[0]), HC - h - 0.201, wz(p[1])); ceil.add(tip);
+      E.spot(new T.Vector3(wx(p[0]), HC - h - 0.21, wz(p[1])), new T.Vector3(wx(p[0]) + 0.02, 0, wz(p[1])), 4.2, 0.62, 0.9, true);
     });
+    // la lámpara lineal baña la mesa alta
+    E.spot(new T.Vector3(wx(pc.X), pc.y - 0.02, wz(pc.D)), new T.Vector3(wx(pc.X), 0, wz(pc.D)), 3.2, 1.05, 1.0, false, 0xfff0dc);
     // luz de trabajo de la trastienda
     const tl = new T.Mesh(new T.BoxGeometry(1.2, 0.02, 0.22), M.ledBlanco); tl.position.set(wx(2.6), HC - 0.012, wz(6.3)); ceil.add(tl);
     E.addShell(ceil, (c) => c.y < 2.92);
