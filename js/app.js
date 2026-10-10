@@ -546,6 +546,36 @@
         g.filas.map((f) => '<tr><td><a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.m) + '</a></td><td>' + esc(f.pres) + '</td><td class="mono">' + esc(f.precio) + '</td><td>' + esc(f.prov) + '</td><td>' + esc(f.nota) + '</td></tr>').join('') + '</tbody></table></div>').join(''), 'is-wide');
   }
 
+  /* --------------------------------------------- renders y exportación a .glb */
+  function openRenders() {
+    openModal('Renders fotorrealistas', $('#tpl-renders').innerHTML, 'is-wide');
+  }
+  let lbK = 0;
+  function galItems() { return $$('#modal .gal figure'); }
+  function showLightbox(k) {
+    const items = galItems(); if (!items.length) return;
+    lbK = (k + items.length) % items.length;
+    const f = items[lbK], img = $('img', f);
+    $('#lb-img').src = img.currentSrc || img.src; $('#lb-img').alt = img.alt;
+    $('#lb-cap').innerHTML = '<b>' + esc($('b', f).textContent) + '</b>' + esc($('figcaption', f).lastChild.textContent);
+    $('#lightbox').hidden = false; $('#lb-close').focus();
+  }
+  function closeLightbox() { if ($('#lightbox').hidden) return false; $('#lightbox').hidden = true; const b = $('#modal .gal button[data-k="' + lbK + '"]'); if (b) b.focus(); return true; }
+  async function downloadGLB(btn) {
+    const st = $('#dl-status');
+    btn.disabled = true; st.textContent = 'Preparando el modelo…';
+    try {
+      exitMontaje(true); deselect(true);
+      const views = ['fachada', 'interior', 'taller', 'aerea', 'planta'].map((k) => Object.assign({ name: k === 'aerea' ? 'Aérea' : k[0].toUpperCase() + k.slice(1) }, VIEWS[k]));
+      const bytes = await L.exporter.download({ views });
+      st.textContent = 'Listo: local-impresion-3d.glb (' + (bytes / 1048576).toFixed(1).replace('.', ',') + ' MB).';
+    } catch (err) {
+      console.error(err);
+      st.textContent = 'No se pudo generar el archivo (' + (err && err.message ? err.message : 'error') + '). Revisa la conexión: el exportador se descarga en ese momento.';
+    }
+    btn.disabled = false;
+  }
+
   /* -------------------------------------------------------- montaje del local */
   function montInsts(tag) {
     if (tag === '14e') return [F.items[14].insts[2]];
@@ -611,6 +641,11 @@
     $('#btn-inv').addEventListener('click', () => toggleInv());
     $('#btn-budget').addEventListener('click', openBudget);
     $('#btn-mats').addEventListener('click', openMats);
+    $('#btn-renders').addEventListener('click', openRenders);
+    $('#lb-close').addEventListener('click', closeLightbox);
+    $('#lb-prev').addEventListener('click', () => showLightbox(lbK - 1));
+    $('#lb-next').addEventListener('click', () => showLightbox(lbK + 1));
+    $('#lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') closeLightbox(); });
     $('#btn-montaje').addEventListener('click', () => (S.mont ? exitMontaje() : openMontaje()));
     $('#btn-labels').addEventListener('click', () => { S.labels = !(S.labels || S.plan); if (!S.labels && S.plan) { S.plan = false; } syncLabels(); });
     $('#act-explode').addEventListener('click', () => setExplode(S.mode !== 'exploded'));
@@ -629,6 +664,8 @@
     $('#z-out').addEventListener('click', () => E.zoomBy(1.28));
     $('#modal').addEventListener('click', (e) => {
       if (e.target.id === 'modal' || e.target.closest('#modal-close')) return closeModal();
+      const gb = e.target.closest('.gal button[data-k]'); if (gb) return showLightbox(+gb.dataset.k);
+      const dl = e.target.closest('#dl-glb'); if (dl) return downloadGLB(dl);
       const li = e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); }
     });
     $('#modal').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest && e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); } } });
@@ -644,6 +681,10 @@
     });
     bindPanel();
     window.addEventListener('keydown', (e) => {
+      if (!$('#lightbox').hidden) {
+        if (e.key === 'Escape') closeLightbox(); else if (e.key === 'ArrowRight') showLightbox(lbK + 1); else if (e.key === 'ArrowLeft') showLightbox(lbK - 1);
+        return;
+      }
       if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.mode === 'asm') return exitAsm(); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
       if (!$('#modal').hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
       if (!S.sel) return;
@@ -663,6 +704,7 @@
     try {
       E.init($('#gl'));
       R.build(E.scene); F.build();
+      E.finalize(); E.captureEnv();
     } catch (err) {
       console.error(err);
       $('#intro-msg').textContent = 'Este navegador no pudo iniciar el modelo 3D (WebGL).';
@@ -685,6 +727,6 @@
       });
     }));
   }
-  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, toggleInv, state: S };
+  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openRenders, toggleInv, state: S };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

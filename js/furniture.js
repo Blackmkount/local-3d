@@ -26,7 +26,7 @@
   /* pieza en forma de tablero: esquina mínima (x, y, z) + tamaño */
   function P(o, name, mat, x, y, z, sx, sy, sz, step, ex, opt) {
     opt = opt || {};
-    const m = new T.Mesh(opt.geo || G.box(sx, sy, sz, opt.grain), L.mats[mat] || mat);
+    const m = new T.Mesh(opt.geo || G.box(sx, sy, sz, opt.grain, opt.bev), L.mats[mat] || mat);
     if (opt.geo) m.position.set(x, y, z); else m.position.set(x + sx / 2, y + sy / 2, z + sz / 2);
     m.castShadow = !opt.noShadow; m.receiveShadow = !opt.noShadow;
     if (opt.order) m.renderOrder = opt.order;
@@ -150,7 +150,7 @@
       g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 3; g.strokeRect(2, 2, w - 4, h - 4);
     });
   }
-  const screenMat = (tex) => new T.MeshBasicMaterial({ map: tex, toneMapped: false });
+  const screenMat = (tex) => { const m = new T.MeshBasicMaterial({ map: tex, toneMapped: false }); m.name = 'pantalla'; return m; };
 
   /* ================================================================ modelos */
   F.build = function () {
@@ -413,7 +413,7 @@
       [0, 0.585, 1.17].forEach((y, i) => P(o, 'Listón horizontal', 'negro', 0, y, 0, 2.2, 0.05, 0.015, 0, [0, (i - 1) * 0.18, 0.22], { mk: 'mdf15' }));
       chazos(o, [0.15, 0.75, 1.45, 2.05].flatMap((x) => [[x, 0.025, 0.03], [x, 1.195, 0.03]]), 0, [0, 0, 0.4]);
       [0.3, 0.83, 1.32, 1.85].forEach((x) => P(o, 'Listón vertical', 'negro', x, 0.05, 0, 0.05, 1.12, 0.0145, 1, [0, 0, 0.52], { mk: 'mdf15' }));
-      const sheet = P(o, 'Lámina perforada', 'perforada', 0, 0, 0.015, 2.2, 1.22, 0.002, 2, [0, 0, 0.9]);
+      const sheet = P(o, 'Lámina perforada', 'perforada', 0, 0, 0.015, 2.2, 1.22, 0.002, 2, [0, 0, 0.9], { bev: 0 });
       const uv = sheet.geometry.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, (i % 4 === 1 || i % 4 === 3 ? 1 : 0) * 21.6, (i % 4 < 2 ? 1 : 0) * 12);
       const l = [], cs = [0x2f6fd0, 0xf2c230, 0xd9412e, 0x3f9b57, 0xf08a24, 0x232326, 0xf4f2ee, 0x8a4fd0, 0x2aa3a0, 0xe96aa6];
       for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {            // carretes hacia el fondo del local
@@ -558,7 +558,7 @@
       chazos(o, [[0.12, 0.2, 0.0], [0.48, 0.2, 0.0], [0.12, 2.0, 0.0], [0.48, 2.0, 0.0]], 0, [0, 0, 0.55]);
       ['Prototipos', 'Personalizados', 'Regalos', 'Decoración', 'Figuras'].forEach((name, i) => {
         const g = new T.PlaneGeometry(0.3, 0.375); g.translate(0.3, 0.3 + i * 0.4, 0.019);
-        const mat = new T.MeshBasicMaterial({ map: iconTex(name), transparent: true, toneMapped: false, alphaTest: 0.08 });
+        const mat = new T.MeshBasicMaterial({ map: iconTex(name), transparent: true, toneMapped: false, alphaTest: 0.08 }); mat.name = 'icono';
         P(o, 'Ícono «' + name + '»', mat, 0, 0, 0, 0, 0, 0, 1, [0, 0, 0.62 + i * 0.07], { geo: g, mk: 'petg', noShadow: true });
       });
       add(19, [o], { th: 0.35, ph: 1.3, zone: 'fachada' });
