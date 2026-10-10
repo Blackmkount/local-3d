@@ -25,7 +25,7 @@
       dims: '0.95 × 0.08 × 1.67 m', cant: '1',
       ubic: 'Muro izquierdo, a 0.50 m de la fachada; base a 0.40 m del piso',
       total: 2990800,
-      resumen: 'Televisor de 75" colgado en vertical: es lo primero que se ve al entrar por la izquierda.',
+      resumen: 'Televisor de 75" colgado en vertical: es lo primero que se ve al entrar por la izquierda. Muestra en bucle un video de cómo se imprime una pieza en 3D.',
       mats: [
         { key: 'producto', m: 'Televisor Hisense 75" QLED 4K 75Q6QV', uso: '166.9 × 95.2 × 7.9 cm', cant: '1', pu: '$2.899.900 por unidad', costo: 2899900, prov: 'Homecenter', nota: 'En oferta (normal $4.579.900); sin stock en línea el día de la consulta' },
         { key: 'soporte', m: 'Soporte fijo de TV de 32" a 75", Power', uso: 'Carga máxima 70 kg; se fija girado 90°', cant: '1', pu: '$90.900 por unidad', costo: 90900, prov: 'Homecenter', nota: 'Sin stock en línea' }

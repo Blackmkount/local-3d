@@ -9,6 +9,8 @@
 (function () {
   'use strict';
   const L = (window.L3D = window.L3D || {});
+  // versión con que index.html carga este archivo (?v=): la usa también el video, para no ver el anterior en caché
+  const VER = ((document.currentScript && document.currentScript.src.match(/[?&]v=([^&#]+)/)) || [])[1];
   const T = THREE, E = L.engine, G = L.geo, R = L.room;
   const F = (L.furn = { items: {}, order: [] });
   const wx = R.wx, wz = R.wz, PI = Math.PI;
@@ -93,29 +95,28 @@
     g.beginPath(); for (let i = 0; i < 6; i++) { const q = p(i); if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); } g.closePath(); g.stroke();
     g.beginPath(); [1, 3, 5].forEach((i) => { const q = p(i); g.moveTo(cx, cy); g.lineTo(q[0], q[1]); }); g.stroke();
   }
-  function drawBunnyScreen(g, w, h) {
-    const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, '#1b1d22'); bg.addColorStop(1, '#0d0e11');
+  /* imagen fija de la pantalla de 75" (mientras carga el video o si no se puede reproducir):
+     la portada del video del proceso de impresión, con la misma composición */
+  const INTER = '"Inter",system-ui,-apple-system,"Segoe UI",sans-serif';
+  function drawProcessScreen(g, w, h) {
+    const s = w / 720, Y = (v) => v * h / 1280;
+    const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#0f1013'); bg.addColorStop(1, '#060607');
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    const halo = g.createRadialGradient(w * 0.55, h * 0.62, 20, w * 0.55, h * 0.62, w * 0.75);
-    halo.addColorStop(0, 'rgba(120,160,230,0.35)'); halo.addColorStop(1, 'rgba(120,160,230,0)');
+    const halo = g.createRadialGradient(w * 0.5, h * 0.6, 0, w * 0.5, h * 0.6, w * 0.9);
+    halo.addColorStop(0, 'rgba(255,159,10,0.12)'); halo.addColorStop(0.55, 'rgba(255,159,10,0.04)'); halo.addColorStop(1, 'rgba(255,159,10,0)');
     g.fillStyle = halo; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#fff'; g.textBaseline = 'top'; g.font = '400 ' + Math.round(w * 0.105) + 'px ' + FONT;
-    g.fillText('Tus ideas', w * 0.1, h * 0.085); g.fillText('en 3D', w * 0.1, h * 0.085 + w * 0.125);
-    // conejo
-    const cx = w * 0.56, by = h * 0.93;
-    const body = (x, y, rx, ry, rot) => {
-      const gr = g.createRadialGradient(x - rx * 0.35, y - ry * 0.4, rx * 0.1, x, y, Math.max(rx, ry) * 1.15);
-      gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.6, '#e4e8f0'); gr.addColorStop(1, '#9fb0cc');
-      g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, rx, ry, rot || 0, 0, PI * 2); g.fill();
-    };
-    body(cx - w * 0.07, by - h * 0.545, w * 0.05, h * 0.105, -0.12);
-    body(cx + w * 0.09, by - h * 0.55, w * 0.05, h * 0.105, 0.14);
-    body(cx - w * 0.2, by - h * 0.2, w * 0.06, h * 0.07, 0.6);
-    body(cx + w * 0.22, by - h * 0.2, w * 0.06, h * 0.07, -0.6);
-    body(cx, by - h * 0.17, w * 0.23, h * 0.17);
-    body(cx - w * 0.1, by - h * 0.02, w * 0.09, h * 0.035); body(cx + w * 0.1, by - h * 0.02, w * 0.09, h * 0.035);
-    body(cx, by - h * 0.39, w * 0.21, h * 0.115);
-    g.fillStyle = '#1b1d22'; g.beginPath(); g.arc(cx - w * 0.08, by - h * 0.4, w * 0.018, 0, 7); g.arc(cx + w * 0.08, by - h * 0.4, w * 0.018, 0, 7); g.fill();
+    const B = L.brand;
+    if (B) { const k = 128 * s / B.viewBox[0]; g.save(); g.translate(56 * s, Y(70)); g.scale(k, k); g.fillStyle = '#f5f5f7'; B.paths.forEach((d) => g.fill(new Path2D(d))); g.restore(); }
+    g.textBaseline = 'alphabetic';
+    const txt = (t, x, y, size, weight, color) => { g.font = weight + ' ' + Math.round(size * s) + 'px ' + INTER; g.fillStyle = color; g.fillText(t, x * s, Y(y)); };
+    txt('IMPRESIÓN 3D', 56, 236, 22, 700, '#ffa31a');
+    txt('Así nace', 52, 336, 92, 700, '#f5f5f7'); txt('una pieza', 52, 432, 92, 700, '#f5f5f7');
+    txt('Del archivo al objeto, en cuatro pasos.', 56, 500, 30, 400, '#a1a1a6');
+    ['Modelado', 'Laminado', 'Impresión', 'Acabado'].forEach((n, i) => {
+      const y = 650 + i * 104;
+      g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(56 * s, Y(y - 64), 608 * s, Math.max(1, s));
+      txt('0' + (i + 1), 56, y, 26, 700, '#ffa31a'); txt(n, 118, y, 46, 600, '#f5f5f7');
+    });
   }
   function drawCubeScreen(g, w, h) {
     const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#191a1e'); bg.addColorStop(1, '#0e0f12');
@@ -190,7 +191,7 @@
       else setInterval(() => { if (on) E.invalidate(1); }, 1000 / 30);
       E.hooks.push(check); check(); E.invalidate(2);
     }, { once: true });
-    v.src = src;
+    v.src = src + (VER ? '?v=' + VER : '');
   }
 
   /* ================================================================ modelos */
@@ -202,7 +203,7 @@
       const o = inst(1, 0, 0.40, 0.475, PI / 2);
       PM(o, 'Soporte fijo', 'acero', [{ g: new T.BoxGeometry(0.44, 0.44, 0.022), m: G.mat(0.475, 0.9, 0.011), c: 0x2a2a2c }, { g: new T.BoxGeometry(0.05, 0.6, 0.03), m: G.mat(0.34, 0.9, 0.022), c: 0x2a2a2c }, { g: new T.BoxGeometry(0.05, 0.6, 0.03), m: G.mat(0.61, 0.9, 0.022), c: 0x2a2a2c }], 0, [0, 0, 0.16], { mk: 'soporte' });
       const tv = P(o, 'Televisor 75"', 'plastico', 0, 0, 0.035, 0.95, 1.67, 0.045, 1, [0, 0, 0.62], { mk: 'producto' });
-      const scr = new T.Mesh(new T.PlaneGeometry(0.93, 1.65), screenMat(canvasTex(512, 900, drawBunnyScreen)));
+      const scr = new T.Mesh(new T.PlaneGeometry(0.93, 1.65), screenMat(canvasTex(512, 900, drawProcessScreen)));
       scr.position.z = 0.0235; tv.add(scr); scr.userData = { n: 1, inst: o, child: true };
       screenVideo(scr, 'assets/video/pantalla-75');
       add(1, [o], { th: 1.0, ph: 1.3 });

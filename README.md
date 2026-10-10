@@ -34,17 +34,38 @@ el logotipo, basta con reemplazar los trazos y la fachada, la barra superior y l
 ## Video de la pantalla de 75"
 
 La pantalla vertical del muro izquierdo reproduce un video en bucle, sin sonido: `assets/video/pantalla-75.mp4`
-(y `pantalla-75.webm` para los navegadores que no traen H.264). El que viene es una demostración: el conejo se imprime
-capa por capa y cierra con el logotipo de BlackForge.
+(y `pantalla-75.webm` para los navegadores que no traen H.264). El que viene explica en 36 segundos cómo nace una
+pieza impresa en 3D, en cuatro pasos y con animación 3D:
+
+1. **Modelado**: la pieza (un jarrón facetado y torcido) se dibuja en líneas, toma volumen y aparecen sus medidas.
+2. **Laminado**: un plano la corta en capas, las capas se separan y una de ellas muestra el recorrido de la boquilla
+   (perímetros y relleno), como en el software de laminado.
+3. **Impresión**: primer plano de la boquilla depositando el hilo fundido sobre la cama y luego un time-lapse de la
+   pieza creciendo capa sobre capa, con temperatura y avance en pantalla.
+4. **Acabado**: la pieza terminada gira sola, con su material, peso y tiempo de impresión.
+
+Cierra con el logotipo de BlackForge y empieza y termina en negro, así el bucle no tiene saltos. Mientras el video
+carga, o si no se puede reproducir, la pantalla muestra su portada.
+
+El video está hecho con código, en `tools/video-pantalla/` (three.js para la escena y un lienzo 2D para textos e
+indicadores), así que se puede corregir un texto, un color o un tiempo y volver a generarlo:
+
+1. Con un servidor local en la raíz del repositorio (`python3 -m http.server 8000`), abrir
+   `http://localhost:8000/tools/video-pantalla/` para verlo en vivo (`?t=12.5` congela ese instante).
+2. Los textos y los tiempos de cada paso están al comienzo de `tools/video-pantalla/video.js` (`STEPS`).
+3. Renderizar los 1080 cuadros con `node tools/video-pantalla/render.js` (usa Playwright) y armar los archivos con
+   `ffmpeg -framerate 30 -i tools/video-pantalla/frames/f%04d.png -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 20 -movflags +faststart assets/video/pantalla-75.mp4`
+   y `ffmpeg -framerate 30 -i tools/video-pantalla/frames/f%04d.png -c:v libvpx-vp9 -pix_fmt yuv420p -b:v 0 -crf 33 assets/video/pantalla-75.webm`.
 
 Para poner otro video basta con reemplazar el archivo, con el mismo nombre:
 
 - **Formato**: MP4 con video H.264, vertical 9:16 (1080 × 1920 o 720 × 1280). El sonido no se usa.
 - **Peso**: mientras más liviano, antes empieza; unos 5 a 15 MB para 15 a 30 segundos está bien.
-- El `.webm` es opcional: si no se reemplaza, los navegadores que lo usan seguirán mostrando la demostración, así que
+- El `.webm` es opcional: si no se reemplaza, los navegadores que lo usan seguirán mostrando el video anterior, así que
   conviene borrarlo o generarlo también, por ejemplo con
   `ffmpeg -i pantalla-75.mp4 -c:v libvpx-vp9 -b:v 0 -crf 33 -an pantalla-75.webm`.
-- Después de cambiarlo, subir el número `?v=` de `index.html` para que los navegadores no muestren el anterior.
+- Después de cambiarlo, subir el número `?v=` de `index.html`: el video se pide con ese mismo número, así los
+  navegadores no muestran el anterior.
 
 El video solo corre mientras la pantalla está a la vista, para no gastar batería. Se ve en la página publicada (GitHub
 Pages) o servida desde un servidor local; al abrir `index.html` con doble clic el navegador no deja usar el video dentro
@@ -129,6 +150,7 @@ así los navegadores descargan la versión nueva en lugar de usar la guardada en
 | `js/ui.js` | Comportamiento de la interfaz: paneles animados, segmentados, ventanas y notificaciones |
 | `js/app.js` | Interacción: selección, explosionado, armado, fichas, presupuesto y búsqueda |
 | `tools/build-artifact.py` | Empaqueta todo en un solo archivo HTML para compartirlo |
+| `tools/video-pantalla/` | Generador del video de la pantalla de 75" (escena, textos y render cuadro a cuadro) |
 
 ## De dónde salen los datos
 
