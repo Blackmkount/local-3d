@@ -1,8 +1,8 @@
 /* ============================================================================
    INTERFAZ — comportamiento estilo macOS, sin dependencias:
    visibilidad animada, controles segmentados con indicador deslizante,
-   notificaciones, ventanas que se arrastran, se amplían y se minimizan hacia
-   el botón que las abrió, y zoom de una imagen desde su miniatura.
+   notificaciones y ventanas que se arrastran, se amplían y se minimizan hacia
+   el botón que las abrió.
    ========================================================================== */
 (function () {
   'use strict';
@@ -125,25 +125,6 @@
     handle.addEventListener('pointerup', up); handle.addEventListener('pointercancel', up);
     handle.addEventListener('dblclick', (e) => { if (!e.target.closest('button') && onZoom) onZoom(); });
     return { reset() { dx = 0; dy = 0; set(); } };
-  };
-
-  /* ------------------------------------------- zoom desde la miniatura (FLIP) */
-  U.flipFrom = function (img, from) {
-    if (U.reduced() || !from || !from.width) return;
-    const to = img.getBoundingClientRect();
-    if (!to.width) return;
-    img.style.transition = 'none';
-    img.style.transform = 'translate(' + (from.left - to.left) + 'px,' + (from.top - to.top) + 'px) scale(' + (from.width / to.width) + ',' + (from.height / to.height) + ')';
-    void img.offsetWidth;
-    img.style.transition = 'transform 0.62s var(--spring), border-radius 0.62s var(--spring)';
-    img.style.transform = '';
-  };
-  U.flipTo = function (img, to) {
-    if (U.reduced() || !to || !to.width) return;
-    const from = img.getBoundingClientRect();
-    if (!from.width) return;
-    img.style.transition = 'transform 0.42s var(--spring)';
-    img.style.transform = 'translate(' + (to.left - from.left) + 'px,' + (to.top - from.top) + 'px) scale(' + (to.width / from.width) + ',' + (to.height / from.height) + ')';
   };
 
   /* ⌘ en Mac, Ctrl en los demás */

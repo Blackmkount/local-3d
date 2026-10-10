@@ -554,7 +554,6 @@
   }
   function closeModal(min) {
     if ($('#modal').hidden) return;
-    if (!$('#lightbox').hidden) closeLightbox();
     if (min === true) { L.ui.originFrom($('.modal-card'), S.winFrom); $('#modal').classList.add('is-min'); }
     $('#modal').hidden = true;
     restoreFocus(lastFocus, $('#modal'));
@@ -592,42 +591,6 @@
         g.filas.map((f) => '<tr><td><a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.m) + '</a></td><td>' + esc(f.pres) + '</td><td class="mono">' + esc(f.precio) + '</td><td>' + esc(f.prov) + '</td><td>' + esc(f.nota) + '</td></tr>').join('') + '</tbody></table></div>').join(''), 'is-wide');
   }
 
-  /* --------------------------------------------- renders y exportación a .glb */
-  function openRenders() {
-    openModal('Renders fotorrealistas', $('#tpl-renders').innerHTML, 'is-wide');
-    // un render que todavía no se generó se muestra como pendiente, no como imagen rota
-    $$('#modal .gal img').forEach((img) => {
-      const miss = () => img.closest('figure').classList.add('is-missing');
-      if (img.complete && !img.naturalWidth && img.src) miss(); else img.addEventListener('error', miss);
-    });
-  }
-  let lbK = 0;
-  function galItems() { return $$('#modal .gal figure:not(.is-missing)'); }
-  function showLightbox(k, fromThumb) {
-    const items = galItems(); if (!items.length) return;
-    const all = $$('#modal .gal figure');
-    let f = fromThumb ? fromThumb.closest('figure') : null;
-    if (f && f.classList.contains('is-missing')) return;
-    if (!f) { const i = (k + items.length) % items.length; f = items[i]; }
-    lbK = all.indexOf(f);
-    const img = $('img', f), big = $('#lb-img'), first = $('#lightbox').hidden;
-    big.style.transition = 'none'; big.style.transform = '';
-    big.src = img.currentSrc || img.src; big.alt = img.alt;
-    $('#lb-cap').innerHTML = '<b>' + esc($('b', f).textContent) + '</b>' + esc($('figcaption', f).lastChild.textContent);
-    $('#lightbox').hidden = false; $('#lb-close').focus({ preventScroll: true });
-    if (first && fromThumb) {
-      const r = img.getBoundingClientRect();
-      (big.decode ? big.decode() : Promise.resolve()).then(() => L.ui.flipFrom(big, r), () => {});
-    } else { const fig = $('.lb-fig'); fig.classList.remove('is-swap'); void fig.offsetWidth; fig.classList.add('is-swap'); }
-  }
-  function stepLightbox(d) { const items = galItems(), cur = items.indexOf($$('#modal .gal figure')[lbK]); showLightbox(cur + d); }
-  function closeLightbox() {
-    if ($('#lightbox').hidden) return false;
-    const b = $('#modal .gal button[data-k="' + lbK + '"]');
-    if (b) L.ui.flipTo($('#lb-img'), b.getBoundingClientRect());
-    $('#lightbox').hidden = true; restoreFocus(b, $('#lightbox'));
-    return true;
-  }
   /* enlace directo a la ficha (#m7) */
   function copyText(t) {
     const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.opacity = '0';
@@ -642,21 +605,22 @@
     const fail = () => (copyText(url) ? ok() : L.ui.toast('No se pudo copiar', url, 'err', 8000));
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, fail); else fail();
   }
-  async function downloadGLB(btn) {
-    const st = $('#dl-status');
-    btn.disabled = true; st.textContent = 'Preparando el modelo…';
+  /* el local completo en .glb, para Unreal Engine, Blender, Twinmotion o D5 */
+  let exporting = false;
+  async function downloadGLB() {
+    if (exporting) return;
+    exporting = true;
+    L.ui.toast('Preparando el modelo 3D', 'Muros, mobiliario pieza por pieza, materiales y luces.', 'cube', 2500);
     try {
       exitMontaje(true); deselect(true);
       const views = ['fachada', 'interior', 'taller', 'aerea', 'planta'].map((k) => Object.assign({ name: k === 'aerea' ? 'Aérea' : k[0].toUpperCase() + k.slice(1) }, VIEWS[k]));
       const bytes = await L.exporter.download({ views }), mb = (bytes / 1048576).toFixed(1).replace('.', ',');
-      st.textContent = 'Listo: local-impresion-3d.glb (' + mb + ' MB).';
       L.ui.toast('Modelo 3D listo', 'local-impresion-3d.glb · ' + mb + ' MB. Ábrelo en Unreal Engine, Blender o Twinmotion.', 'cube', 6000);
     } catch (err) {
       console.error(err);
-      st.textContent = 'No se pudo generar el archivo (' + (err && err.message ? err.message : 'error') + '). Revisa la conexión: el exportador se descarga en ese momento.';
       L.ui.toast('No se pudo exportar', 'Revisa la conexión: el exportador se descarga al pedir el archivo.', 'err', 7000);
     }
-    btn.disabled = false;
+    exporting = false;
   }
 
   /* -------------------------------------------------------- montaje del local */
@@ -723,7 +687,6 @@
     view: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.8 6.8h3.1l1.4-2h5.4l1.4 2h3.1v9.4H2.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="11.3" r="2.8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
     chart: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 16V9M10 16V4.5M15.5 16v-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     stack: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3 17 7l-7 4-7-4zM3 10.5l7 4 7-4M3 14l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
-    photo: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.8" y="4" width="14.4" height="12" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m3.4 14.2 4-4 3 3 2-2 4 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="13.2" cy="7.6" r="1.3" fill="currentColor"/></svg>',
     house: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16.2V9l6-5 6 5v7.2M8 16.2v-4h4v4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>',
     pin: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17.4s-5.2-4.6-5.2-8.6a5.2 5.2 0 1 1 10.4 0c0 4-5.2 8.6-5.2 8.6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="8.8" r="1.8" fill="currentColor"/></svg>',
     cube: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.6 16.4 6.3v7.4L10 17.4 3.6 13.7V6.3zM10 10l6.4-3.7M10 10 3.6 6.3M10 10v7.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>'
@@ -736,10 +699,9 @@
     const acts = [
       { ic: SIC.chart, t: 'Presupuesto', s: 'Total, costo por mueble, por insumo, por tienda y plan de corte', q: 'presupuesto costo total precio dinero corte', run: () => openBudget() },
       { ic: SIC.stack, t: 'Materiales y procesos', s: 'Catálogo de precios y cómo se fabrica cada material', q: 'materiales catalogo procesos precios tiendas', run: () => openMats() },
-      { ic: SIC.photo, t: 'Renders fotorrealistas', s: 'Imágenes del local hechas con Blender Cycles', q: 'renders fotos imagenes galeria blender cycles', run: () => openRenders() },
       { ic: SIC.house, t: 'Montaje del local', s: 'Orden de fabricación y montaje en seis pasos', q: 'montaje armado fabricacion orden pasos', run: () => openMontaje() },
       { ic: SIC.pin, t: 'Números del plano', s: 'Mostrar u ocultar el número de cada elemento', q: 'numeros rotulos etiquetas plano', run: () => $('#btn-labels').click() },
-      { ic: SIC.cube, t: 'Descargar modelo 3D (.glb)', s: 'Para Unreal Engine, Blender, Twinmotion o D5', q: 'descargar exportar glb gltf unreal blender twinmotion modelo', run: () => { openRenders(); const b = $('#dl-glb'); if (b) downloadGLB(b); } }
+      { ic: SIC.cube, t: 'Descargar modelo 3D (.glb)', s: 'Para Unreal Engine, Blender, Twinmotion o D5', q: 'descargar exportar glb gltf unreal blender twinmotion modelo', run: () => downloadGLB() }
     ].map((a) => Object.assign({ sec: 'Acciones' }, a, { q: norm(a.q + ' ' + a.t) }));
     return (SP.all = acts.concat(views, items));
   }
@@ -828,21 +790,17 @@
     const U = L.ui;
     ['#panel', '#inv', '#mont'].forEach((q) => U.animated($(q), 460));
     ['#actions', '#stepper', '#hint'].forEach((q) => U.animated($(q), 340));
-    U.animated($('#tip'), 150); U.animated($('#modal'), 520); U.animated($('#lightbox'), 400); U.animated($('#spot'), 280);
+    U.animated($('#tip'), 150); U.animated($('#modal'), 520); U.animated($('#spot'), 280);
     U.seg($('#views')); U.seg($('#inv-filter'));
     $('#kbd-k').textContent = U.isMac ? '⌘K' : 'Ctrl K';
     $('#btn-search').title = 'Buscar muebles, vistas y acciones (' + (U.isMac ? '⌘K' : 'Ctrl+K') + ')';
     winDrag = U.windowDrag($('.modal-card'), $('.modal-head'), zoomModal);
     bindSpot(); bindSheet();
     $('#views').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) goView(b.dataset.view); });
+    $('#brand').addEventListener('click', (e) => { e.preventDefault(); goView('fachada'); });
     $('#btn-inv').addEventListener('click', () => toggleInv());
     $('#btn-budget').addEventListener('click', openBudget);
     $('#btn-mats').addEventListener('click', openMats);
-    $('#btn-renders').addEventListener('click', openRenders);
-    $('#lb-close').addEventListener('click', closeLightbox);
-    $('#lb-prev').addEventListener('click', () => stepLightbox(-1));
-    $('#lb-next').addEventListener('click', () => stepLightbox(1));
-    $('#lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') closeLightbox(); });
     $('#btn-montaje').addEventListener('click', () => (S.mont ? exitMontaje() : openMontaje()));
     $('#btn-labels').addEventListener('click', () => { S.labels = !(S.labels || S.plan); if (!S.labels && S.plan) { S.plan = false; } syncLabels(); });
     $('#act-explode').addEventListener('click', () => setExplode(S.mode !== 'exploded'));
@@ -863,8 +821,6 @@
       if (e.target.id === 'modal' || e.target.closest('#modal-close')) return closeModal();
       if (e.target.closest('#modal-min')) return closeModal(true);
       if (e.target.closest('#modal-zoom')) return zoomModal();
-      const gb = e.target.closest('.gal button[data-k]'); if (gb) return showLightbox(+gb.dataset.k, gb);
-      const dl = e.target.closest('#dl-glb'); if (dl) return downloadGLB(dl);
       const li = e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); }
     });
     $('#modal').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest && e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); } } });
@@ -884,10 +840,6 @@
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if ($('#spot').hidden) openSpot(); else closeSpot(); return; }
       if (!$('#spot').hidden) { if (e.key === 'Escape') closeSpot(); return; }
       if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); openSpot(); return; }
-      if (!$('#lightbox').hidden) {
-        if (e.key === 'Escape') closeLightbox(); else if (e.key === 'ArrowRight') stepLightbox(1); else if (e.key === 'ArrowLeft') stepLightbox(-1);
-        return;
-      }
       if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.mode === 'asm') return exitAsm(); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
       if (!$('#modal').hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
       if (!S.sel) return;
@@ -914,7 +866,7 @@
       return;
     }
     buildInventory(); buildLabels(); bindUI();
-    const redraw = () => { L.redraws.forEach((f) => f()); if (R.signTex) R.signTex.userData.redraw(); E.invalidate(3); };
+    const redraw = () => { L.redraws.forEach((f) => f()); E.invalidate(3); };
     if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('300 80px Jost'), document.fonts.load('600 80px Jost'), document.fonts.load('400 40px Jost')]).then(redraw, () => {});
     const start = /^#m(\d+)$/.exec(location.hash || '');
     if (E.size.w >= 1280 && !start) { S.inv = true; $('#inv').hidden = false; $('#btn-inv').setAttribute('aria-pressed', 'true'); }
@@ -930,6 +882,6 @@
       });
     }));
   }
-  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openRenders, openSpot, closeSpot, toggleInv, layout, state: S };
+  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openSpot, downloadGLB, closeSpot, toggleInv, layout, state: S };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

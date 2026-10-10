@@ -6,48 +6,49 @@
    y sombras amplias y suaves. Tipografía del sistema (SF en Apple, Inter en el
    resto), controles segmentados con indicador deslizante y transiciones con
    curva de resorte. Un solo acento: el ámbar de la luz LED del local.
-   Modo claro y oscuro según el sistema; respeta «reducir movimiento» y
-   «reducir transparencia».
+   Vidrio oscuro para leer cómodo sobre el modelo; respeta «reducir
+   movimiento» y «reducir transparencia».
    ========================================================================== */
+/* vidrio oscuro y con más cuerpo que el de macOS: el texto claro se lee bien sobre cualquier parte del modelo */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   --bg: #dcd7cf;                                   /* fondo de la escena (pasillo del centro comercial) */
 
   /* materiales */
-  --glass: rgba(247, 245, 241, 0.66);
-  --glass-hi: rgba(250, 249, 246, 0.84);           /* ventanas: más cuerpo para leer tablas */
-  --glass-edge: rgba(255, 255, 255, 0.75);         /* reflejo del canto superior */
-  --blur: saturate(190%) blur(26px);
-  --card: rgba(255, 255, 255, 0.62);
-  --card-2: rgba(255, 255, 255, 0.85);
-  --hair: rgba(0, 0, 0, 0.08);
-  --hair-2: rgba(0, 0, 0, 0.13);
-  --sh-1: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(45, 34, 18, 0.07), 0 12px 32px -8px rgba(45, 34, 18, 0.2);
-  --sh-2: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(45, 34, 18, 0.1), 0 30px 80px -16px rgba(45, 34, 18, 0.42);
-  --scrim: rgba(38, 30, 18, 0.16);
+  --glass: rgba(24, 24, 26, 0.8);
+  --glass-hi: rgba(21, 21, 23, 0.9);               /* ventanas: más cuerpo para leer tablas */
+  --glass-edge: rgba(255, 255, 255, 0.12);         /* reflejo del canto superior */
+  --blur: saturate(170%) blur(26px);
+  --card: rgba(255, 255, 255, 0.06);
+  --card-2: rgba(255, 255, 255, 0.1);
+  --hair: rgba(255, 255, 255, 0.08);
+  --hair-2: rgba(255, 255, 255, 0.14);
+  --sh-1: 0 0 0 0.5px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.18), 0 14px 36px -8px rgba(0, 0, 0, 0.45);
+  --sh-2: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.25), 0 30px 90px -16px rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.32);
 
-  /* texto: las cuatro jerarquías de etiqueta de Apple */
-  --ink: #1d1d1f;
-  --ink-2: rgba(60, 60, 67, 0.82);
-  --ink-3: rgba(60, 60, 67, 0.58);
-  --ink-4: rgba(60, 60, 67, 0.3);
+  /* texto: las cuatro jerarquías de etiqueta de Apple, sobre oscuro */
+  --ink: #f5f5f7;
+  --ink-2: rgba(235, 235, 245, 0.8);
+  --ink-3: rgba(235, 235, 245, 0.58);
+  --ink-4: rgba(235, 235, 245, 0.3);
 
   /* rellenos de controles */
-  --fill: rgba(118, 118, 128, 0.12);
-  --fill-2: rgba(118, 118, 128, 0.2);
-  --hover: rgba(0, 0, 0, 0.045);
-  --thumb: #ffffff;
-  --thumb-sh: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+  --fill: rgba(118, 118, 128, 0.26);
+  --fill-2: rgba(118, 118, 128, 0.36);
+  --hover: rgba(255, 255, 255, 0.07);
+  --thumb: #5d5d62;
+  --thumb-sh: 0 0 0 0.5px rgba(0, 0, 0, 0.2), 0 3px 8px rgba(0, 0, 0, 0.3);
 
   /* acento: luz LED cálida */
-  --accent: #f28c0f;
-  --accent-fill: #c66300;                          /* botones y filas elegidas, con texto blanco */
-  --accent-fill-hi: #d77009;
-  --accent-ink: #a85a00;                           /* texto de acento sobre vidrio claro */
-  --accent-soft: rgba(242, 140, 15, 0.14);
-  --focus: rgba(242, 140, 15, 0.55);
-  --cool-ink: #0a63c9;                             /* productos que se compran */
-  --cool-soft: rgba(10, 132, 255, 0.12);
+  --accent: #ff9f0a;
+  --accent-fill: #c96500;                          /* botones y filas elegidas, con texto blanco */
+  --accent-fill-hi: #db7409;
+  --accent-ink: #ffb340;                           /* texto de acento sobre vidrio oscuro */
+  --accent-soft: rgba(255, 159, 10, 0.18);
+  --focus: rgba(255, 159, 10, 0.6);
+  --cool-ink: #6cb4ff;                             /* productos que se compran */
+  --cool-soft: rgba(10, 132, 255, 0.2);
   --rovere: #c9a47a;
 
   --f-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -60,37 +61,6 @@
   --r-pane: 18px;
   --r-ctl: 9px;
   --gap: 12px;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --glass: rgba(36, 36, 38, 0.62);
-    --glass-hi: rgba(30, 30, 32, 0.86);
-    --glass-edge: rgba(255, 255, 255, 0.13);
-    --card: rgba(255, 255, 255, 0.055);
-    --card-2: rgba(255, 255, 255, 0.09);
-    --hair: rgba(255, 255, 255, 0.08);
-    --hair-2: rgba(255, 255, 255, 0.14);
-    --sh-1: 0 0 0 0.5px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.18), 0 14px 36px -8px rgba(0, 0, 0, 0.45);
-    --sh-2: 0 0 0 0.5px rgba(0, 0, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.25), 0 30px 90px -16px rgba(0, 0, 0, 0.6);
-    --scrim: rgba(0, 0, 0, 0.3);
-    --ink: #f5f5f7;
-    --ink-2: rgba(235, 235, 245, 0.74);
-    --ink-3: rgba(235, 235, 245, 0.5);
-    --ink-4: rgba(235, 235, 245, 0.26);
-    --fill: rgba(118, 118, 128, 0.24);
-    --fill-2: rgba(118, 118, 128, 0.34);
-    --hover: rgba(255, 255, 255, 0.06);
-    --thumb: #5d5d62;
-    --thumb-sh: 0 0 0 0.5px rgba(0, 0, 0, 0.2), 0 3px 8px rgba(0, 0, 0, 0.3);
-    --accent: #ff9f0a;
-    --accent-fill: #d06b00;
-    --accent-fill-hi: #e07a0a;
-    --accent-ink: #ffb340;
-    --accent-soft: rgba(255, 159, 10, 0.18);
-    --cool-ink: #6cb4ff;
-    --cool-soft: rgba(10, 132, 255, 0.2);
-  }
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -127,12 +97,11 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
 /* --------------------------------------------------------- barra superior */
 #top { position: absolute; top: var(--gap); left: var(--gap); right: var(--gap); height: 46px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--gap); pointer-events: none; z-index: 6; transition: opacity 0.9s var(--out) 1s, translate 1s var(--spring) 1s; }
 #top > * { pointer-events: auto; }
-.brand { justify-self: start; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px 0 12px; border-radius: 14px; min-width: 0; }
-.brand-mark { width: 24px; height: 24px; color: var(--ink); flex: none; }
-.brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
-.brand-name { font-family: var(--f-brand); font-weight: 300; font-size: 16px; letter-spacing: 0.2em; white-space: nowrap; }
-.brand-name b { font-weight: 600; letter-spacing: 0.06em; }
-.brand-sub { font-size: 11px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand { justify-self: start; display: flex; align-items: center; height: 46px; padding: 0 18px; border-radius: 14px; min-width: 0; color: #fff; text-decoration: none; transition: background 0.2s, scale 0.25s var(--spring); }
+.brand:hover { background: rgba(32, 32, 35, 0.86); }
+.brand:active { scale: 0.97; }
+.brand-logo { display: block; line-height: 0; }
+.brand-logo .logo { display: block; height: 20px; width: auto; }
 
 /* control segmentado: un indicador blanco se desliza bajo la opción elegida */
 .seg { position: relative; display: inline-flex; align-items: stretch; height: 32px; padding: 2px; border-radius: 10px; background: var(--fill); isolation: isolate; }
@@ -418,33 +387,6 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
 .procs .proc { padding: 13px 14px; border-radius: 14px; background: var(--card); box-shadow: 0 0 0 0.5px var(--hair); }
 .procs .proc h4 { margin-top: 0; font-size: 15px; }
 
-/* renders */
-.gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px 14px; margin: 18px 0 6px; }
-.gal figure { min-width: 0; }
-.gal .is-hero { grid-column: 1 / -1; }
-.gal button { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--fill); box-shadow: 0 0 0 0.5px var(--hair), 0 10px 24px -14px rgba(0, 0, 0, 0.45); transition: box-shadow 0.3s, translate 0.45s var(--spring); }
-.gal button:hover { translate: 0 -2px; box-shadow: 0 0 0 0.5px var(--hair), 0 18px 34px -16px rgba(0, 0, 0, 0.5); }
-.gal img { display: block; width: 100%; height: 100%; object-fit: cover; transition: scale 0.7s var(--spring); }
-.gal button:hover img { scale: 1.03; }
-.gal figcaption { margin-top: 8px; font-size: 12.5px; line-height: 1.45; color: var(--ink-3); }
-.gal figcaption b { display: block; font-weight: 600; font-size: 13.5px; color: var(--ink); }
-.gal .is-missing button { display: grid; place-items: center; text-align: center; padding: 16px; color: var(--ink-3); font-size: 12.5px; background: repeating-linear-gradient(135deg, var(--fill) 0 10px, transparent 10px 20px); }
-.gal .is-missing img { display: none; }
-.gal .is-missing button::after { content: 'Render pendiente · se genera con tools/blender/render_local.py'; max-width: 30ch; }
-.dl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 12px; }
-.dl-row .note { margin-top: 0; }
-#lightbox { position: absolute; inset: 0; z-index: 25; display: grid; place-items: center; padding: 56px 72px 24px; background: rgba(10, 9, 8, 0.82); -webkit-backdrop-filter: blur(24px) saturate(140%); backdrop-filter: blur(24px) saturate(140%); transition: opacity 0.35s var(--out); }
-#lightbox.anim:not(.is-shown) { opacity: 0; }
-.lb-fig { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 100%; max-height: 100%; min-height: 0; }
-.lb-fig img { display: block; max-width: 100%; max-height: calc(100vh - 150px); object-fit: contain; border-radius: 10px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); transform-origin: 0 0; }
-.lb-fig figcaption { font-size: 13px; color: rgba(235, 235, 245, 0.72); text-align: center; max-width: 80ch; transition: opacity 0.3s; }
-.lb-fig figcaption b { color: #fff; font-weight: 600; margin-right: 6px; }
-#lightbox .ibtn { position: absolute; width: 40px; height: 40px; color: #fff; background: rgba(255, 255, 255, 0.12); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-#lightbox .ibtn:hover { background: rgba(255, 255, 255, 0.2); }
-.lb-prev { left: 16px; top: 50%; translate: 0 -50%; }
-.lb-next { right: 16px; top: 50%; translate: 0 -50%; }
-.lb-close { right: 16px; top: 16px; }
-
 /* ------------------------------------------------------- búsqueda (Spotlight) */
 #spot { position: absolute; inset: 0; z-index: 30; display: flex; justify-content: center; align-items: flex-start; padding: 13vh 16px 16px; background: var(--scrim); transition: opacity 0.25s var(--out); }
 #spot.anim:not(.is-shown) { opacity: 0; }
@@ -483,14 +425,12 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
 @keyframes toastOut { to { opacity: 0; translate: 36px 0; scale: 0.96; } }
 
 /* -------------------------------------------------------------------- inicio */
-#intro { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; text-align: center; background: #f3f1ed; color: #1d1d1f; transition: opacity 1s var(--out) 0.15s, scale 1.2s var(--out) 0.15s, visibility 0s linear 1.4s; }
-@media (prefers-color-scheme: dark) { #intro { background: #0d0d0e; color: #f5f5f7; } }
+#intro { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; text-align: center; background: radial-gradient(120% 80% at 50% 40%, #1b1b1d 0%, #0b0b0c 70%); color: #f5f5f7; transition: opacity 1s var(--out) 0.15s, scale 1.2s var(--out) 0.15s, visibility 0s linear 1.4s; }
 .is-ready #intro { opacity: 0; scale: 1.06; visibility: hidden; pointer-events: none; }
-.intro-mark { width: 56px; height: 56px; margin-bottom: 14px; animation: introMark 1.6s var(--spring) both; }
-@keyframes introMark { from { opacity: 0; scale: 0.8; } }
-.intro-name { font-family: var(--f-brand); font-weight: 300; font-size: clamp(26px, 5vw, 40px); letter-spacing: 0.24em; animation: fadeUp 1.2s var(--spring) 0.15s both; }
-.intro-name b { font-weight: 600; letter-spacing: 0.08em; }
-.intro-sub { font-size: 11.5px; font-weight: 500; letter-spacing: 0.34em; text-transform: uppercase; opacity: 0.5; animation: fadeUp 1.2s var(--spring) 0.3s both; }
+.intro-logo { display: block; line-height: 0; margin-bottom: 14px; animation: introMark 1.6s var(--spring) both; }
+.intro-logo .logo { display: block; width: min(340px, 70vw); height: auto; }
+@keyframes introMark { from { opacity: 0; scale: 0.92; filter: blur(6px); } }
+.intro-sub { font-size: 11px; font-weight: 500; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.55; animation: fadeUp 1.2s var(--spring) 0.3s both; }
 .intro-bar { position: relative; width: 150px; height: 3px; margin-top: 30px; border-radius: 3px; background: rgba(128, 128, 128, 0.25); overflow: hidden; }
 .intro-bar span { position: absolute; top: 0; bottom: 0; left: 0; width: 40%; border-radius: 3px; background: currentColor; animation: introBar 1.1s ease-in-out infinite; }
 @keyframes introBar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
@@ -501,14 +441,12 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
 
 /* ---------------------------------------------------- pantallas intermedias */
 @media (max-width: 1480px) { .tb:not(.tb-search) span { display: none; } .tb { padding: 0 9px; } }
-@media (max-width: 1180px) { .brand-sub { display: none; } .seg.glass > button { padding: 0 12px; } .tb-search span { display: none; } }
+@media (max-width: 1180px) { .seg.glass > button { padding: 0 12px; } .tb-search span { display: none; } }
 
 /* ------------------------------------------------------------- pantallas angostas */
 .is-narrow #top { top: 8px; left: 8px; right: 8px; height: auto; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 44px 44px; gap: 6px; }
-.is-narrow .brand { height: 44px; padding: 0 12px 0 10px; border-radius: 13px; }
-.is-narrow .brand-mark { width: 22px; height: 22px; }
-.is-narrow .brand-name { font-size: 0; letter-spacing: 0; }
-.is-narrow .brand-name b { font-size: 15px; letter-spacing: 0.06em; }
+.is-narrow .brand { height: 44px; padding: 0 12px; border-radius: 13px; }
+.is-narrow .brand-logo .logo { height: 15px; }
 .is-narrow #views { justify-self: stretch; height: 44px; padding: 4px; border-radius: 13px; overflow-x: auto; scrollbar-width: none; }
 .is-narrow #views::-webkit-scrollbar { display: none; }
 .is-narrow #views > button { flex: 1 0 auto; padding: 0 9px; font-size: 12.5px; }
@@ -540,20 +478,16 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
 .is-narrow .st-t { font-size: 15px; }
 .is-narrow #toasts { top: auto; bottom: 12px; right: 8px; }
 .is-narrow #spot { padding-top: 10px; }
-.is-narrow #lightbox { padding: 56px 8px 16px; }
-.is-narrow .lb-prev, .is-narrow .lb-next { top: auto; bottom: 10px; translate: none; }
 
 /* ------------------------------------------------------------ accesibilidad */
 @media (prefers-reduced-transparency: reduce) {
-  :root { --glass: #f4f2ee; --glass-hi: #f7f6f3; }
-  @media (prefers-color-scheme: dark) { :root { --glass: #262628; --glass-hi: #1f1f21; } }
+  :root { --glass: #1c1c1e; --glass-hi: #19191b; }
   .glass, .pane, .window, .spot-card, .toast, #tip { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root { --glass: rgba(246, 244, 240, 0.95); --glass-hi: rgba(249, 248, 245, 0.98); }
+  :root { --glass: rgba(24, 24, 26, 0.95); --glass-hi: rgba(21, 21, 23, 0.97); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-delay: 0ms !important; } }
-.lb-fig.is-swap { animation: fadeUp 0.45s var(--spring) both; }
 .is-narrow #panel.is-tall ~ #dock { opacity: 0; pointer-events: none; }
 .is-narrow .spot-field { height: 52px; padding: 0 14px; }
 .is-narrow .spot-field input { font-size: 17px; }

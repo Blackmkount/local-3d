@@ -90,6 +90,75 @@
     return g;
   };
 
+  /* Trazos SVG (atributo d) → formas planas de three.js con sus huecos.
+     Admite M L H V C S Q T Z, absolutos y relativos; invierte Y porque en SVG
+     crece hacia abajo. Los huecos se reconocen por anidamiento (un contorno
+     dentro de un número impar de contornos es un hueco), así no importa el
+     sentido en que se dibujó cada trazo. */
+  G.svgShapes = function (paths, div) {
+    const subs = [];
+    paths.forEach((d) => {
+      const tk = d.match(/[a-zA-Z]|-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g) || [];
+      let i = 0, cmd = '', prev = '', x = 0, y = 0, x0 = 0, y0 = 0, cx = 0, cy = 0, cur = null;
+      const n = () => parseFloat(tk[i++]);
+      const begin = () => { cur = new T.Path(); cur.moveTo(x, -y); subs.push(cur); };
+      while (i < tk.length) {
+        if (/[a-zA-Z]/.test(tk[i])) cmd = tk[i++];
+        const C = cmd.toUpperCase(), r = cmd !== C, ox = r ? x : 0, oy = r ? y : 0;
+        if (C === 'Z') { if (cur) cur.closePath(); x = x0; y = y0; cur = null; prev = 'Z'; continue; }
+        if (C === 'M') { x = n() + ox; y = n() + oy; x0 = x; y0 = y; begin(); cmd = r ? 'l' : 'L'; prev = 'M'; continue; }
+        if (!cur) { x0 = x; y0 = y; begin(); }
+        if (C === 'L') { x = n() + ox; y = n() + oy; cur.lineTo(x, -y); }
+        else if (C === 'H') { x = n() + ox; cur.lineTo(x, -y); }
+        else if (C === 'V') { y = n() + oy; cur.lineTo(x, -y); }
+        else if (C === 'C' || C === 'S') {
+          let x1, y1;
+          if (C === 'C') { x1 = n() + ox; y1 = n() + oy; } else if (prev === 'C' || prev === 'S') { x1 = 2 * x - cx; y1 = 2 * y - cy; } else { x1 = x; y1 = y; }
+          const x2 = n() + ox, y2 = n() + oy, ex = n() + ox, ey = n() + oy;
+          cur.bezierCurveTo(x1, -y1, x2, -y2, ex, -ey); cx = x2; cy = y2; x = ex; y = ey;
+        } else if (C === 'Q' || C === 'T') {
+          let x1, y1;
+          if (C === 'Q') { x1 = n() + ox; y1 = n() + oy; } else if (prev === 'Q' || prev === 'T') { x1 = 2 * x - cx; y1 = 2 * y - cy; } else { x1 = x; y1 = y; }
+          const ex = n() + ox, ey = n() + oy;
+          cur.quadraticCurveTo(x1, -y1, ex, -ey); cx = x1; cy = y1; x = ex; y = ey;
+        } else { i++; continue; }            // arcos u otros comandos: no aparecen en el logotipo
+        prev = C;
+      }
+    });
+    const polys = subs.map((p) => { const pts = p.getPoints(div || 8); return { pts, area: Math.abs(T.ShapeUtils.area(pts)) }; }).filter((o) => o.pts.length > 2 && o.area > 1e-6);
+    const inside = (pt, pts) => {
+      let c = false;
+      for (let a = 0, b = pts.length - 1; a < pts.length; b = a++) {
+        if ((pts[a].y > pt.y) !== (pts[b].y > pt.y) && pt.x < (pts[b].x - pts[a].x) * (pt.y - pts[a].y) / (pts[b].y - pts[a].y) + pts[a].x) c = !c;
+      }
+      return c;
+    };
+    polys.forEach((o) => {
+      o.depth = 0; o.parent = null;
+      polys.forEach((q) => { if (q !== o && q.area > o.area && inside(o.pts[0], q.pts)) { o.depth++; if (!o.parent || q.area < o.parent.area) o.parent = q; } });
+    });
+    const shapes = new Map();
+    polys.forEach((o) => { if (o.depth % 2 === 0) shapes.set(o, new T.Shape(o.pts)); });
+    polys.forEach((o) => { if (o.depth % 2 === 1 && shapes.has(o.parent)) shapes.get(o.parent).holes.push(new T.Path(o.pts)); });
+    return Array.from(shapes.values());
+  };
+  /* separa una geometría no indexada en una por material (p. ej. caras y cantos de un extruido) */
+  G.splitGroups = function (geo) {
+    const by = [];
+    geo.groups.forEach((gr) => { (by[gr.materialIndex] = by[gr.materialIndex] || []).push(gr); });
+    return by.map((list) => {
+      const out = new T.BufferGeometry();
+      for (const k in geo.attributes) {
+        const a = geo.attributes[k], sz = a.itemSize, n = list.reduce((t, gr) => t + gr.count, 0), arr = new a.array.constructor(n * sz);
+        let o = 0;
+        list.forEach((gr) => { arr.set(a.array.subarray(gr.start * sz, (gr.start + gr.count) * sz), o); o += gr.count * sz; });
+        out.setAttribute(k, new T.BufferAttribute(arr, sz));
+      }
+      out.computeBoundingBox(); out.computeBoundingSphere();
+      return out;
+    });
+  };
+
   /* Une geometrías en una sola malla con color por vértice. list: [{g, m (Matrix4), c (hex)}] */
   G.merge = function (list) {
     let n = 0;
