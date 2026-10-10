@@ -31,6 +31,15 @@ el alero que iluminan la entrada y un umbral de acero inoxidable en la línea de
 Las letras se generan a partir del archivo `assets/blackforge-logo.svg` (sus trazos están en `js/brand.js`): si cambia
 el logotipo, basta con reemplazar los trazos y la fachada, la barra superior y la pantalla de inicio se actualizan.
 
+## Piso
+
+Dentro del local, **piso de madera**: tablas de roble tostado de 20 cm de ancho y 1.20, 1.60 o 2.40 m de largo,
+colocadas a lo largo del local (de la fachada hacia el fondo) con las juntas de punta trabadas, microbisel en los cuatro
+cantos y laca satinada que refleja el mobiliario de forma suave. Cada tabla tiene su tono y su corte: veta en catedral
+o recta, poro abierto del roble y algún nudo pequeño. Es más oscuro que la madera clara de cubiertas y listones, para
+que los muebles se separen del piso. Llega hasta el umbral de acero de la fachada; afuera, el pasillo conserva su
+porcelanato de 0.60. Los colores y las medidas de las tablas están en `PLANK`, dentro de `js/engine.js`.
+
 ## Video de la pantalla de 75"
 
 La pantalla vertical del muro izquierdo reproduce un video en bucle, sin sonido: `assets/video/pantalla-75.mp4`
@@ -107,9 +116,10 @@ sus texturas de color, relieve y rugosidad, las luces del local y las vistas de 
 Sin archivos de textura ni dependencias nuevas:
 
 - **Texturas PBR procedurales**: cada material se genera al cargar la página con su color, su relieve (normal map) y su
-  rugosidad: veta y poro de la melamina Rovere y de los listones, porcelanato de 0.60 con junta, borde redondeado y una
-  mínima diferencia de plano entre baldosas que quiebra los reflejos, estuco de muros y cielo, concreto con poros en las
-  materas, metal cepillado y pintura electrostática.
+  rugosidad: veta y poro de la melamina Rovere y de los listones, tablas de roble del piso (veta en catedral, poro
+  abierto, nudos y microbisel que quiebra los reflejos), porcelanato de 0.60 del pasillo con junta, borde redondeado y
+  una mínima diferencia de plano entre baldosas, estuco de muros y cielo, concreto con poros en las materas, metal
+  cepillado y pintura electrostática.
 - **Cantos redondeados**: todos los tableros llevan el redondeo de 2 mm del canto PVC, que atrapa un hilo de luz en cada borde.
 - **Materiales físicos**: laca y piezas impresas con barniz (clearcoat), vidrio y acrílico con índice de refracción.
 - **Luz**: el ambiente y los reflejos salen de una captura del propio local con dos rebotes de luz; focos reales en los

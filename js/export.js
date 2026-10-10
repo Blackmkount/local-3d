@@ -92,16 +92,14 @@
       m.name = ud.name || (ud.decor ? 'Piezas impresas en exhibición' : ud.plant ? 'Planta' : ud.child ? (o.parent.userData.name || 'Pieza') + ' · detalle' : o.name || 'Pieza');
       groupFor(top).add(m);
     });
-    // piso de porcelanato: 16 × 16 m con la trama alineada al local
-    const S = 16, cx = 0, cz = 1.5, fm = E.floor.material.clone();
-    fm.onBeforeCompile = () => {};
-    const fr = (v) => v - Math.floor(v);
-    ['map', 'normalMap', 'roughnessMap'].forEach((k) => {
-      const t = fm[k].clone(); t.repeat.set(S / 2.4, S / 2.4); t.offset.set(fr(-(-3 - cx + S / 2) / 2.4), fr(-(cz - 3.5 + S / 2) / 2.4)); fm[k] = t;
-    });
-    fm.name = 'piso';
-    const floor = new T.Mesh(new T.PlaneGeometry(S, S), fm); floor.name = 'Piso porcelanato 60 × 60'; floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0, cz);
-    local.add(floor);
+    // pisos: madera dentro del local y porcelanato en 16 × 16 m de pasillo alrededor, con las mismas texturas a escala
+    const fr = E.floorRect;
+    const floor = (name, geo, mat) => {
+      const fm = mat.clone(); fm.onBeforeCompile = () => {}; fm.name = mat.name; fm.metalnessMap = fm.roughnessMap;
+      const f = new T.Mesh(geo, fm); f.name = name; local.add(f);
+    };
+    floor('Piso de madera (tablas de roble)', E.floorGeometry(fr[0], fr[1], fr[2], fr[3]), E.floorMats.wood);
+    floor('Piso del pasillo (porcelanato 60 × 60)', E.floorGeometry(-8, -6.5, 8, 9.5, fr), E.floorMats.tile);
     // luces del local (focos y luz cálida); la luz general del pasillo queda a cargo de cada motor
     if (opt.lights !== false) {
       const lg = new T.Group(); lg.name = 'Luces'; scene.add(lg);
