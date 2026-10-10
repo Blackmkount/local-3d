@@ -227,7 +227,7 @@
       { t: '1.40', s: 'trastienda', p: new T.Vector3(wx(6.95), 0, wz(6.3)) }
     ];
     R.zoneLabels = [
-      { t: 'Sala de ventas', s: '6.00 × 5.50 · piso en trama de 0.60', p: new T.Vector3(wx(4.55), 0, wz(1.0)) },
+      { t: 'Sala de ventas', s: '6.00 × 5.50 · piso de madera', p: new T.Vector3(wx(4.55), 0, wz(1.0)) },
       { t: 'Trastienda · taller', s: '6.00 × 1.40 · distribución propuesta', p: new T.Vector3(wx(2.35), 0, wz(6.42)) },
       { t: 'Acceso', s: 'desde el pasillo del centro comercial', p: new T.Vector3(wx(3), 0, wz(-0.45)) }
     ];

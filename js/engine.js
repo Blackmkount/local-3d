@@ -158,6 +158,47 @@
     }, true);
   }
 
+  /* piso de madera: tablas de roble tostado de 0.20 m de ancho y 1.20 / 1.60 / 2.40 m de largo, con las
+     juntas de punta trabadas, microbisel en los cuatro cantos y laca satinada. La textura cubre
+     2.40 m de ancho (12 tablas, u) por 4.80 m a lo largo de las tablas (v). Cada tabla tiene su propio
+     tono y su corte: veta en catedral (arcos) o veta recta, poro abierto del roble y algún nudo pequeño. */
+  const PLANK = { w: 0.2, across: 2.4, along: 4.8, light: 0xa8835d, base: 0x8a6541, dark: 0x593b23 };
+  function plankMaps() {
+    const n = valueNoise(103), n2 = valueNoise(131), n3 = valueNoise(157), PU = 768, PV = 1536;
+    const L0 = hex3(PLANK.light), B0 = hex3(PLANK.base), D0 = hex3(PLANK.dark), NC = Math.round(PLANK.across / PLANK.w);
+    const LENS = [1.2, 1.6, 2.4], cols = [];
+    for (let c = 0; c < NC; c++) cols.push({ len: LENS[Math.floor(hash2(c + 3, 71) * 3)], off: hash2(c + 5, 83) * 2.4 });
+    return bakePBR(PU, PV, 1.4, (u, v, o) => {
+      const X = u * PLANK.across, Y = v * PLANK.along, c = Math.floor(X / PLANK.w), col = cols[c];
+      const a = X - c * PLANK.w, yy = Y + col.off, p = Math.floor(yy / col.len), b = yy - p * col.len;
+      const m = Math.round(PLANK.along / col.len), id = ((p % m) + m) % m, h = hash2(c * 13 + id + 1, id * 7 + c + 2), h2 = hash2(c + id * 5 + 9, c * 3 + 11);
+      const ox = h * 40, oy = h2 * 40;                                      // cada tabla, su propio trozo de madera
+      const warp = fbm(n, a * 8 + ox, b * 1.2 + oy, 4096, 4096, 3) - 0.5;
+      // anillos: arcos de catedral (corte plano) o líneas rectas (corte radial)
+      const c0 = 0.04 + h2 * 0.12, cath = h < 0.62;
+      const g = cath ? (a - c0) * (a - c0) * 1100 + b * (5 + h * 4) + warp * 3.5 : a * 70 + warp * 4;
+      const s1 = g - Math.floor(g);
+      const late = sstep(0.5, 0.82, s1) * (1 - sstep(0.9, 1, s1));
+      const pore = sstep(0.62, 0.86, n2(a * 110 + ox, b * 7 + oy, 4096, 4096)) * (0.5 + late * 0.5);   // poro abierto del roble
+      const ray = cath ? 0 : sstep(0.78, 0.92, n3(a * 90 + ox, b * 4 + oy, 4096, 4096)) * 0.5;        // reflejos del radio medular
+      const cloud = fbm(n3, a * 3 + ox, b * 0.8 + oy, 4096, 4096, 3) - 0.5;
+      // nudo pequeño en una de cada cuatro tablas
+      let knot = 0;
+      if (h2 < 0.25) { const kx = (a - (0.05 + h * 0.1)) * 1000, ky = (b - col.len * (0.2 + h2 * 2.4)) * 1000 / 1.6, d = Math.sqrt(kx * kx + ky * ky); knot = 1 - sstep(3, 7 + h * 5, d); }
+      const tone = (h - 0.5) * 0.3 + (h2 - 0.5) * 0.12;
+      const t = clamp(0.36 + tone + late * 0.3 + pore * 0.12 + cloud * 0.28 - ray * 0.12 + knot * 0.55, 0, 1);
+      if (t < 0.5) mix3(o, L0, B0, t * 2); else mix3(o, B0, D0, (t - 0.5) * 2);
+      // microbisel en los cantos largos y en las puntas, con la junta casi cerrada al fondo
+      const eA = Math.min(a, PLANK.w - a) * 1000, eB = Math.min(b, col.len - b) * 1000, e = Math.min(eA, eB);
+      const bev = 1 - sstep(0.4, 1.8, e), gap = 1 - sstep(0.15, 0.55, e);
+      const k = (1 - bev * 0.22) * (1 - gap * 0.5);
+      o.r *= k; o.g *= k; o.b *= k;
+      o.h = -bev * 1.6 - gap * 0.6 - pore * 0.55 - late * 0.12 - knot * 0.3;
+      o.ro = clamp(0.36 + pore * 0.22 + (cloud * 0.08) + bev * 0.2 + gap * 0.4, 0, 1);
+      o.m = 1 - bev * 0.55 - gap * 0.45 - pore * 0.25;
+    }, true);
+  }
+
   /* estuco de muros y cielo: la textura cubre 2 m */
   function plasterMaps() {
     const n = valueNoise(41);
@@ -295,6 +336,7 @@
     const smooth = stippleMaps(5, 0.35, 0.42, 0.1), powder = stippleMaps(13, 0.7, 0.55, 0.14), fiber = stippleMaps(31, 1.1, 0.82, 0.12);
     const brushed = brushedMaps(0.3), satin = brushedMaps(0.16);
     E.tile = tileMaps();
+    E.plank = plankMaps();
     const st = (c, rough, o) => S(set(smooth, 1.3 / 0.3, 0.65 / 0.3, 0.16, Object.assign({ color: c, roughness: rough / 0.42, map: null }, o)));
     const M = {
       muro: S(set(pl, 0.65, 0.325, 0.55, { color: 0xece7de })),
@@ -489,25 +531,37 @@
     return s;
   };
 
-  /* ------------------------------------------- piso con reflejo en espejo */
-  function buildFloor() {
-    const size = 90, rp = size / 2.4;
-    // la trama de 0.60 arranca en la cara interior del muro izquierdo (x = −3) y de la fachada (z = 3.5)
-    const ox = ((size / 2 - 3) / 2.4) % 1, oy = (1 - ((size / 2 - 3.5) / 2.4) % 1) % 1;
-    const prep = (t) => { const c = t.clone(); c.repeat.set(rp, rp); c.offset.set(ox, oy); c.anisotropy = maxAniso; return c; };
-    const mat = new T.MeshStandardMaterial({ map: prep(E.tile.map), normalMap: prep(E.tile.normalMap), normalScale: new T.Vector2(0.55, 0.55), roughnessMap: prep(E.tile.roughnessMap), roughness: 1, metalness: 0, envMapIntensity: 0.5 });
-    mat.name = 'piso';
-    E.reflect = { on: true, scale: E.mobile ? 0.4 : 0.55, k: 0.62 };
-    const rt = (E.reflect.rt = P.on
-      ? new T.WebGLRenderTarget(4, 4, { type: T.HalfFloatType, minFilter: T.LinearFilter, magFilter: T.LinearFilter })
-      : new T.WebGLRenderTarget(4, 4, { type: T.UnsignedByteType, colorSpace: T.SRGBColorSpace, minFilter: T.LinearFilter, magFilter: T.LinearFilter }));
-    const uni = (E.reflect.uni = { tRefl: { value: rt.texture }, uRes: { value: new T.Vector2(1, 1) }, uReflK: { value: E.reflect.k } });
+  /* ------------------------------------------- pisos con reflejo en espejo
+     Dentro del local, tablas de madera a lo largo del fondo; afuera, el porcelanato del pasillo.
+     El cambio queda bajo el umbral de acero de la fachada (z = 3.5). */
+  E.floorRect = [-3.15, -3.65, 3.15, 3.5];           // x0, z0, x1, z1: el local, hasta debajo de los muros
+  /* planta rectangular (con un hueco opcional) en el plano del piso; el uv queda en metros: (x, −z) */
+  E.floorGeometry = function (x0, z0, x1, z1, hole) {
+    const V = (x, z) => new T.Vector2(x, -z);
+    const sh = new T.Shape([V(x0, z1), V(x1, z1), V(x1, z0), V(x0, z0)]);
+    if (hole) sh.holes.push(new T.Path([V(hole[0], hole[3]), V(hole[0], hole[1]), V(hole[2], hole[1]), V(hole[2], hole[3])]));
+    const g = new T.ShapeGeometry(sh); g.rotateX(-Math.PI / 2);
+    return g;
+  };
+  /* mapas de un piso a escala: per = metros que cubre la textura (o [ancho, largo]); org = punto (x, z) donde arranca la trama */
+  E.floorMaps = function (maps, per, org) {
+    const fr = (a) => ((a % 1) + 1) % 1, pu = per[0] || per, pv = per[1] || per;
+    const out = {};
+    ['map', 'normalMap', 'roughnessMap'].forEach((k) => {
+      const c = maps[k].clone(); c.repeat.set(1 / pu, 1 / pv); c.offset.set(fr(-org[0] / pu), fr(org[1] / pv)); c.anisotropy = maxAniso; out[k] = c;
+    });
+    return out;
+  };
+  function floorMaterial(name, maps, nk, env, reflM) {
+    const mat = new T.MeshStandardMaterial(Object.assign({ normalScale: new T.Vector2(nk, nk), roughness: 1, metalness: 0, envMapIntensity: env }, maps));
+    mat.name = name;
+    const uni = E.reflect.uni, reflMul = { value: reflM };
     mat.onBeforeCompile = (sh) => {
-      sh.uniforms.tRefl = uni.tRefl; sh.uniforms.uRes = uni.uRes; sh.uniforms.uReflK = uni.uReflK;
+      sh.uniforms.tRefl = uni.tRefl; sh.uniforms.uRes = uni.uRes; sh.uniforms.uReflK = uni.uReflK; sh.uniforms.uReflM = reflMul;
       sh.fragmentShader = sh.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform sampler2D tRefl;\nuniform vec2 uRes;\nuniform float uReflK;')
+        .replace('#include <common>', '#include <common>\nuniform sampler2D tRefl;\nuniform vec2 uRes;\nuniform float uReflK;\nuniform float uReflM;')
         .replace('#include <opaque_fragment>', [
-          // el desnivel mínimo entre baldosas quiebra el reflejo, como en un piso real
+          // el relieve del piso (desnivel entre baldosas, bisel y poro de las tablas) quiebra el reflejo
           'vec2 ruv = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uRes + clamp(normal.xy - nonPerturbedNormal.xy, -0.03, 0.03) * 0.3;',
           'vec2 px = (1.8 + roughnessFactor * 10.0) / uRes;',
           'vec3 rf = texture2D(tRefl, ruv).rgb * 0.28;',
@@ -522,16 +576,31 @@
           'gloss = texelRoughness.b;',
           '#endif',
           'gloss *= 1.0 - smoothstep(0.1, 0.45, roughnessFactor);',
-          'outgoingLight = mix(outgoingLight, rf, uReflK * fres * gloss);',
+          'outgoingLight = mix(outgoingLight, rf, clamp(uReflK * uReflM * fres * gloss, 0.0, 1.0));',
           '#include <opaque_fragment>'
         ].join('\n'));
     };
-    const floor = (E.floor = new T.Mesh(new T.PlaneGeometry(size, size), mat));
-    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; floor.userData.floor = true;
-    E.scene.add(floor);
+    return mat;
+  }
+  function buildFloor() {
+    E.reflect = { on: true, scale: E.mobile ? 0.4 : 0.55, k: 0.62 };
+    const rt = (E.reflect.rt = P.on
+      ? new T.WebGLRenderTarget(4, 4, { type: T.HalfFloatType, minFilter: T.LinearFilter, magFilter: T.LinearFilter })
+      : new T.WebGLRenderTarget(4, 4, { type: T.UnsignedByteType, colorSpace: T.SRGBColorSpace, minFilter: T.LinearFilter, magFilter: T.LinearFilter }));
+    E.reflect.uni = { tRefl: { value: rt.texture }, uRes: { value: new T.Vector2(1, 1) }, uReflK: { value: E.reflect.k } };
+    const fr = E.floorRect, H = 45;
+    // las tablas y la trama de 0.60 arrancan en la cara interior del muro izquierdo y en la fachada
+    E.floorMats = {
+      wood: floorMaterial('piso de madera', E.floorMaps(E.plank, [PLANK.across, PLANK.along], [-3, 3.5]), 0.6, 0.45, 0.6),
+      tile: floorMaterial('piso pasillo', E.floorMaps(E.tile, 2.4, [-3, 3.5]), 0.55, 0.5, 1)
+    };
+    const inside = (E.floor = new T.Mesh(E.floorGeometry(fr[0], fr[1], fr[2], fr[3]), E.floorMats.wood));
+    const corridor = new T.Mesh(E.floorGeometry(-H, -H, H, H, fr), E.floorMats.tile);
+    [inside, corridor].forEach((f) => { f.receiveShadow = true; f.userData.floor = true; E.scene.add(f); });
+    E.corridor = corridor;
     E.vcam = new T.PerspectiveCamera();
     E.vcam.matrixAutoUpdate = false; E.vcam.matrixWorldAutoUpdate = false;
-    E.noReflect = [floor];
+    E.noReflect = [inside, corridor];
   }
   const _mirror = new T.Matrix4().makeScale(1, -1, 1);
   const _flipY = new T.Matrix4().makeScale(1, -1, 1);
