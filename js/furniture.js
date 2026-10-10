@@ -152,6 +152,47 @@
   }
   const screenMat = (tex) => { const m = new T.MeshBasicMaterial({ map: tex, toneMapped: false }); m.name = 'pantalla'; return m; };
 
+  /* Video en bucle sobre una pantalla, sin sonido. Mientras carga, si el archivo no está, si el navegador
+     no deja usarlo (página abierta con doble clic: file://) o si el sistema pide reducir movimiento, queda
+     la imagen fija. Solo se reproduce mientras la pantalla está a la vista: así no gasta batería ni GPU. */
+  const _fr = new T.Frustum(), _pm = new T.Matrix4(), _sp = new T.Sphere(), _nv = new T.Vector3(), _dv = new T.Vector3();
+  function screenVideo(mesh, base) {
+    if (E.reduced || location.protocol === 'file:') return;
+    const mat = mesh.material, v = document.createElement('video');
+    // MP4 (H.264) en casi todos los navegadores; WebM (VP9) para los que no traen H.264
+    const src = base + (v.canPlayType('video/mp4; codecs="avc1.640028"') ? '.mp4' : '.webm');
+    v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+    v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+    let tex = null, on = false;
+    const shown = () => { for (let o = mesh; o; o = o.parent) if (!o.visible) return false; return mesh.material === mat; };
+    const check = () => {
+      if (!tex) return;
+      const cam = E.camera;
+      _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); _fr.setFromProjectionMatrix(_pm);
+      if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
+      _sp.copy(mesh.geometry.boundingSphere).applyMatrix4(mesh.matrixWorld);
+      _nv.set(0, 0, 1).transformDirection(mesh.matrixWorld); _dv.copy(cam.position).sub(_sp.center);
+      const vis = shown() && _fr.intersectsSphere(_sp) && _nv.dot(_dv) > 0 && _dv.length() < 16;
+      if (vis === on) return;
+      on = vis;
+      if (on) { const p = v.play(); if (p && p.catch) p.catch(() => { on = false; }); } else v.pause();
+    };
+    // cada cuadro nuevo del video pide redibujar el modelo, solo mientras se ve
+    const frameCb = () => { if (on) E.invalidate(1); v.requestVideoFrameCallback(frameCb); };
+    v.addEventListener('loadeddata', () => {
+      try {                                            // un video de otro origen no se puede usar como textura
+        const c = document.createElement('canvas'); c.width = c.height = 1;
+        const g = c.getContext('2d'); g.drawImage(v, 0, 0, 1, 1); g.getImageData(0, 0, 1, 1);
+      } catch (err) { return; }
+      tex = new T.VideoTexture(v); tex.colorSpace = T.SRGBColorSpace;
+      mat._poster = mat.map; mat.map = tex; mat.needsUpdate = true;
+      if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(frameCb);
+      else setInterval(() => { if (on) E.invalidate(1); }, 1000 / 30);
+      E.hooks.push(check); check(); E.invalidate(2);
+    }, { once: true });
+    v.src = src;
+  }
+
   /* ================================================================ modelos */
   F.build = function () {
     const M = L.mats;
@@ -163,6 +204,7 @@
       const tv = P(o, 'Televisor 75"', 'plastico', 0, 0, 0.035, 0.95, 1.67, 0.045, 1, [0, 0, 0.62], { mk: 'producto' });
       const scr = new T.Mesh(new T.PlaneGeometry(0.93, 1.65), screenMat(canvasTex(512, 900, drawBunnyScreen)));
       scr.position.z = 0.0235; tv.add(scr); scr.userData = { n: 1, inst: o, child: true };
+      screenVideo(scr, 'assets/video/pantalla-75');
       add(1, [o], { th: 1.0, ph: 1.3 });
     }
 

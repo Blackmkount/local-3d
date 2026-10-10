@@ -31,6 +31,25 @@ el alero que iluminan la entrada y un umbral de acero inoxidable en la línea de
 Las letras se generan a partir del archivo `assets/blackforge-logo.svg` (sus trazos están en `js/brand.js`): si cambia
 el logotipo, basta con reemplazar los trazos y la fachada, la barra superior y la pantalla de inicio se actualizan.
 
+## Video de la pantalla de 75"
+
+La pantalla vertical del muro izquierdo reproduce un video en bucle, sin sonido: `assets/video/pantalla-75.mp4`
+(y `pantalla-75.webm` para los navegadores que no traen H.264). El que viene es una demostración: el conejo se imprime
+capa por capa y cierra con el logotipo de BlackForge.
+
+Para poner otro video basta con reemplazar el archivo, con el mismo nombre:
+
+- **Formato**: MP4 con video H.264, vertical 9:16 (1080 × 1920 o 720 × 1280). El sonido no se usa.
+- **Peso**: mientras más liviano, antes empieza; unos 5 a 15 MB para 15 a 30 segundos está bien.
+- El `.webm` es opcional: si no se reemplaza, los navegadores que lo usan seguirán mostrando la demostración, así que
+  conviene borrarlo o generarlo también, por ejemplo con
+  `ffmpeg -i pantalla-75.mp4 -c:v libvpx-vp9 -b:v 0 -crf 33 -an pantalla-75.webm`.
+- Después de cambiarlo, subir el número `?v=` de `index.html` para que los navegadores no muestren el anterior.
+
+El video solo corre mientras la pantalla está a la vista, para no gastar batería. Se ve en la página publicada (GitHub
+Pages) o servida desde un servidor local; al abrir `index.html` con doble clic el navegador no deja usar el video dentro
+del 3D y la pantalla muestra la imagen fija. Tampoco se reproduce si el sistema tiene activado *reducir movimiento*.
+
 ## Interfaz
 
 Diseñada con el lenguaje de macOS: los controles flotan sobre el modelo como vidrio esmerilado oscuro (fondo
@@ -99,6 +118,7 @@ así los navegadores descargan la versión nueva en lugar de usar la guardada en
 | `index.html` | Estructura de la página |
 | `css/styles.css` | Apariencia de la interfaz (vidrio oscuro, animaciones) |
 | `assets/blackforge-logo.svg` | Logotipo de BlackForge (original) |
+| `assets/video/` | Video en bucle de la pantalla de 75" (MP4 y WebM) |
 | `js/brand.js` | Trazos del logotipo, para la barra superior, la pantalla de inicio y las letras de la fachada |
 | `js/data.js` | **Datos del proyecto**: 20 elementos, catálogo de precios, presupuesto, montaje |
 | `js/furniture.js` | Los muebles modelados pieza por pieza: medidas, material y paso de armado de cada una |
