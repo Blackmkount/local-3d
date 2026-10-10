@@ -1,0 +1,690 @@
+/* ============================================================================
+   APLICACIÓN — selección, acercamiento, explosionado, animación de armado,
+   fichas de materiales y costos, presupuesto y montaje del local.
+   ========================================================================== */
+(function () {
+  'use strict';
+  const L = window.L3D, T = THREE, E = L.engine, F = L.furn, R = L.room, DATA = L.data;
+  const $ = (s, el) => (el || document).querySelector(s);
+  const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const cop = (n) => '$' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const copShort = (n) => (n >= 1e6 ? '$' + (n / 1e6).toFixed(n >= 1e7 ? 1 : 2).replace('.', ',') + ' M' : '$' + Math.round(n / 1000) + ' mil');
+  const byN = {}; DATA.items.forEach((i) => { byN[i.n] = i; });
+  const procBy = {}; DATA.procesos.forEach((p) => { procBy[p.id] = p; });
+  const app = $('#app');
+  const Y = new T.Vector3(0, 1, 0);
+
+  const S = { sel: null, inst: null, mode: 'solid', step: -1, playing: false, gen: 0, labels: false, plan: false, hover: null, hl: null, tab: 'resumen', filter: 'todos', inv: false, mont: null, usable: { w: 1, h: 1 }, tws: [] };
+
+  /* ------------------------------------------------------------------ vistas */
+  const VIEWS = {
+    fachada: { t: [0.1, 1.72, 1.2], th: 0.17, ph: 1.485, r: 12.2, min: 1.45 },
+    interior: { t: [0, 1.15, -0.9], th: 0.3, ph: 1.36, r: 5.4, min: 0.9 },
+    taller: { t: [-0.7, 1.05, -1.6], th: -0.5, ph: 1.27, r: 5.1, min: 0.8 },
+    aerea: { t: [0, 0.7, 0.1], th: 0.62, ph: 0.86, r: 13.4, min: 1.15 },
+    planta: { t: [0, 0, 0.72], th: 0, ph: 0.02, r: 18.4, min: 1.05 }
+  };
+  function goView(name, dur) {
+    const v = VIEWS[name]; if (!v) return;
+    exitMontaje(true); deselect(true);
+    S.plan = name === 'planta'; S.view = name;
+    $$('#views button').forEach((b) => b.classList.toggle('is-on', b.dataset.view === name));
+    layout();
+    const a = S.usable.w / S.usable.h, k = Math.max(1, v.min / a);
+    E.flyTo({ target: new T.Vector3(v.t[0], v.t[1], v.t[2]), theta: v.th, phi: v.ph, radius: Math.min(25, v.r * k) }, dur == null ? 1.6 : dur);
+    syncLabels();
+  }
+
+  function refit(dur) {
+    const v = VIEWS[S.view]; if (!v) return;
+    const a = S.usable.w / S.usable.h, k = Math.max(1, v.min / a);
+    E.flyTo({ target: new T.Vector3(v.t[0], v.t[1], v.t[2]), theta: v.th, phi: v.ph, radius: Math.min(25, v.r * k) }, dur);
+  }
+
+  /* --------------------------------------------- disposición y centro de vista */
+  function layout() {
+    const w = E.size.w, h = E.size.h, wide = w >= 860;
+    app.classList.toggle('is-narrow', !wide);
+    let ox = 0, oy = 0, uw = w, uh = h - 64 - 84;
+    const panelOpen = !$('#panel').hidden, leftOpen = !$('#inv').hidden || !$('#mont').hidden;
+    if (wide) {
+      const pw = panelOpen ? $('#panel').offsetWidth + 16 : 0, lw = leftOpen ? ($('#inv').hidden ? $('#mont') : $('#inv')).offsetWidth + 16 : 0;
+      ox = (pw - lw) / 2; uw = w - pw - lw; oy = 10;
+    } else if (panelOpen) {
+      const sh = $('#panel').offsetHeight; oy = sh / 2 - 56; uh = h - sh - 190;
+    }
+    S.usable = { w: Math.max(120, uw), h: Math.max(120, uh) };
+    app.style.setProperty('--ul', (wide && leftOpen ? ($('#inv').hidden ? $('#mont') : $('#inv')).offsetWidth + 12 : 0) + 'px');
+    app.style.setProperty('--ur', (wide && panelOpen ? $('#panel').offsetWidth + 12 : 0) + 'px');
+    app.style.setProperty('--ub', (!wide && panelOpen ? $('#panel').offsetHeight + 8 : 0) + 'px');
+    E.setViewOffset(ox, oy);
+  }
+
+  /* ---------------------------------------------------------------- selección */
+  function allMeshes(it, fn) { it.insts.forEach((o) => o.group.traverse((m) => { if (m.isMesh) fn(m, o); })); }
+  function ghostOthers(it, on, force) {
+    if (!on && !force && it === S.sel && it.zone === 'trastienda') return;   // la trastienda se ve aislada mientras esté elegida
+    F.order.forEach((n) => {
+      const x = F.items[n]; if (x === it) return;
+      allMeshes(x, (m) => {
+        if (m.userData.mat0 === undefined) m.userData.mat0 = m.material;
+        if (m.userData.cs === undefined) m.userData.cs = m.castShadow;
+        m.material = on ? E.ghost : m.userData.mat0; m.castShadow = on ? false : m.userData.cs;
+      });
+      x.insts.forEach((o) => o.glows.forEach((g) => { g.visible = !on; }));
+    });
+    if (on) { E.ghost.opacity = 0.4; E.tween(0.45, (k) => { E.ghost.opacity = E.lerp(0.4, 0.07, k); }); }
+    S.ghosted = on; E.shadowDirty = true; E.invalidate();
+  }
+  function track(tw) { S.tws.push(tw); return tw; }
+  function stopTweens() { S.tws.forEach(E.cancel); S.tws = []; }
+
+  function focusBox(it, o, exploded) {
+    const box = new T.Box3(), v = new T.Vector3();
+    const list = (it.insts.length > 1 && unionRadius(it) > 2.6) ? [o || it.insts[0]] : it.insts;
+    list.forEach((oi) => {
+      if (!exploded) { box.union(oi.box); return; }
+      const m = new T.Matrix4().compose(oi.home, oi.group.quaternion, oi.group.scale);
+      oi.parts.forEach((p) => {
+        const u = p.userData, bb = p.geometry.boundingBox || (p.geometry.computeBoundingBox(), p.geometry.boundingBox);
+        [u.home, v.copy(u.home).add(u.ex).clone()].forEach((c) => { box.expandByPoint(v.copy(bb.min).add(c).applyMatrix4(m)); box.expandByPoint(v.copy(bb.max).add(c).applyMatrix4(m)); });
+      });
+    });
+    return box;
+  }
+  function unionRadius(it) { if (it._ur == null) { const b = new T.Box3(); it.insts.forEach((o) => b.union(o.box)); it._ur = b.getSize(new T.Vector3()).length() / 2; } return it._ur; }
+  function focus(it, o, exploded, dur) {
+    const box = focusBox(it, o, exploded), c = box.getCenter(new T.Vector3()), rad = Math.max(0.35, box.getSize(new T.Vector3()).length() / 2);
+    const vf = T.MathUtils.degToRad(E.camera.fov), asp = S.usable.w / S.usable.h * (S.usable.h / E.size.h);
+    const hf = 2 * Math.atan(Math.tan(vf / 2) * asp), vfu = 2 * Math.atan(Math.tan(vf / 2) * (S.usable.h / E.size.h));
+    const d = rad / Math.sin(Math.min(vfu, hf) / 2) * 1.02;
+    const keep = exploded != null && S.sel === it;
+    E.flyTo({ target: c, theta: keep ? E.cam.goal.th : it.th, phi: keep ? Math.min(E.cam.goal.ph, 1.2) : it.ph, radius: E.clamp(d, 1.5, 15) }, dur || 1.35);
+  }
+
+  function select(n, o, opt) {
+    const it = F.items[n]; if (!it) return;
+    opt = opt || {};
+    if (S.mont) exitMontaje(true);
+    if (S.sel === it && !opt.force) { if (S.mode === 'solid' && o && o !== S.inst) { S.inst = o; focus(it, o); } return; }
+    if (S.sel) resetItem(S.sel);
+    S.sel = it; S.inst = o || it.insts[0]; S.mode = 'solid'; S.step = -1; S.playing = false; S.hl = null; S.tab = opt.tab || 'resumen';
+    R.hideDiv = it.zone === 'trastienda'; R.keepPillars = it.zone === 'fachada';
+    S.plan = false; S.view = null; $$('#views button').forEach((b) => b.classList.remove('is-on'));
+    renderPanel(); $('#panel').hidden = false; $('#tip').hidden = true; S.hover = null;
+    if (app.classList.contains('is-narrow')) toggleInv(false);
+    $('#hint').hidden = true;
+    const canAnim = it.insts[0].steps > 1 || it.insts[0].parts.length > 1;
+    $('#actions').hidden = !canAnim; $('#stepper').hidden = true;
+    $('#act-explode').setAttribute('aria-pressed', 'false'); $('#act-explode span').textContent = 'Explosionar';
+    $('#act-play').hidden = !(byN[n].seq && byN[n].seq.length);
+    if (it.zone === 'trastienda') ghostOthers(it, true);
+    layout(); focus(it, S.inst);
+    markInv(); syncLabels(); refreshEdges();
+    try { history.replaceState(null, '', '#m' + n); } catch (e) { /* sin historial */ }
+  }
+  function deselect(silent) {
+    if (!S.sel) return;
+    resetItem(S.sel);
+    S.sel = null; S.inst = null; S.hl = null; R.hideDiv = false; R.keepPillars = false; E.autoRotate = false;
+    $('#act-spin').setAttribute('aria-pressed', 'false');
+    $('#panel').hidden = true; $('#actions').hidden = true; $('#stepper').hidden = true; $('#hint').hidden = false;
+    layout(); markInv(); syncLabels(); refreshEdges();
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sin historial */ }
+    if (!silent) { const g = E.cam.goal; E.flyTo({ radius: Math.max(g.r, 6.5), phi: Math.min(g.ph, 1.25) }, 1.0); }
+  }
+  /* deja el mueble armado y la escena completa */
+  function resetItem(it) {
+    S.gen++; stopTweens();
+    it.insts.forEach((o) => {
+      o.group.position.copy(o.home);
+      o.parts.forEach((p) => { p.position.copy(p.userData.home); p.visible = true; if (p.userData.mat0) p.material = p.userData.mat0; });
+      o.decor.forEach((d) => { d.visible = true; d.position.y = 0; });
+      o.glows.forEach((g) => { g.visible = true; });
+    });
+    if (S.ghosted) ghostOthers(it, false, true);
+    S.mode = 'solid'; S.step = -1; S.playing = false; S.hl = null;
+    E.shadowDirty = true; E.invalidate();
+  }
+  function showDecor(it, on, drop) {
+    it.insts.forEach((o) => {
+      o.decor.forEach((d) => {
+        d.visible = on;
+        if (on && drop) { d.position.y = 0.16; track(E.tween(0.55, (k) => { d.position.y = 0.16 * (1 - k); }, { ease: E.ease.outBack })); } else d.position.y = 0;
+      });
+      o.glows.forEach((g) => { g.visible = on; });
+    });
+  }
+
+  /* -------------------------------------------------------------- explosionado */
+  function setExplode(on) {
+    const it = S.sel; if (!it) return;
+    if (S.mode === 'asm') exitAsm(true);
+    S.gen++; stopTweens();
+    const max = it.insts[0].steps;
+    if (on) { ghostOthers(it, true); showDecor(it, false); }
+    it.insts.forEach((o) => {
+      o.group.position.copy(o.home);
+      o.parts.forEach((p) => {
+        const u = p.userData, from = p.position.clone(), to = u.home.clone(); if (on) to.add(u.ex);
+        p.visible = true;
+        const delay = (on ? (max - 1 - u.step) : u.step) * 0.06;
+        track(E.tween(0.95, (k) => { p.position.lerpVectors(from, to, k); }, { delay, ease: on ? E.ease.out : E.ease.inOut }));
+      });
+    });
+    S.mode = on ? 'exploded' : 'solid';
+    const gen = S.gen;
+    if (!on) track(E.tween(0.01, () => {}, { delay: 0.95 + max * 0.06, done: () => { if (gen !== S.gen) return; ghostOthers(it, false); showDecor(it, true, true); refreshEdges(); } }));
+    $('#act-explode').setAttribute('aria-pressed', on ? 'true' : 'false'); $('#act-explode span').textContent = on ? 'Armar' : 'Explosionar';
+    $('#stepper').hidden = true; $('#actions').hidden = false;
+    focus(it, S.inst, on, 1.1);
+    refreshEdges(); syncPanelState(); syncLabels();
+  }
+
+  /* ----------------------------------------------------- animación de armado */
+  function offW(o) { if (!o._off) { const a = o.item.asm; o._off = a ? new T.Vector3(a.off[0], a.off[1], a.off[2]).applyAxisAngle(Y, o.group.rotation.y) : new T.Vector3(); } return o._off; }
+  function setOff(o, f) { o.group.position.copy(o.home).addScaledVector(offW(o), f); }
+  function partStart(p) {
+    const u = p.userData, d = (u.exA || u.ex).clone();
+    if (d.lengthSq() < 1e-6) d.set(0, 0.28, 0);
+    return u.home.clone().add(d);
+  }
+  function playAsm(from) {
+    const it = S.sel; if (!it) return;
+    const seq = byN[it.n].seq; if (!seq || !seq.length) return;
+    S.gen++; stopTweens();
+    if (!S.ghosted) ghostOthers(it, true);
+    showDecor(it, false);
+    S.mode = 'asm'; S.playing = true; E.autoRotate = false; $('#act-spin').setAttribute('aria-pressed', 'false');
+    $('#actions').hidden = true; $('#stepper').hidden = false;
+    $('#act-explode').setAttribute('aria-pressed', 'false'); $('#act-explode span').textContent = 'Explosionar';
+    buildDots(seq.length);
+    focus(it, S.inst, true, 1.0);
+    asmStep(from || 0, true);
+    syncPanelState(); syncLabels();
+  }
+  function asmStep(k, anim) {
+    const it = S.sel, seq = byN[it.n].seq, gen = ++S.gen;
+    stopTweens();
+    k = E.clamp(k, 0, seq.length - 1); S.step = k;
+    const A = it.asm;
+    let total = 0;
+    it.insts.forEach((o) => {
+      const settledBefore = A ? (k - 1 >= A.step ? 0 : 1) : 0, settledAfter = A ? (k >= A.step ? 0 : 1) : 0;
+      let d0 = 0;
+      const mine = o.parts.filter((p) => p.userData.step === k);
+      const partsDur = mine.length ? 0.9 + Math.min(0.6, mine.length * 0.035) : 0;
+      if (!anim || E.reduced) setOff(o, settledAfter);
+      else if (A && k === A.step) {
+        setOff(o, 1);
+        const slide = (delay) => track(E.tween(1.0, (e) => { setOff(o, 1 - e); }, { delay, ease: E.ease.inOut }));
+        if (A.first) { slide(0.15); d0 = 1.0; total = Math.max(total, 1.15 + partsDur); } else { slide(partsDur + 0.1); total = Math.max(total, partsDur + 1.1); }
+      } else setOff(o, settledBefore);
+      o.parts.forEach((p) => {
+        const u = p.userData;
+        if (u.step < k) { p.visible = true; p.position.copy(u.home); }
+        else if (u.step > k) { p.visible = false; }
+        else if (!anim || E.reduced) { p.visible = true; p.position.copy(u.home); }
+      });
+      mine.forEach((p, i) => {
+        if (!anim || E.reduced) return;
+        const from = partStart(p), to = p.userData.home, delay = d0 + Math.min(0.6, i * 0.035);
+        p.visible = false; p.position.copy(from);
+        track(E.tween(0.9, (e) => { p.visible = true; p.position.lerpVectors(from, to, e); }, { delay, ease: E.ease.outQuint }));
+      });
+      total = Math.max(total, d0 + partsDur);
+    });
+    S.moving = k; refreshEdges();
+    updateStepper();
+    E.shadowDirty = true; E.invalidate();
+    if (!anim) return;
+    track(E.tween(0.01, () => {}, { delay: Math.max(0.5, total) + 0.05, done: () => { if (gen !== S.gen) return; S.moving = -1; refreshEdges(); } }));
+    if (S.playing) {
+      track(E.tween(0.01, () => {}, { delay: Math.max(0.9, total) + 1.25, done: () => {
+        if (gen !== S.gen || !S.playing) return;
+        if (k < seq.length - 1) asmStep(k + 1, true); else finishAsm();
+      } }));
+    }
+  }
+  function finishAsm() {
+    const it = S.sel; S.playing = false; S.done = true;
+    showDecor(it, true, true);
+    updateStepper();
+    const gen = S.gen;
+    track(E.tween(0.01, () => {}, { delay: 1.6, done: () => { if (gen === S.gen && S.mode === 'asm') exitAsm(); } }));
+  }
+  function exitAsm(quiet) {
+    const it = S.sel; if (!it) return;
+    S.gen++; stopTweens(); S.done = false; S.moving = -1;
+    it.insts.forEach((o) => { o.group.position.copy(o.home); o.parts.forEach((p) => { p.visible = true; p.position.copy(p.userData.home); }); });
+    S.mode = 'solid'; S.playing = false; S.step = -1;
+    if (!quiet) { ghostOthers(it, false); showDecor(it, true); focus(it, S.inst, false, 1.0); }
+    $('#stepper').hidden = true; $('#actions').hidden = false;
+    refreshEdges(); syncPanelState(); syncLabels(); E.shadowDirty = true; E.invalidate();
+  }
+  const ICON_PLAY = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4.5v11l9-5.5z" fill="currentColor"/></svg>';
+  const ICON_PAUSE = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4.5v11M14 4.5v11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+  function buildDots(n) { $('#st-dots').innerHTML = Array.from({ length: n }, (_, i) => '<button type="button" class="dot" data-k="' + i + '" aria-label="Ir al paso ' + (i + 1) + '"></button>').join(''); }
+  function updateStepper() {
+    const it = S.sel; if (!it) return;
+    const seq = byN[it.n].seq, s = seq[S.step] || seq[0];
+    $('#st-n').textContent = S.done ? 'Listo' : 'Paso ' + (S.step + 1) + ' de ' + seq.length;
+    $('#st-t').textContent = S.done ? 'Armado completo' : s.t;
+    $('#st-src').textContent = S.done ? '' : s.src;
+    $('#st-play').innerHTML = S.playing ? ICON_PAUSE : ICON_PLAY;
+    $('#st-play').setAttribute('aria-label', S.playing ? 'Pausar' : 'Reproducir');
+    $$('#st-dots .dot').forEach((d, i) => { d.classList.toggle('is-done', i < S.step || !!S.done); d.classList.toggle('is-on', i === S.step && !S.done); });
+    $$('#panel .seq li').forEach((li, i) => { li.classList.toggle('is-on', S.mode === 'asm' && i === S.step); li.classList.toggle('is-done', S.mode === 'asm' && i < S.step); });
+  }
+  function syncPanelState() {
+    const p = $('#panel'); if (p.hidden) return;
+    const ex = $('.js-explode', p), pl = $('.js-play', p);
+    if (ex) ex.textContent = S.mode === 'exploded' ? 'Armar de nuevo' : 'Explosionar';
+    if (pl) pl.textContent = S.mode === 'asm' ? 'Reiniciar armado' : 'Ver armado paso a paso';
+    updateStepper();
+  }
+
+  /* ---------------------------------------------------- aristas de resaltado */
+  const lit = new Set();
+  function edgesOf(m) {
+    if (!m.userData.edges) {
+      const ls = new T.LineSegments(new T.EdgesGeometry(m.geometry, 30), E.edgeMat);
+      ls.visible = false; ls.raycast = function () {}; ls.renderOrder = 6; m.add(ls); m.userData.edges = ls;
+    }
+    return m.userData.edges;
+  }
+  function refreshEdges() {
+    lit.forEach((ls) => { ls.visible = false; }); lit.clear();
+    const on = (m, mat) => { if (!m.visible) return; const ls = edgesOf(m); ls.material = mat; ls.visible = true; lit.add(ls); };
+    const sel = S.sel;
+    if (sel) {
+      sel.insts.forEach((o) => o.parts.forEach((p) => {
+        const u = p.userData;
+        if (u.mat0 && S.mode !== 'asm') p.material = (S.hl && u.mk !== S.hl) ? E.ghostPart : u.mat0;
+        if (S.hl) { if (u.mk === S.hl) on(p, E.edgeMat); return; }
+        if (S.mode === 'exploded') on(p, E.edgeSoft);
+        if (S.mode === 'asm') on(p, u.step === S.moving ? E.edgeMat : E.edgeSoft);
+      }));
+    }
+    const hv = S.hover;
+    if (hv && !S.hl) {
+      const it = F.items[hv.n];
+      if (it && it !== sel) it.insts.forEach((o) => o.parts.forEach((p) => on(p, E.edgeMat)));
+      else if (it && hv.part && S.mode === 'exploded') on(hv.part, E.edgeMat);
+    }
+    if (S.rowHover && !S.hl) { const it = F.items[S.rowHover]; if (it && it !== sel) it.insts.forEach((o) => o.parts.forEach((p) => on(p, E.edgeMat))); }
+    E.invalidate();
+  }
+
+  /* --------------------------------------------------------------- puntero */
+  const ray = new T.Raycaster(), ndc = new T.Vector2();
+  function pickAt(e) {
+    const r = E.renderer.domElement.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, E.camera);
+    const targets = []; F.order.forEach((n) => F.items[n].insts.forEach((o) => { if (o.group.visible) targets.push(o.group); }));
+    const hits = ray.intersectObjects(targets, true);
+    for (const h of hits) {
+      let m = h.object; if (!m.visible) continue;
+      let part = null;
+      while (m && !(m.userData && m.userData.inst)) m = m.parent;
+      if (!m) continue;
+      if (h.object.userData.part) part = h.object; else if (h.object.parent && h.object.parent.userData.part) part = h.object.parent;
+      return { n: m.userData.n, inst: m.userData.inst, part };
+    }
+    return null;
+  }
+  let hoverRaf = 0, lastMove = null;
+  function onHover(e) {
+    lastMove = e;
+    if (hoverRaf) return;
+    hoverRaf = requestAnimationFrame(() => {
+      hoverRaf = 0;
+      const ev = lastMove, tip = $('#tip');
+      const hit = ev && ev.pointerType !== 'touch' && !S.mont ? pickAt(ev) : null;
+      const prev = S.hover;
+      S.hover = hit;
+      E.renderer.domElement.style.cursor = hit ? 'pointer' : '';
+      if (!hit) { tip.hidden = true; if (prev) refreshEdges(); return; }
+      if (!prev || prev.n !== hit.n || prev.part !== hit.part) refreshEdges();
+      const d = byN[hit.n];
+      let html;
+      if (S.sel && S.sel.n === hit.n && hit.part && S.mode !== 'solid') {
+        const u = hit.part.userData, row = d.mats.find((m) => m.key === u.mk);
+        html = '<b>' + esc(u.name) + '</b><span>' + esc(row ? row.m : d.name) + '</span>';
+      } else html = '<i>' + d.n + '</i><b>' + esc(d.short) + '</b><span>' + cop(d.total) + ' · ' + (d.origen === 'fabrica' ? 'se fabrica' : 'se compra') + '</span>';
+      tip.innerHTML = html; tip.hidden = false;
+      const r = $('#stage').getBoundingClientRect();
+      const x = Math.min(ev.clientX - r.left + 16, r.width - tip.offsetWidth - 8), y = Math.min(ev.clientY - r.top + 18, r.height - tip.offsetHeight - 8);
+      tip.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+    });
+  }
+  function onClick(e) {
+    if (S.mont) return;
+    const hit = pickAt(e);
+    if (hit) select(hit.n, hit.inst);
+    else if (S.sel && S.mode === 'solid') deselect();
+  }
+
+  /* ------------------------------------------------------- números del plano */
+  const labelEls = [];
+  function buildLabels() {
+    const box = $('#labels');
+    F.order.forEach((n) => {
+      const it = F.items[n], multi = it.insts.length > 1 && unionRadius(it) > 2.6;
+      (multi ? it.insts : [null]).forEach((o) => {
+        const b = new T.Box3(); (o ? [o] : it.insts).forEach((x) => b.union(x.box));
+        const c = b.getCenter(new T.Vector3()); if (it.lp && !o) c.add(new T.Vector3(it.lp[0], 0, it.lp[1]));
+        const el = document.createElement('button'); el.type = 'button'; el.className = 'lbl'; el.textContent = n; el.title = byN[n].name; el.tabIndex = -1;
+        el.addEventListener('click', () => select(n, o));
+        box.appendChild(el);
+        labelEls.push({ el, n, top: new T.Vector3(c.x, b.max.y + 0.14, c.z), mid: new T.Vector3(c.x, b.max.y, c.z), kind: 'item' });
+      });
+    });
+    const text = (d, cls) => { const el = document.createElement('div'); el.className = cls; el.innerHTML = '<b>' + esc(d.t) + '</b><span>' + esc(d.s) + '</span>'; box.appendChild(el); labelEls.push({ el, top: d.p, mid: d.p, kind: cls }); };
+    R.cotaLabels.forEach((d) => text(d, 'cota'));
+    R.zoneLabels.forEach((d) => text(d, 'zona'));
+  }
+  function syncLabels() {
+    const show = S.labels || S.plan;
+    $('#labels').classList.toggle('is-on', show && !S.mont && S.mode === 'solid');
+    $('#labels').classList.toggle('is-plan', S.plan);
+    R.cotas.visible = S.plan;
+    $('#btn-labels').setAttribute('aria-pressed', show ? 'true' : 'false');
+    labelEls.forEach((l) => { if (l.kind === 'item') l.el.classList.toggle('is-sel', !!S.sel && S.sel.n === l.n); });
+    E.invalidate();
+  }
+  const pv = new T.Vector3();
+  function updateLabels() {
+    if (!(S.labels || S.plan) || S.mont || S.mode !== 'solid') return;
+    const w = E.size.w, h = E.size.h;
+    for (const l of labelEls) {
+      if (l.kind !== 'item' && !S.plan) { if (l.shown !== false) { l.el.style.display = 'none'; l.shown = false; } continue; }
+      pv.copy(S.plan ? l.mid : l.top).project(E.camera);
+      const ok = pv.z < 1 && pv.x > -1.05 && pv.x < 1.05 && pv.y > -1.05 && pv.y < 1.05;
+      if (!ok) { if (l.shown !== false) { l.el.style.display = 'none'; l.shown = false; } continue; }
+      if (l.shown !== true) { l.el.style.display = ''; l.shown = true; }
+      l.el.style.transform = 'translate(' + ((pv.x * 0.5 + 0.5) * w).toFixed(1) + 'px,' + ((-pv.y * 0.5 + 0.5) * h).toFixed(1) + 'px) translate(-50%,-50%)';
+    }
+  }
+
+  /* ------------------------------------------------------------- inventario */
+  function buildInventory() {
+    $('#inv-list').innerHTML = DATA.items.map((d) =>
+      '<li data-o="' + d.origen + '"><button type="button" class="inv-row" data-n="' + d.n + '">' +
+      '<span class="num">' + d.n + '</span><span class="inv-name">' + esc(d.short) + '<small>' + (d.origen === 'fabrica' ? 'Se fabrica' : 'Se compra') + (d.cant !== '1' ? ' · ' + esc(d.cant.split(' ')[0]) + ' u.' : '') + '</small></span>' +
+      '<span class="inv-cost">' + cop(d.total) + '</span></button></li>').join('');
+    $('#inv-total').innerHTML = '<span>Total del local<small>materiales y equipos</small></span><b>' + cop(DATA.presupuesto.total) + '</b>';
+    $('#inv-list').addEventListener('click', (e) => { const b = e.target.closest('.inv-row'); if (b) select(+b.dataset.n, null, { force: S.mode !== 'solid' }); });
+    $('#inv-list').addEventListener('pointerover', (e) => { const b = e.target.closest('.inv-row'); const n = b ? +b.dataset.n : null; if (n !== S.rowHover) { S.rowHover = n; refreshEdges(); } });
+    $('#inv-list').addEventListener('pointerleave', () => { if (S.rowHover) { S.rowHover = null; refreshEdges(); } });
+    $('#inv-filter').addEventListener('click', (e) => {
+      const b = e.target.closest('.chip'); if (!b) return;
+      S.filter = b.dataset.f; $$('#inv-filter .chip').forEach((c) => c.classList.toggle('is-on', c === b));
+      $$('#inv-list li').forEach((li) => { li.hidden = S.filter !== 'todos' && li.dataset.o !== S.filter; });
+    });
+    $('#inv-total').addEventListener('click', openBudget);
+  }
+  function markInv() { $$('#inv-list .inv-row').forEach((b) => b.classList.toggle('is-on', !!S.sel && +b.dataset.n === S.sel.n)); }
+  function toggleInv(on) {
+    S.inv = on == null ? !S.inv : on;
+    if (S.inv) { exitMontaje(true); }
+    $('#inv').hidden = !S.inv; $('#btn-inv').setAttribute('aria-pressed', S.inv ? 'true' : 'false');
+    layout(); if (S.sel) focus(S.sel, S.inst, S.mode !== 'solid' ? true : null, 0.8); else if (S.view && !S.mont) refit(0.8);
+  }
+
+  /* -------------------------------------------------------------------- ficha */
+  const TABS = [['resumen', 'Resumen'], ['mats', 'Materiales y costos'], ['fab', 'Fabricación'], ['ens', 'Ensamble'], ['why', 'Por qué']];
+  function barList(rows, max, cls) {
+    return '<ul class="bars ' + (cls || '') + '">' + rows.map((r) =>
+      '<li' + (r.n ? ' data-n="' + r.n + '" tabindex="0" role="button"' : '') + ' title="' + esc(r.label) + ': ' + cop(r.v) + (r.sub ? ' — ' + esc(r.sub) : '') + '">' +
+      '<span class="bar-l">' + (r.n ? '<i class="num">' + r.n + '</i>' : '') + esc(r.label) + '</span>' +
+      '<span class="bar-t"><span class="bar-f" style="width:' + Math.max(0.6, r.v / max * 100).toFixed(2) + '%"></span></span>' +
+      '<span class="bar-v">' + cop(r.v) + '</span>' + (r.sub ? '<span class="bar-s">' + esc(r.sub) + '</span>' : '') + '</li>').join('') + '</ul>';
+  }
+  function renderPanel() {
+    const it = S.sel, d = byN[it.n], p = $('#panel');
+    const fab = d.origen === 'fabrica', hasParts = new Set(); it.insts[0].parts.forEach((x) => hasParts.add(x.userData.mk));
+    const tabs = TABS.filter((t) => (t[0] !== 'fab' || d.fab.length)).map((t) => [t[0], !fab && t[0] === 'mats' ? 'Producto y costo' : !fab && t[0] === 'ens' ? 'Instalación' : t[1]]);
+    if (!tabs.find((t) => t[0] === S.tab)) S.tab = 'resumen';
+    const idx = DATA.items.indexOf(d), prev = DATA.items[(idx + 19) % 20], next = DATA.items[(idx + 1) % 20];
+    const top = d.mats.slice().sort((a, b) => b.costo - a.costo).slice(0, 5), maxC = top[0] ? top[0].costo : 1;
+    const canAnim = d.seq && d.seq.length;
+    const share = (d.total / DATA.presupuesto.total * 100);
+    const sec = {};
+    sec.resumen =
+      '<p class="lead">' + esc(d.resumen) + '</p>' +
+      '<dl class="facts"><div><dt>Medidas</dt><dd class="mono">' + esc(d.dims) + '</dd></div><div><dt>Cantidad</dt><dd>' + esc(d.cant) + '</dd></div><div class="wide"><dt>Ubicación en el plano</dt><dd>' + esc(d.ubic) + '</dd></div></dl>' +
+      (it.insts[0].parts.length > 1 ? '<div class="cta"><button type="button" class="btn btn-led js-play"' + (canAnim ? '' : ' hidden') + '>Ver armado paso a paso</button><button type="button" class="btn js-explode">Explosionar</button></div>' : '') +
+      '<h3>' + (fab ? 'En qué se va el costo' : 'Qué se compra') + '</h3>' + barList(top.map((m) => ({ label: m.m, v: m.costo })), maxC) +
+      '<p class="note">' + (fab ? 'Costo de materiales. ' : '') + 'Es el ' + (share < 1 ? share.toFixed(1).replace('.', ',') : Math.round(share)) + ' % del total del local (' + cop(DATA.presupuesto.total) + '). Precios del ' + esc(DATA.meta.fecha) + '.</p>';
+    sec.mats =
+      '<p class="note">' + (fab ? 'El costo de tableros y cantos es la parte que le toca al mueble de las láminas y rollos completos que se compran. Pasa el cursor por un material para verlo en el modelo.' : 'El material es el que declara la ficha de la tienda.') + '</p>' +
+      '<ul class="mats">' + d.mats.map((m, i) => {
+        const live = fab && hasParts.has(m.key);
+        const procs = (m.proc || []).map((id) => procBy[id]).filter(Boolean);
+        return '<li class="mat' + (live ? ' is-live' : '') + '"' + (live ? ' data-key="' + m.key + '" tabindex="0"' : '') + '>' +
+          '<div class="mat-h"><b>' + esc(m.m) + '</b><span class="mono">' + (m.costo ? cop(m.costo) : '$0') + '</span></div>' +
+          '<p>' + esc(m.uso) + '</p>' +
+          '<p class="mat-q"><span>' + esc(m.cant) + '</span><span>' + esc(m.pu) + '</span></p>' +
+          (m.prov ? '<p class="mat-q"><span>' + esc(m.prov) + '</span><span>' + esc(m.nota || '') + '</span></p>' : '') +
+          (live ? '<span class="eye" aria-hidden="true">ver en 3D</span>' : '') +
+          (procs.length ? '<details><summary>Cómo se fabrica este material</summary>' + procs.map((pr) => '<div class="proc"><h4>' + esc(pr.mat) + '</h4><p>' + esc(pr.proceso) + '</p><p class="dato">' + esc(pr.dato) + '</p><p class="src">' + pr.fuentes.map((f) => '<a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.t) + '</a>').join(' · ') + '</p></div>').join('') + '</details>' : '') +
+          '</li>';
+      }).join('') + '</ul>' +
+      '<div class="total-row"><span>Total ' + (fab ? 'de materiales' : '') + '</span><b class="mono">' + cop(d.total) + '</b></div>';
+    sec.fab = '<p class="note">En el taller, antes de llevar las piezas al local.</p><ol class="steps">' + d.fab.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ol>';
+    sec.ens =
+      (canAnim ? '<div class="seq-box"><div class="seq-h"><h3>Animación de armado</h3><button type="button" class="btn btn-led js-play">Ver armado paso a paso</button></div><ol class="seq">' + d.seq.map((s, i) => '<li><button type="button" data-k="' + i + '"><span>' + esc(s.t) + '</span><small>' + esc(s.src) + '</small></button></li>').join('') + '</ol></div>' : '') +
+      '<h3>' + (fab ? 'Ensamble en el local' : 'Instalación') + '</h3><ol class="steps">' + d.ens.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ol>';
+    sec.why = '<ul class="why">' + d.why.map((w) => '<li><h4>' + esc(w.t) + '</h4><p>' + esc(w.d) + '</p></li>').join('') + '</ul>';
+
+    p.innerHTML =
+      '<header class="p-head">' +
+        '<div class="p-top"><span class="num num-lg">' + d.n + '</span><span class="pill pill-' + d.origen + '">' + (fab ? 'Se fabrica' + (d.origenNota ? ' · ' + esc(d.origenNota) : '') : 'Se compra') + '</span><span class="p-group">' + esc(d.grupo) + '</span>' +
+        '<button type="button" class="ibtn" id="p-close" aria-label="Cerrar ficha"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>' +
+        '<h2>' + esc(d.name) + '</h2>' +
+        '<div class="p-cost"><b class="mono">' + cop(d.total) + '</b><span>' + (fab ? 'en materiales' : (d.cant !== '1' ? esc(d.cant) + ' unidades' : 'producto')) + ' · ' + esc(d.dims) + '</span></div>' +
+      '</header>' +
+      '<div class="tabs" role="tablist">' + tabs.map((t) => '<button type="button" role="tab" data-tab="' + t[0] + '" aria-selected="' + (t[0] === S.tab) + '">' + t[1] + '</button>').join('') + '</div>' +
+      '<div class="p-body">' + tabs.map((t) => '<section role="tabpanel" data-panel="' + t[0] + '"' + (t[0] === S.tab ? '' : ' hidden') + '>' + sec[t[0]] + '</section>').join('') + '</div>' +
+      '<footer class="p-foot"><button type="button" class="btn" data-go="' + prev.n + '"><span class="num">' + prev.n + '</span>' + esc(prev.short) + '</button><button type="button" class="btn" data-go="' + next.n + '">' + esc(next.short) + '<span class="num">' + next.n + '</span></button></footer>';
+    $('.p-body', p).scrollTop = 0;
+  }
+  function setHL(key) { if (S.mode === 'asm') key = null; if (S.hl === key) return; S.hl = key; $$('#panel .mat').forEach((li) => li.classList.toggle('is-on', !!key && li.dataset.key === key)); refreshEdges(); }
+  function bindPanel() {
+    const p = $('#panel');
+    p.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t.closest('#p-close')) return deselect();
+      const tab = t.closest('[data-tab]');
+      if (tab) { S.tab = tab.dataset.tab; $$('[data-tab]', p).forEach((b) => b.setAttribute('aria-selected', b === tab)); $$('[data-panel]', p).forEach((s) => { s.hidden = s.dataset.panel !== S.tab; }); $('.p-body', p).scrollTop = 0; setHL(null); return; }
+      const go = t.closest('[data-go]'); if (go) return select(+go.dataset.go, null, { tab: S.tab, force: true });
+      if (t.closest('.js-play')) return playAsm(0);
+      if (t.closest('.js-explode')) return setExplode(S.mode !== 'exploded');
+      const sq = t.closest('.seq button'); if (sq) { if (S.mode !== 'asm') { playAsm(+sq.dataset.k); } else { S.playing = false; asmStep(+sq.dataset.k, true); } return; }
+      const mat = t.closest('.mat.is-live'); if (mat && !t.closest('details')) setHL(S.hl === mat.dataset.key ? null : mat.dataset.key);
+    });
+    p.addEventListener('pointerover', (e) => { if (e.pointerType === 'touch') return; const m = e.target.closest('.mat.is-live'); if (m) setHL(m.dataset.key); });
+    p.addEventListener('pointerout', (e) => { if (e.pointerType === 'touch') return; const m = e.target.closest('.mat.is-live'); if (m && !m.contains(e.relatedTarget)) setHL(null); });
+    p.addEventListener('focusin', (e) => { const m = e.target.closest('.mat.is-live'); if (m && e.target === m) setHL(m.dataset.key); });
+  }
+
+  /* ------------------------------------------------------------------ modales */
+  let lastFocus = null;
+  function openModal(title, html, cls) {
+    lastFocus = document.activeElement;
+    $('#modal-title').textContent = title; $('#modal-body').innerHTML = html; $('#modal-body').scrollTop = 0;
+    $('.modal-card').className = 'modal-card pane ' + (cls || '');
+    $('#modal').hidden = false; $('#modal-close').focus();
+  }
+  function closeModal() { if ($('#modal').hidden) return; $('#modal').hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+  function openBudget() {
+    const P = DATA.presupuesto;
+    const fab = DATA.items.filter((i) => i.origen === 'fabrica').sort((a, b) => b.total - a.total), buy = DATA.items.filter((i) => i.origen === 'compra').sort((a, b) => b.total - a.total);
+    const row = (i) => ({ n: i.n, label: i.short, v: i.total });
+    openModal('Presupuesto del local',
+      '<div class="kpis"><div><span>Total en materiales y equipos</span><b class="mono">' + cop(P.total) + '</b></div><div><span>13 elementos que se fabrican</span><b class="mono">' + cop(P.fabricado) + '</b></div><div><span>7 productos que se compran</span><b class="mono">' + cop(P.comprado) + '</b></div></div>' +
+      '<p class="lead">Casi la mitad del total, ' + cop(P.impresoras) + ', son las cuatro impresoras 3D. La cifra no incluye mano de obra, transporte, instalación eléctrica ni plantas.</p>' +
+      '<div class="cols"><section><h3>Se fabrica <small>materiales por mueble</small></h3>' + barList(fab.map(row), fab[0].total, 'is-click') + '<p class="note">El mueble bajo y el mesón concentran más de un tercio del costo de fabricación. La mampara es el cuarto costo aunque solo tiene dos piezas, porque el vidrio templado se paga por metro cuadrado.</p></section>' +
+      '<section><h3>Se compra <small>escala propia</small></h3>' + barList(buy.map(row), buy[0].total, 'is-click') + '<p class="note">El escritorio completo cuesta menos que un solo taburete.</p></section></div>' +
+      '<div class="cols"><section><h3>Por tipo de insumo</h3>' + barList(P.rubros.map((r) => ({ label: r.r, v: r.c, sub: r.q })), P.rubros[0].c) + '</section>' +
+      '<section><h3>Por tienda</h3>' + barList(P.tiendas.map((r) => ({ label: r.r, v: r.c, sub: r.q })), P.tiendas[0].c) + '</section></div>' +
+      '<h3>Plan de corte de tableros</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tablero</th><th>Formato (m)</th><th class="r">Piezas</th><th class="r">Área (m²)</th><th class="r">Láminas</th><th>Aprovechamiento</th><th class="r">Costo</th></tr></thead><tbody>' +
+      P.corte.map((c) => '<tr><td>' + esc(c.t) + '</td><td class="mono">' + c.f + '</td><td class="r mono">' + c.piezas + '</td><td class="r mono">' + c.area + '</td><td class="r mono">' + c.laminas + '</td><td><span class="meter"><span style="width:' + c.ap + '%"></span></span><span class="mono">' + c.ap + ' %</span></td><td class="r mono">' + cop(c.c) + '</td></tr>').join('') +
+      '</tbody></table></div><p class="note">' + esc(P.corteNota) + '</p>' +
+      '<div class="cols"><section><h3>Supuestos de las cifras</h3><ul class="plain">' + P.supuestos.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ul></section><section><h3>Pendientes antes del primer corte</h3><ul class="plain check">' + P.pendientes.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ul></section></div>', 'is-wide');
+  }
+  function openMats() {
+    openModal('Materiales y procesos',
+      '<p class="lead">Todo el mobiliario sale de 6 tableros, 3 cantos y unos 25 herrajes e insumos, casi todos de Madecentro y Homecenter. Precios publicados en línea por cada tienda el ' + esc(DATA.meta.fecha) + ', en pesos colombianos.</p>' +
+      '<h3>Cómo se fabrica cada material</h3><p class="note">Nueve materiales industriales componen el mobiliario. Así llega cada uno a la tienda antes de que el carpintero lo toque.</p>' +
+      '<div class="procs">' + DATA.procesos.map((p) => '<article class="proc"><h4>' + esc(p.mat) + '</h4><p class="uso">' + esc(p.uso) + '</p><p>' + esc(p.proceso) + '</p><p class="dato">' + esc(p.dato) + '</p><p class="src">' + p.fuentes.map((f) => '<a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.t) + '</a>').join(' · ') + '</p></article>').join('') + '</div>' +
+      '<p class="note">Dos consecuencias prácticas: el vidrio templado se pide a medida porque se templa después de cortado, así que la posición de bisagras y manija se define con la vidriería antes de fabricar. Y el aglomerado RH resiste humedad ambiental, no agua: todo canto expuesto debe ir enchapado.</p>' +
+      DATA.catalogo.map((g) => '<h3>' + esc(g.grupo) + '</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Material</th><th>Presentación</th><th>Precio (COP)</th><th>Proveedor</th><th>Nota</th></tr></thead><tbody>' +
+        g.filas.map((f) => '<tr><td><a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.m) + '</a></td><td>' + esc(f.pres) + '</td><td class="mono">' + esc(f.precio) + '</td><td>' + esc(f.prov) + '</td><td>' + esc(f.nota) + '</td></tr>').join('') + '</tbody></table></div>').join(''), 'is-wide');
+  }
+
+  /* -------------------------------------------------------- montaje del local */
+  function montInsts(tag) {
+    if (tag === '14e') return [F.items[14].insts[2]];
+    if (tag === '14i') return F.items[14].insts.filter((o, i) => i !== 2);
+    return F.items[tag].insts;
+  }
+  function openMontaje() {
+    deselect(true); toggleInv(false);
+    const M = DATA.montaje;
+    $('#mont').innerHTML =
+      '<div class="inv-head"><h2>Orden de fabricación y montaje</h2><p>' + esc(M.intro) + '</p></div>' +
+      '<div class="mont-body"><h3>Cuatro frentes trabajan en paralelo</h3><div class="frentes">' + M.frentes.map((f) => '<div><b>' + esc(f.t) + '</b>' + f.d.map((x) => '<span>' + esc(x) + '</span>').join('') + '</div>').join('') + '</div>' +
+      '<h3>Montaje en el local <small>con piso, cielo y tomas ya terminados</small></h3><ol class="mont-steps">' + M.pasos.map((p, i) => '<li><button type="button" data-k="' + i + '"><b>' + esc(p.t) + '</b><span>' + esc(p.d) + '</span></button></li>').join('') + '</ol>' +
+      '<p class="note">' + esc(M.nota) + '</p></div>' +
+      '<div class="mont-foot"><button type="button" class="btn btn-led" id="mont-play">Reproducir montaje</button><button type="button" class="btn" id="mont-exit">Cerrar</button></div>';
+    $('#mont').hidden = false; S.mont = { step: -1, playing: false }; $('#hint').hidden = true;
+    syncLabels(); layout();
+    const a = S.usable.w / S.usable.h;
+    E.flyTo({ target: new T.Vector3(0, 0.6, 0), theta: 0.55, phi: 0.82, radius: Math.min(25, 14 * Math.max(1, 1.15 / a)) }, 1.4);
+    playMontaje(0);
+  }
+  function montState(k) {       // deja a la vista lo montado hasta el paso k (inclusive)
+    const M = DATA.montaje, shown = new Set();
+    M.pasos.forEach((p, i) => { if (i <= k) p.items.forEach((t) => montInsts(t).forEach((o) => shown.add(o))); });
+    F.order.forEach((n) => F.items[n].insts.forEach((o) => { o.group.visible = shown.has(o); o.group.position.copy(o.home); }));
+    E.setLed(k >= M.pasos.length - 1 ? 1 : 0.1);
+  }
+  function playMontaje(k) {
+    const M = DATA.montaje, st = S.mont; if (!st) return;
+    const gen = ++S.gen; stopTweens();
+    st.playing = true; st.step = k;
+    montState(k - 1);
+    const p = M.pasos[k]; let i = 0, total = 0.4;
+    p.items.forEach((t) => montInsts(t).forEach((o) => {
+      const delay = 0.35 + i * 0.16; i++;
+      o.group.visible = false;
+      const h0 = 2.2;
+      track(E.tween(0.85, (e) => { o.group.visible = true; o.group.position.copy(o.home); o.group.position.y += h0 * (1 - e); }, { delay, ease: E.ease.outQuint }));
+      total = delay + 0.85;
+    }));
+    if (p.led) { track(E.tween(1.8, (e) => E.setLed(E.lerp(0.1, 1, e)), { delay: total, ease: E.ease.inOut })); total += 1.8; }
+    $$('#mont .mont-steps li').forEach((li, j) => { li.classList.toggle('is-on', j === k); li.classList.toggle('is-done', j < k); });
+    $('#mont-play').textContent = 'Pausar';
+    E.shadowDirty = true;
+    track(E.tween(0.01, () => {}, { delay: total + 1.3, done: () => {
+      if (gen !== S.gen || !S.mont || !S.mont.playing) return;
+      if (k < M.pasos.length - 1) playMontaje(k + 1);
+      else { S.mont.playing = false; $('#mont-play').textContent = 'Repetir montaje'; $$('#mont .mont-steps li').forEach((li) => { li.classList.remove('is-on'); li.classList.add('is-done'); }); }
+    } }));
+  }
+  function exitMontaje(quiet) {
+    if (!S.mont) return;
+    S.gen++; stopTweens(); S.mont = null;
+    F.order.forEach((n) => F.items[n].insts.forEach((o) => { o.group.visible = true; o.group.position.copy(o.home); }));
+    E.setLed(1); $('#mont').hidden = true; $('#hint').hidden = !!S.sel;
+    E.shadowDirty = true; syncLabels(); layout();
+    if (!quiet) goView('aerea');
+  }
+
+  /* ------------------------------------------------------------------- eventos */
+  function bindUI() {
+    $('#views').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) goView(b.dataset.view); });
+    $('#btn-inv').addEventListener('click', () => toggleInv());
+    $('#btn-budget').addEventListener('click', openBudget);
+    $('#btn-mats').addEventListener('click', openMats);
+    $('#btn-montaje').addEventListener('click', () => (S.mont ? exitMontaje() : openMontaje()));
+    $('#btn-labels').addEventListener('click', () => { S.labels = !(S.labels || S.plan); if (!S.labels && S.plan) { S.plan = false; } syncLabels(); });
+    $('#act-explode').addEventListener('click', () => setExplode(S.mode !== 'exploded'));
+    $('#act-play').addEventListener('click', () => playAsm(0));
+    $('#act-spin').addEventListener('click', () => { E.autoRotate = !E.autoRotate; $('#act-spin').setAttribute('aria-pressed', E.autoRotate ? 'true' : 'false'); E.invalidate(); });
+    $('#st-prev').addEventListener('click', () => { S.playing = false; S.done = false; asmStep(S.step - 1, false); });
+    $('#st-next').addEventListener('click', () => { S.playing = false; S.done = false; asmStep(S.step + 1, true); });
+    $('#st-play').addEventListener('click', () => {
+      if (S.playing) { S.playing = false; updateStepper(); return; }
+      const seq = byN[S.sel.n].seq; S.playing = true; S.done = false;
+      asmStep(S.step >= seq.length - 1 ? 0 : S.step + 1, true);
+    });
+    $('#st-dots').addEventListener('click', (e) => { const d = e.target.closest('.dot'); if (d) { S.playing = false; S.done = false; asmStep(+d.dataset.k, true); } });
+    $('#st-exit').addEventListener('click', () => exitAsm());
+    $('#z-in').addEventListener('click', () => E.zoomBy(0.78));
+    $('#z-out').addEventListener('click', () => E.zoomBy(1.28));
+    $('#modal').addEventListener('click', (e) => {
+      if (e.target.id === 'modal' || e.target.closest('#modal-close')) return closeModal();
+      const li = e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); }
+    });
+    $('#modal').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest && e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); } } });
+    $('#mont').addEventListener('click', (e) => {
+      if (e.target.closest('#mont-exit')) return exitMontaje();
+      if (e.target.closest('#mont-play')) {
+        const st = S.mont, n = DATA.montaje.pasos.length;
+        if (st.playing) { st.playing = false; S.gen++; stopTweens(); montState(st.step); $('#mont-play').textContent = 'Continuar'; E.shadowDirty = true; E.invalidate(); }
+        else playMontaje(st.step >= n - 1 ? 0 : st.step + 1);
+        return;
+      }
+      const b = e.target.closest('.mont-steps button'); if (b) playMontaje(+b.dataset.k);
+    });
+    bindPanel();
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.mode === 'asm') return exitAsm(); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
+      if (!$('#modal').hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+      if (!S.sel) return;
+      const idx = DATA.items.indexOf(byN[S.sel.n]);
+      if (e.key === 'ArrowRight' && !e.target.closest('.tabs')) select(DATA.items[(idx + 1) % 20].n, null, { tab: S.tab, force: true });
+      else if (e.key === 'ArrowLeft' && !e.target.closest('.tabs')) select(DATA.items[(idx + 19) % 20].n, null, { tab: S.tab, force: true });
+      else if (e.key === 'e' || e.key === 'E') { if (!$('#actions').hidden || S.mode === 'exploded') setExplode(S.mode !== 'exploded'); }
+    });
+    E.onClick = onClick; E.onHover = onHover; E.afterRender = updateLabels;
+    E.onResize = () => { layout(); };
+    E.onUserMove = () => { $('#tip').hidden = true; if (S.view) { S.view = null; $$('#views button').forEach((b) => b.classList.remove('is-on')); } };
+  }
+
+  /* -------------------------------------------------------------------- inicio */
+  function boot() {
+    if (!window.THREE) { $('#intro-msg').textContent = 'No se pudo cargar el motor 3D. Revisa la conexión y recarga la página.'; return; }
+    try {
+      E.init($('#gl'));
+      R.build(E.scene); F.build();
+    } catch (err) {
+      console.error(err);
+      $('#intro-msg').textContent = 'Este navegador no pudo iniciar el modelo 3D (WebGL).';
+      return;
+    }
+    buildInventory(); buildLabels(); bindUI();
+    const redraw = () => { L.redraws.forEach((f) => f()); if (R.signTex) R.signTex.userData.redraw(); E.invalidate(3); };
+    if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('300 80px Jost'), document.fonts.load('600 80px Jost'), document.fonts.load('400 40px Jost')]).then(redraw, () => {});
+    const start = /^#m(\d+)$/.exec(location.hash || '');
+    if (E.size.w >= 1280 && !start) { S.inv = true; $('#inv').hidden = false; $('#btn-inv').setAttribute('aria-pressed', 'true'); }
+    S.view = 'fachada';
+    layout();
+    E.cam.cur.th = E.cam.goal.th = 0.95; E.cam.cur.ph = E.cam.goal.ph = 0.62; E.cam.cur.r = E.cam.goal.r = 27; E.cam.cur.ty = E.cam.goal.ty = 0.6;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      app.classList.remove('is-loading'); app.classList.add('is-ready');
+      const v = VIEWS.fachada, a = S.usable.w / S.usable.h, k = Math.max(1, v.min / a);
+      E.flyTo({ target: new T.Vector3(v.t[0], v.t[1], v.t[2]), theta: v.th, phi: v.ph, radius: Math.min(25, v.r * k) }, 3.4, {
+        delay: 0.35, ease: E.ease.inOut,
+        done: () => { if (start && F.items[+start[1]]) select(+start[1]); }
+      });
+    }));
+  }
+  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, toggleInv, state: S };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();

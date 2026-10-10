@@ -1,0 +1,586 @@
+/* ============================================================================
+   MOBILIARIO — los 20 elementos del plano, modelados pieza por pieza según el
+   despiece del documento. Cada pieza guarda: su material (mk, enlaza con la
+   tabla de costos), el paso de armado (step) y hacia dónde se separa (ex).
+
+   Sistema local de cada mueble: x = largo, y = alto, z = fondo
+   (z = 0 contra el muro, z crece hacia el frente del mueble).
+   ========================================================================== */
+(function () {
+  'use strict';
+  const L = (window.L3D = window.L3D || {});
+  const T = THREE, E = L.engine, G = L.geo, R = L.room;
+  const F = (L.furn = { items: {}, order: [] });
+  const wx = R.wx, wz = R.wz, PI = Math.PI;
+  const V = (a) => new T.Vector3(a[0], a[1], a[2]);
+  L.redraws = [];
+
+  /* ------------------------------------------------------------ constructores */
+  function inst(n, X, y, D, rot) {
+    const g = new T.Group(); g.position.set(wx(X), y, wz(D)); g.rotation.y = rot || 0;
+    const o = { n, group: g, parts: [], decor: [], glows: [], home: g.position.clone() };
+    g.userData.inst = o;
+    return o;
+  }
+  function reg(o, mesh, data) { mesh.userData = Object.assign({ n: o.n, inst: o, mat0: mesh.material }, data); o.group.add(mesh); return mesh; }
+  /* pieza en forma de tablero: esquina mínima (x, y, z) + tamaño */
+  function P(o, name, mat, x, y, z, sx, sy, sz, step, ex, opt) {
+    opt = opt || {};
+    const m = new T.Mesh(opt.geo || G.box(sx, sy, sz, opt.grain), L.mats[mat] || mat);
+    if (opt.geo) m.position.set(x, y, z); else m.position.set(x + sx / 2, y + sy / 2, z + sz / 2);
+    m.castShadow = !opt.noShadow; m.receiveShadow = !opt.noShadow;
+    if (opt.order) m.renderOrder = opt.order;
+    reg(o, m, { part: true, name, mk: opt.mk || mat, step: step || 0, home: m.position.clone(), ex: V(ex || [0, 0, 0]), exA: opt.exA ? V(opt.exA) : null });
+    o.parts.push(m);
+    return m;
+  }
+  /* pieza a partir de una lista de sólidos unidos (herrajes, patas, cajones…) */
+  function PM(o, name, mat, list, step, ex, opt) {
+    opt = opt || {};
+    return P(o, name, mat, 0, 0, 0, 0, 0, 0, step, ex, Object.assign({ geo: G.merge(list) }, opt));
+  }
+  /* objetos de exhibición: no son parte del mueble y se ocultan al explosionar */
+  function D(o, list, mat) {
+    if (!list.length) return null;
+    const m = new T.Mesh(G.merge(list), L.mats[mat || 'decor']);
+    m.castShadow = true; m.receiveShadow = true;
+    reg(o, m, { decor: true }); o.decor.push(m);
+    return m;
+  }
+  const cylM = (x, y, z, r, h, axis) => G.mat(x, y, z, axis === 'z' ? PI / 2 : 0, 0, axis === 'x' ? PI / 2 : 0, r, h, r);
+  function patas(o, pts, h, step, ex, opt) {
+    const l = pts.map((p) => ({ g: G.cyl(), m: cylM(p[0], h / 2, p[1], 0.022, h), c: 0x18181a }));
+    return PM(o, 'Patas niveladoras', 'plastico', l, step, ex, Object.assign({ mk: 'patas', noShadow: true }, opt));
+  }
+  function chazos(o, pts, step, ex, opt) {
+    const l = pts.map((p) => ({ g: G.cyl(), m: cylM(p[0], p[1], p[2], 0.009, 0.06, 'z'), c: 0xd0d2d5 }));
+    return PM(o, 'Chazos', 'inox', l, step, ex, Object.assign({ mk: 'anclaje', noShadow: true }, opt));
+  }
+  function add(n, insts, cfg) {
+    const it = Object.assign({ n, insts, th: 0.5, ph: 1.08, zone: 'sala' }, cfg || {});
+    insts.forEach((o, i) => { o.idx = i; o.item = it; R.root.add(o.group); });
+    F.items[n] = it; F.order.push(n);
+    return it;
+  }
+  /* sombra de contacto: huella (x0, z0, ancho, fondo) en el sistema local del mueble */
+  function sombra(o, x0, z0, w, d, op) {
+    const m = E.contactShadow(w, d, op); m.position.x = x0 + w / 2; m.position.z = z0 + d / 2; m.position.y = 0.004 - o.group.position.y;
+    o.group.add(m); o.glows.push(m); m.userData = { n: o.n, inst: o, fx: true };
+  }
+  const PAL = [0xf4f2ee, 0xf4f2ee, 0xf4f2ee, 0x232326, 0x232326, 0x8f9094, 0x2f6fd0, 0xd9412e, 0xf08a24, 0x3f9b57, 0xf2c230, 0xefece6];
+  const pick = (a) => a[Math.floor(G.rand() * a.length)];
+  /* fila de figuras sobre una superficie */
+  function fila(list, x0, x1, y, z, count, hMin, hMax, pal) {
+    const step = (x1 - x0) / count;
+    for (let i = 0; i < count; i++) {
+      const h = hMin + G.rand() * (hMax - hMin);
+      G.fig(list, pick(G.figNames), x0 + step * (i + 0.5) + (G.rand() - 0.5) * step * 0.25, y, z + (G.rand() - 0.5) * 0.04, h, pick(pal || PAL), (G.rand() - 0.5) * 0.9);
+    }
+  }
+
+  /* ----------------------------------------------------- texturas con texto */
+  const FONT = '"Jost","Century Gothic","Futura","Avenir Next",system-ui,sans-serif';
+  function canvasTex(w, h, draw) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8;
+    L.redraws.push(() => { const g = c.getContext('2d'); g.clearRect(0, 0, w, h); draw(g, w, h); t.needsUpdate = true; });
+    return t;
+  }
+  function cubeIcon(g, cx, cy, s, lw) {
+    g.lineWidth = lw; g.strokeStyle = '#fff'; g.lineJoin = 'round';
+    const p = (i) => [cx + Math.cos(-PI / 2 + i * PI / 3) * s, cy + Math.sin(-PI / 2 + i * PI / 3) * s];
+    g.beginPath(); for (let i = 0; i < 6; i++) { const q = p(i); if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); } g.closePath(); g.stroke();
+    g.beginPath(); [1, 3, 5].forEach((i) => { const q = p(i); g.moveTo(cx, cy); g.lineTo(q[0], q[1]); }); g.stroke();
+  }
+  function drawBunnyScreen(g, w, h) {
+    const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, '#1b1d22'); bg.addColorStop(1, '#0d0e11');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const halo = g.createRadialGradient(w * 0.55, h * 0.62, 20, w * 0.55, h * 0.62, w * 0.75);
+    halo.addColorStop(0, 'rgba(120,160,230,0.35)'); halo.addColorStop(1, 'rgba(120,160,230,0)');
+    g.fillStyle = halo; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#fff'; g.textBaseline = 'top'; g.font = '400 ' + Math.round(w * 0.105) + 'px ' + FONT;
+    g.fillText('Tus ideas', w * 0.1, h * 0.085); g.fillText('en 3D', w * 0.1, h * 0.085 + w * 0.125);
+    // conejo
+    const cx = w * 0.56, by = h * 0.93;
+    const body = (x, y, rx, ry, rot) => {
+      const gr = g.createRadialGradient(x - rx * 0.35, y - ry * 0.4, rx * 0.1, x, y, Math.max(rx, ry) * 1.15);
+      gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.6, '#e4e8f0'); gr.addColorStop(1, '#9fb0cc');
+      g.fillStyle = gr; g.beginPath(); g.ellipse(x, y, rx, ry, rot || 0, 0, PI * 2); g.fill();
+    };
+    body(cx - w * 0.07, by - h * 0.545, w * 0.05, h * 0.105, -0.12);
+    body(cx + w * 0.09, by - h * 0.55, w * 0.05, h * 0.105, 0.14);
+    body(cx - w * 0.2, by - h * 0.2, w * 0.06, h * 0.07, 0.6);
+    body(cx + w * 0.22, by - h * 0.2, w * 0.06, h * 0.07, -0.6);
+    body(cx, by - h * 0.17, w * 0.23, h * 0.17);
+    body(cx - w * 0.1, by - h * 0.02, w * 0.09, h * 0.035); body(cx + w * 0.1, by - h * 0.02, w * 0.09, h * 0.035);
+    body(cx, by - h * 0.39, w * 0.21, h * 0.115);
+    g.fillStyle = '#1b1d22'; g.beginPath(); g.arc(cx - w * 0.08, by - h * 0.4, w * 0.018, 0, 7); g.arc(cx + w * 0.08, by - h * 0.4, w * 0.018, 0, 7); g.fill();
+  }
+  function drawCubeScreen(g, w, h) {
+    const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#191a1e'); bg.addColorStop(1, '#0e0f12');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#fff'; g.textBaseline = 'top'; g.font = '400 ' + Math.round(w * 0.098) + 'px ' + FONT;
+    ['La imaginación', 'también se', 'imprime'].forEach((t, i) => g.fillText(t, w * 0.1, h * 0.2 + i * w * 0.13));
+    cubeIcon(g, w * 0.24, h * 0.68, w * 0.11, w * 0.014);
+  }
+  const ICONS = {
+    Figuras(g, c, s) { g.beginPath(); g.arc(c, c - s * 0.42, s * 0.3, 0, 7); g.stroke(); g.beginPath(); g.moveTo(c - s * 0.62, c + s * 0.75); g.quadraticCurveTo(c - s * 0.6, c + s * 0.05, c, c + s * 0.05); g.quadraticCurveTo(c + s * 0.6, c + s * 0.05, c + s * 0.62, c + s * 0.75); g.closePath(); g.stroke(); },
+    'Decoración'(g, c, s) { g.beginPath(); g.moveTo(c - s * 0.75, c - s * 0.02); g.lineTo(c, c - s * 0.72); g.lineTo(c + s * 0.75, c - s * 0.02); g.stroke(); g.beginPath(); g.moveTo(c - s * 0.52, c - s * 0.18); g.lineTo(c - s * 0.52, c + s * 0.7); g.lineTo(c + s * 0.52, c + s * 0.7); g.lineTo(c + s * 0.52, c - s * 0.18); g.stroke(); g.strokeRect(c - s * 0.15, c + s * 0.22, s * 0.3, s * 0.48); },
+    Regalos(g, c, s) { g.strokeRect(c - s * 0.62, c - s * 0.2, s * 1.24, s * 0.34); g.strokeRect(c - s * 0.5, c + s * 0.14, s, s * 0.6); g.beginPath(); g.moveTo(c, c - s * 0.2); g.lineTo(c, c + s * 0.74); g.stroke(); g.beginPath(); g.ellipse(c - s * 0.24, c - s * 0.42, s * 0.24, s * 0.17, 0.5, 0, 7); g.stroke(); g.beginPath(); g.ellipse(c + s * 0.24, c - s * 0.42, s * 0.24, s * 0.17, -0.5, 0, 7); g.stroke(); },
+    Personalizados(g, c, s) { g.beginPath(); g.arc(c, c - s * 0.36, s * 0.34, 0, 7); g.stroke(); g.beginPath(); g.moveTo(c - s * 0.7, c + s * 0.72); g.bezierCurveTo(c - s * 0.7, c + s * 0.1, c + s * 0.7, c + s * 0.1, c + s * 0.7, c + s * 0.72); g.stroke(); },
+    Prototipos(g, c, s) { g.beginPath(); for (let i = 0; i < 16; i++) { const a = i * PI / 8, r = i % 2 ? s * 0.74 : s * 0.56; const a2 = a + PI / 16; g.lineTo(c + Math.cos(a - PI / 32) * r, c + Math.sin(a - PI / 32) * r); g.lineTo(c + Math.cos(a2 - PI / 32) * r, c + Math.sin(a2 - PI / 32) * r); } g.closePath(); g.stroke(); g.beginPath(); g.arc(c, c, s * 0.24, 0, 7); g.stroke(); }
+  };
+  function iconTex(name) {
+    return canvasTex(256, 320, (g, w, h) => {
+      g.strokeStyle = '#fff'; g.fillStyle = '#fff'; g.lineWidth = 7; g.lineJoin = 'round'; g.lineCap = 'round';
+      ICONS[name](g, 128, 112, 78);
+      g.font = '400 ' + (name.length > 11 ? 31 : 38) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(name, 128, 262);
+    });
+  }
+  function printerWindow(color) {
+    return canvasTex(256, 256, (g, w, h) => {
+      const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#a9d4ff'); bg.addColorStop(0.16, '#3c6ea8'); bg.addColorStop(0.7, '#16283f'); bg.addColorStop(1, '#0b1320');
+      g.fillStyle = bg; g.fillRect(0, 0, w, h);
+      g.fillStyle = 'rgba(235,245,255,0.95)'; g.fillRect(18, 10, w - 36, 7);              // tira LED de la cámara
+      g.fillStyle = '#20242b'; g.fillRect(8, 62, w - 16, 9); g.fillRect(104, 52, 46, 30); // eje X y cabezal
+      g.fillStyle = '#3d444e'; g.fillRect(22, 204, w - 44, 10);                           // cama
+      g.fillStyle = color; g.beginPath(); g.moveTo(92, 204); g.lineTo(100, 150); g.quadraticCurveTo(128, 118, 156, 150); g.lineTo(164, 204); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.22)'; g.beginPath(); g.moveTo(104, 200); g.lineTo(110, 154); g.quadraticCurveTo(120, 138, 128, 136); g.lineTo(120, 200); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 3; g.strokeRect(2, 2, w - 4, h - 4);
+    });
+  }
+  const screenMat = (tex) => new T.MeshBasicMaterial({ map: tex, toneMapped: false });
+
+  /* ================================================================ modelos */
+  F.build = function () {
+    const M = L.mats;
+
+    /* ---- 1 · Pantalla 75" en vertical (muro izquierdo) -------------------- */
+    {
+      const o = inst(1, 0, 0.40, 0.475, PI / 2);
+      PM(o, 'Soporte fijo', 'acero', [{ g: new T.BoxGeometry(0.44, 0.44, 0.022), m: G.mat(0.475, 0.9, 0.011), c: 0x2a2a2c }, { g: new T.BoxGeometry(0.05, 0.6, 0.03), m: G.mat(0.34, 0.9, 0.022), c: 0x2a2a2c }, { g: new T.BoxGeometry(0.05, 0.6, 0.03), m: G.mat(0.61, 0.9, 0.022), c: 0x2a2a2c }], 0, [0, 0, 0.16], { mk: 'soporte' });
+      const tv = P(o, 'Televisor 75"', 'plastico', 0, 0, 0.035, 0.95, 1.67, 0.045, 1, [0, 0, 0.62], { mk: 'producto' });
+      const scr = new T.Mesh(new T.PlaneGeometry(0.93, 1.65), screenMat(canvasTex(512, 900, drawBunnyScreen)));
+      scr.position.z = 0.0235; tv.add(scr); scr.userData = { n: 1, inst: o, child: true };
+      add(1, [o], { th: 1.0, ph: 1.3 });
+    }
+
+    /* ---- 2 · Estantería exhibidora retroiluminada (muro izquierdo) --------- */
+    {
+      G.reseed(202);
+      const o = inst(2, 0, 0, 1.60, PI / 2), dec = [];
+      const ys = [0.969, 1.323, 1.677, 2.031];
+      for (let m = 0; m < 2; m++) {
+        const x0 = m * 1.2, dx = (m ? 1 : -1) * 0.16;
+        P(o, 'Lateral', 'melBlanca', x0, 0, 0, 0.015, 2.4, 0.4, 0, [dx - 0.26, 0, 0.5]);
+        P(o, 'Lateral', 'melBlanca', x0 + 1.185, 0, 0, 0.015, 2.4, 0.4, 0, [dx + 0.26, 0, 0.5]);
+        P(o, 'Piso', 'melBlanca', x0 + 0.015, 0.08, 0.006, 1.17, 0.015, 0.394, 0, [dx, 0, 0.5]);
+        P(o, 'Divisor', 'melBlanca', x0 + 0.015, 0.6, 0.006, 1.17, 0.015, 0.394, 0, [dx, 0, 0.5]);
+        P(o, 'Techo', 'melBlanca', x0 + 0.015, 2.385, 0.006, 1.17, 0.015, 0.394, 0, [dx, 0.32, 0.5]);
+        P(o, 'Fondo 6 mm', 'fondoLit', x0 + 0.005, 0.005, 0, 1.19, 2.39, 0.006, 1, [dx, 0, 0], { mk: 'fondo', exA: [0, 0, -0.42] });
+        patas(o, [[x0 + 0.1, 0.06], [x0 + 1.1, 0.06], [x0 + 0.1, 0.33], [x0 + 1.1, 0.33]], 0.08, 2, [dx, 0, 0.5], { exA: [0, 0, 0.55] });
+        P(o, 'Zócalo', 'melPlomo', x0 + 0.015, 0, 0.36, 1.17, 0.08, 0.015, 2, [dx, 0, 0.95]);
+        for (let i = 0; i < 2; i++) P(o, 'Puerta', 'melPlomo', x0 + 0.002 + i * 0.6, 0.083, 0.4, 0.596, 0.517, 0.015, 3, [dx + (i ? 0.1 : -0.1), 0, 1.3], { grain: 1 });
+        P(o, 'Perfil LED', 'led', x0 + 0.017, 0.62, 0.374, 0.014, 1.76, 0.012, 4, [dx - 0.13, 0, 0.82], { noShadow: true });
+        P(o, 'Perfil LED', 'led', x0 + 1.169, 0.62, 0.374, 0.014, 1.76, 0.012, 4, [dx + 0.13, 0, 0.82], { noShadow: true });
+        chazos(o, [[x0 + 0.3, 2.2, 0.03], [x0 + 0.9, 2.2, 0.03]], 5, [dx, 0, 0.28], { exA: [0, 0, 0.4] });
+        ys.forEach((y) => P(o, 'Entrepaño', 'melBlanca', x0 + 0.015, y, 0.006, 1.17, 0.015, 0.38, 6, [dx, 0, 0.9]));
+        [0.615].concat(ys.map((y) => y + 0.015)).forEach((y, k) => fila(dec, x0 + 0.08, x0 + 1.12, y, 0.2, 3 + ((k + m) % 2), 0.15, 0.27));
+      }
+      P(o, 'Fuente 12 V', 'equipo', 0.5, 0.1, 0.1, 0.16, 0.04, 0.06, 4, [-0.16, 0, 1.05], { mk: 'fuente' });
+      D(o, dec); sombra(o, 0, 0, 2.4, 0.4);
+      add(2, [o], { th: 0.85, asm: { off: [0, 0, 0.8], step: 5, first: true } });
+    }
+
+    /* ---- 3 · Isla exhibidora principal -------------------------------------- */
+    {
+      G.reseed(303);
+      const o = inst(3, 1.5, 0, 1.9, 0), r3 = { bl: 0.25, fl: 0.25, fr: 0.25, br: 0 };
+      // zócalo retranqueado, tira LED y patas
+      PM(o, 'Zócalo retranqueado', 'negro', (() => { const l = []; G.pushBox(l, 0.1, 0, 0.1, 1.8, 0.1, 0.015, 0x19191b); G.pushBox(l, 0.1, 0, 0.985, 1.8, 0.1, 0.015, 0x19191b); G.pushBox(l, 0.1, 0, 0.115, 0.015, 0.1, 0.87, 0x19191b); G.pushBox(l, 1.885, 0, 0.115, 0.015, 0.1, 0.87, 0x19191b); return l; })(), 3, [0, 0, 0], { mk: 'mdf15', exA: [0, -0.34, 0] });
+      PM(o, 'Tira LED COB', 'led', (() => { const l = []; G.pushBox(l, 0.1, 0.082, 0.092, 1.8, 0.01, 0.008, 0xffffff); G.pushBox(l, 0.1, 0.082, 1.0, 1.8, 0.01, 0.008, 0xffffff); G.pushBox(l, 0.092, 0.082, 0.1, 0.008, 0.01, 0.9, 0xffffff); G.pushBox(l, 1.9, 0.082, 0.1, 0.008, 0.01, 0.9, 0xffffff); return l; })(), 3, [0, 0, 0], { mk: 'led', noShadow: true, exA: [0, -0.34, 0] });
+      patas(o, [[0.3, 0.3], [1.0, 0.3], [1.7, 0.3], [0.3, 0.8], [1.0, 0.8], [1.7, 0.8]], 0.1, 4, [0, 0, 0], { exA: [0, -0.3, 0] });
+      // esqueleto
+      P(o, 'Piso estructural', 'mdf15', 0, 0.1, 0, 0, 0, 0, 0, [0, 0.26, 0], { geo: G.slab(G.planShape(2, 1.1, r3, 0.02), 0.015) });
+      const rib = (x, z, sx, sz) => P(o, 'Costilla', 'mdf15', x, 0.115, z, sx, 0.805, sz, 0, [0, 0.52, 0]);
+      [0.5, 1.0, 1.5].forEach((x) => { rib(x, 0.785, 0.015, 0.3); rib(x, 0.015, 0.015, 0.3); });
+      rib(0.015, 0.54, 0.3, 0.015); rib(1.685, 0.54, 0.3, 0.015);
+      const ring = G.planShape(2, 1.1, r3, 0.02); ring.holes.push(new T.Path().moveTo(0.16, -0.16).lineTo(0.16, -0.94).lineTo(1.84, -0.94).lineTo(1.84, -0.16).closePath());
+      P(o, 'Bastidor superior', 'mdf15', 0, 0.92, 0, 0, 0, 0, 0, [0, 0.98, 0], { geo: G.slab(ring, 0.015) });
+      // paños rectos lacados
+      P(o, 'Paño frontal', 'laca', 0.25, 0.115, 1.085, 1.5, 0.82, 0.015, 1, [0, 0.52, 0.5], { mk: 'mdf15' });
+      P(o, 'Paño posterior', 'laca', 0.25, 0.115, 0, 1.75, 0.82, 0.015, 1, [0, 0.52, -0.5], { mk: 'mdf15' });
+      P(o, 'Paño lateral', 'laca', 0, 0.115, 0.25, 0.015, 0.82, 0.6, 1, [-0.5, 0.52, 0], { mk: 'mdf15' });
+      P(o, 'Paño lateral', 'laca', 1.985, 0.115, 0, 0.015, 0.82, 0.85, 1, [0.5, 0.52, 0], { mk: 'mdf15' });
+      // pieles de esquina, dos capas de 5.5 mm
+      [['fl', 0.25, 0.85, -1, 1], ['fr', 1.75, 0.85, 1, 1], ['bl', 0.25, 0.25, -1, -1]].forEach((c) => {
+        P(o, 'Piel exterior 5.5 mm', 'laca', 0, 0.115, 0, 0, 0, 0, 2, [c[3] * 0.62, 0.52, c[4] * 0.62], { geo: G.arcSkin(c[1], c[2], 0.25, 0.0055, 0.82, c[0]), mk: 'mdf55' });
+        P(o, 'Piel interior 5.5 mm', 'mdf55', 0, 0.115, 0, 0, 0, 0, 2, [c[3] * 0.4, 0.52, c[4] * 0.4], { geo: G.arcSkin(c[1], c[2], 0.2445, 0.0055, 0.82, c[0]) });
+      });
+      P(o, 'Tapa Rovere', 'melRovere', 0, 0.935, 0, 0, 0, 0, 5, [0, 1.42, 0], { geo: G.slab(G.planShape(2, 1.1, r3), 0.015, true) });
+      P(o, 'Fuente 12 V', 'equipo', 1.2, 0.02, 0.03, 0.2, 0.05, 0.06, 6, [0, 0, -0.32], { mk: 'fuente' });
+      const gl = new T.Mesh(new T.PlaneGeometry(2.9, 2.0), E.glowMaterial(E.glowTexture(2.0, 1.1, 0.45, 0.25), 0xffbe7a, 0.95));
+      gl.rotation.x = -PI / 2; gl.position.set(1.0, 0.006, 0.55); gl.renderOrder = 2; gl.raycast = function () {}; o.group.add(gl); o.glows.push(gl); E.noReflect.push(gl);
+      const dec = [];
+      [[0.3, 0.75, 'jarron', 0.2, 0xf4f2ee], [0.62, 0.42, 'conejo', 0.34, 0xf7d9c8], [0.95, 0.72, 'conejo', 0.4, 0xf4f2ee], [1.28, 0.36, 'torre', 0.42, 0xf4f2ee], [1.6, 0.74, 'facetado', 0.2, 0xf4f2ee], [1.78, 0.4, 'gema', 0.16, 0xf4f2ee], [0.3, 0.3, 'nudo', 0.17, 0xf4f2ee]].forEach((f) => G.fig(dec, f[2], f[0], 0.95, f[1], f[3], f[4], 0.2));
+      G.pushBox(dec, 1.42, 0.95, 0.72, 0.03, 0.2, 0.26, 0x16171a, 0.5);   // tableta de pedidos
+      D(o, dec);
+      add(3, [o], { th: 0.55, ph: 1.0, asm: { off: [0, 0.42, 0], step: 4, first: false } });
+    }
+
+    /* ---- 4 · Isla exhibidora secundaria ------------------------------------- */
+    {
+      G.reseed(404);
+      const o = inst(4, 2.3, 0, 2.5, 0), r4 = { bl: 0.18, br: 0.18, fl: 0, fr: 0 };
+      PM(o, 'Zócalo', 'negro', (() => { const l = []; G.pushBox(l, 0.1, 0, 0.08, 1.0, 0.1, 0.015, 0x19191b); G.pushBox(l, 0.1, 0, 0.095, 0.015, 0.1, 0.45, 0x19191b); G.pushBox(l, 1.085, 0, 0.095, 0.015, 0.1, 0.45, 0x19191b); return l; })(), 3, [0, 0, 0], { mk: 'mdf15', exA: [0, -0.3, 0] });
+      PM(o, 'Tira LED COB', 'led', (() => { const l = []; G.pushBox(l, 0.1, 0.082, 0.072, 1.0, 0.01, 0.008, 0xffffff); G.pushBox(l, 0.092, 0.082, 0.08, 0.008, 0.01, 0.47, 0xffffff); G.pushBox(l, 1.1, 0.082, 0.08, 0.008, 0.01, 0.47, 0xffffff); return l; })(), 3, [0, 0, 0], { mk: 'led', noShadow: true, exA: [0, -0.3, 0] });
+      patas(o, [[0.25, 0.2], [0.95, 0.2], [0.25, 0.48], [0.95, 0.48]], 0.1, 4, [0, 0, 0], { exA: [0, -0.26, 0] });
+      P(o, 'Piso', 'mdf15', 0, 0.1, 0, 0, 0, 0, 0, [0, 0.24, 0], { geo: G.slab(G.planShape(1.2, 0.6, r4, 0.02), 0.015) });
+      [0.4, 0.8].forEach((x) => P(o, 'Costilla', 'mdf15', x, 0.115, 0.015, 0.015, 0.655, 0.3, 0, [0, 0.46, 0]));
+      P(o, 'Costilla', 'mdf15', 0.015, 0.115, 0.36, 0.3, 0.655, 0.015, 0, [0, 0.46, 0]);
+      P(o, 'Costilla', 'mdf15', 0.885, 0.115, 0.36, 0.3, 0.655, 0.015, 0, [0, 0.46, 0]);
+      const ring = G.planShape(1.2, 0.6, r4, 0.02); ring.holes.push(new T.Path().moveTo(0.14, -0.14).lineTo(0.14, -0.5).lineTo(1.06, -0.5).lineTo(1.06, -0.14).closePath());
+      P(o, 'Bastidor', 'mdf15', 0, 0.77, 0, 0, 0, 0, 0, [0, 0.84, 0], { geo: G.slab(ring, 0.015) });
+      P(o, 'Paño posterior', 'laca', 0.18, 0.115, 0, 0.84, 0.67, 0.015, 1, [0, 0.46, -0.45], { mk: 'mdf15' });
+      P(o, 'Costado', 'laca', 0, 0.115, 0.18, 0.015, 0.67, 0.42, 1, [-0.45, 0.46, 0], { mk: 'mdf15' });
+      P(o, 'Costado', 'laca', 1.185, 0.115, 0.18, 0.015, 0.67, 0.42, 1, [0.45, 0.46, 0], { mk: 'mdf15' });
+      [['bl', 0.18, 0.18, -1], ['br', 1.02, 0.18, 1]].forEach((c) => {
+        P(o, 'Piel exterior 5.5 mm', 'laca', 0, 0.115, 0, 0, 0, 0, 2, [c[3] * 0.55, 0.46, -0.55], { geo: G.arcSkin(c[1], c[2], 0.18, 0.0055, 0.67, c[0]), mk: 'mdf55' });
+        P(o, 'Piel interior 5.5 mm', 'mdf55', 0, 0.115, 0, 0, 0, 0, 2, [c[3] * 0.36, 0.46, -0.36], { geo: G.arcSkin(c[1], c[2], 0.1745, 0.0055, 0.67, c[0]) });
+      });
+      P(o, 'Tapa Rovere', 'melRovere', 0, 0.785, 0, 0, 0, 0, 5, [0, 1.22, 0], { geo: G.slab(G.planShape(1.2, 0.6, r4), 0.015, true) });
+      const gl = new T.Mesh(new T.PlaneGeometry(2.0, 1.4), E.glowMaterial(E.glowTexture(1.2, 0.6, 0.4, 0.18), 0xffbe7a, 0.9));
+      gl.rotation.x = -PI / 2; gl.position.set(0.6, 0.007, 0.3); gl.renderOrder = 2; gl.raycast = function () {}; o.group.add(gl); o.glows.push(gl); E.noReflect.push(gl);
+      const dec = [];
+      [[0.25, 0.3, 'busto', 0.24, 0xf4f2ee], [0.6, 0.26, 'torre', 0.3, 0x232326], [0.93, 0.32, 'aro', 0.2, 0xf4f2ee]].forEach((f) => G.fig(dec, f[2], f[0], 0.8, f[1], f[3], f[4], -0.2));
+      D(o, dec);
+      add(4, [o], { th: -0.55, ph: 1.0, asm: { off: [0, 0.36, -0.5], step: 4, first: false } });
+    }
+
+    /* ---- 5 · Mesa alta de atención -------------------------------------------- */
+    {
+      const o = inst(5, 1.5, 0, 4.2, 0), a = 0.038;
+      [[0, -1], [1.762, 1]].forEach((s) => {
+        const x = s[0], ex = [s[1] * 0.55, 0, 0];
+        P(o, 'Pata', 'acero', x, 0, 0, a, 1.02, a, 0, ex); P(o, 'Pata', 'acero', x, 0, 0.662, a, 1.02, a, 0, ex);
+        P(o, 'Travesaño superior', 'acero', x, 0.982, a, a, a, 0.624, 0, ex); P(o, 'Travesaño reposapiés', 'acero', x, 0.3, a, a, a, 0.624, 0, ex);
+      });
+      [[0, -1], [0.662, 1]].forEach((s) => {
+        P(o, 'Larguero superior', 'acero', a, 0.982, s[0], 1.724, a, a, 1, [0, 0.12, s[1] * 0.42]);
+        P(o, 'Larguero reposapiés', 'acero', a, 0.3, s[0], 1.724, a, a, 1, [0, 0, s[1] * 0.42]);
+      });
+      P(o, 'Tapa inferior', 'melRovere', 0.02, 1.02, 0.02, 1.76, 0.015, 0.66, 2, [0, 0.38, 0]);
+      P(o, 'Tapa superior', 'melRovere', 0, 1.035, 0, 1.8, 0.015, 0.7, 3, [0, 0.66, 0]);
+      const dec = []; G.pushBox(dec, 0.5, 1.05, 0.22, 0.3, 0.012, 0.21, 0x1a1b1e, 0.15); G.pushBox(dec, 0.9, 1.05, 0.3, 0.2, 0.008, 0.14, 0xe9e7e2, -0.2);
+      D(o, dec); sombra(o, 0, 0, 1.8, 0.7, 0.16);
+      add(5, [o], { th: 0.6, ph: 1.05 });
+    }
+
+    /* ---- 6 · Taburetes altos (4) -------------------------------------------------- */
+    {
+      const mk = (X, Dd) => {
+        const o = inst(6, X, 0, Dd, 0), l = [], c = 0x151517;
+        l.push({ g: G.cyl(), m: cylM(0, 0.755, 0, 0.175, 0.05), c });
+        l.push({ g: G.cyl(), m: cylM(0, 0.72, 0, 0.14, 0.03), c });
+        for (let i = 0; i < 4; i++) {
+          const an = PI / 4 + i * PI / 2, top = [Math.cos(an) * 0.12, Math.sin(an) * 0.12], bot = [Math.cos(an) * 0.2, Math.sin(an) * 0.2];
+          const mid = new T.Vector3((top[0] + bot[0]) / 2, 0.36, (top[1] + bot[1]) / 2), dir = new T.Vector3(top[0] - bot[0], 0.72, top[1] - bot[1]);
+          const q = new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), dir.clone().normalize());
+          l.push({ g: G.cyl(), m: new T.Matrix4().compose(mid, q, new T.Vector3(0.013, dir.length(), 0.013)), c });
+        }
+        l.push({ g: new T.TorusGeometry(0.168, 0.009, 6, 28), m: G.mat(0, 0.27, 0, PI / 2, 0, 0), c });
+        PM(o, 'Taburete', 'plastico', l, 0, [0, 0, 0], { mk: 'producto' }); sombra(o, -0.17, -0.17, 0.34, 0.34, 0.24);
+        return o;
+      };
+      add(6, [mk(1.95, 3.24), mk(2.4, 3.24), mk(2.85, 3.24), mk(3.58, 3.85)], { th: 0.5, ph: 1.05, lp: [-0.25, 0.42] });
+    }
+
+    /* ---- 7 · Mesón de impresoras -------------------------------------------------- */
+    {
+      const o = inst(7, 0.6, 0, 5.5, 0), pc = [];
+      for (let m = 0; m < 4; m++) {
+        const x0 = m * 0.8, dx = (m - 1.5) * 0.2;
+        P(o, 'Lateral', 'melBlanca', x0, 0.1, 0, 0.015, 0.77, 0.58, 0, [dx - 0.09, 0, 0.5]);
+        P(o, 'Lateral', 'melBlanca', x0 + 0.785, 0.1, 0, 0.015, 0.77, 0.58, 0, [dx + 0.09, 0, 0.5]);
+        P(o, 'Piso', 'melBlanca', x0 + 0.015, 0.1, 0.006, 0.77, 0.015, 0.574, 0, [dx, 0, 0.5]);
+        P(o, 'Amarre', 'melBlanca', x0 + 0.015, 0.855, 0.006, 0.77, 0.015, 0.1, 0, [dx, 0.16, 0.5]);
+        P(o, 'Amarre', 'melBlanca', x0 + 0.015, 0.855, 0.48, 0.77, 0.015, 0.1, 0, [dx, 0.16, 0.5]);
+        P(o, 'Fondo 6 mm', 'fondo', x0 + 0.02, 0.1, 0, 0.76, 0.77, 0.006, 1, [dx, 0, 0], { exA: [0, 0, -0.4] });
+        patas(o, [[x0 + 0.08, 0.07], [x0 + 0.72, 0.07], [x0 + 0.08, 0.5], [x0 + 0.72, 0.5]], 0.1, 2, [dx, 0, 0.5], { exA: [0, 0, 0.5] });
+        P(o, 'Entrepaño', 'melBlanca', x0 + 0.015, 0.47, 0.01, 0.77, 0.015, 0.56, 6, [dx, 0, 0.92]);
+        for (let i = 0; i < 2; i++) P(o, 'Puerta', 'melPlomo', x0 + 0.002 + i * 0.4, 0.103, 0.58, 0.396, 0.764, 0.015, 6, [dx + (i ? 0.05 : -0.05), 0, 1.32], { grain: 1 });
+        pc.push({ g: G.cyl(), m: cylM(x0 + 0.4, 0.901, 0.1, 0.03, 0.004), c: 0x111113 });
+      }
+      P(o, 'Tapa lateral', 'melPlomo', -0.015, 0, 0, 0.015, 0.87, 0.6, 4, [-0.72, 0, 0.5], { grain: 1 });
+      P(o, 'Tapa lateral', 'melPlomo', 3.2, 0, 0, 0.015, 0.87, 0.6, 4, [0.72, 0, 0.5], { grain: 1 });
+      P(o, 'Zócalo', 'melPlomo', 0, 0.005, 0.52, 1.6, 0.09, 0.015, 4, [-0.3, 0, 1.0]);
+      P(o, 'Zócalo', 'melPlomo', 1.6, 0.005, 0.52, 1.6, 0.09, 0.015, 4, [0.3, 0, 1.0]);
+      [0, 1].forEach((i) => {
+        const dx = i ? 0.3 : -0.3;
+        P(o, 'Subtapa blanca', 'melBlanca', i * 1.6, 0.87, 0, 1.6, 0.015, 0.6, 5, [dx, 0.36, 0.5]);
+        P(o, 'Tapa Rovere', 'melRovere', i * 1.6, 0.885, 0, 1.6, 0.015, 0.6, 5, [dx, 0.56, 0.5]);
+      });
+      PM(o, 'Pasacables', 'plastico', pc, 6, [0, 0.8, 0.5], { mk: 'pasacable', noShadow: true }); sombra(o, 0, 0, 3.2, 0.6);
+      add(7, [o], { th: 0.45, ph: 1.05, asm: { off: [0, 0, 0.75], step: 3, first: true } });
+    }
+
+    /* ---- 8 · Impresoras 3D con AMS (4) -------------------------------------------- */
+    {
+      const cols = ['#f2f2f0', '#ff8a2b', '#3b82f6', '#22c55e'], sp = [0xf2c230, 0xd9412e, 0x2f6fd0, 0x232326, 0x3f9b57, 0xf4f2ee, 0xf08a24, 0x8f9094];
+      const mk = (X, k) => {
+        const o = inst(8, X, 0.9, 5.2, 0), w = 0.389, h = 0.458;
+        const body = P(o, 'Impresora P1S', 'equipo', -w / 2, 0, -w / 2, w, h, w, 0, [0, 0, 0], { mk: 'producto' });
+        const win = new T.Mesh(new T.PlaneGeometry(0.3, 0.31), screenMat(printerWindow(cols[k])));
+        win.position.set(0, -0.025, w / 2 + 0.001); body.add(win); win.userData = { n: 8, inst: o, child: true };
+        const top = new T.Mesh(new T.PlaneGeometry(0.33, 0.33), M.vidrioOscuro); top.rotation.x = -PI / 2; top.position.y = h / 2 + 0.001; body.add(top); top.userData = { n: 8, inst: o, child: true };
+        const lcd = new T.Mesh(new T.PlaneGeometry(0.07, 0.035), M.ledFrio); lcd.position.set(-0.11, h / 2 - 0.03, w / 2 + 0.0015); body.add(lcd); lcd.userData = { n: 8, inst: o, child: true };
+        const l = [];
+        G.pushBox(l, -0.184, h, -0.1415, 0.368, 0.05, 0.283, 0x2b2c2f);
+        for (let i = 0; i < 4; i++) G.spool(l, -0.132 + i * 0.088, h + 0.135, 0, 0.085, 0.066, sp[(k * 3 + i) % sp.length], 'x');
+        const ams = PM(o, 'Unidad AMS', 'decor', l, 1, [0, 0.34, 0], { mk: 'producto' });
+        const cover = new T.Mesh(new T.BoxGeometry(0.368, 0.176, 0.283), M.vidrioOscuro); cover.position.set(0, h + 0.05 + 0.088, 0); cover.renderOrder = 3; ams.add(cover); cover.userData = { n: 8, inst: o, child: true };
+        return o;
+      };
+      add(8, [1.0, 1.8, 2.6, 3.4].map(mk), { th: 0.42, ph: 1.12 });
+    }
+
+    /* ---- 9 · Repisa de filamentos ----------------------------------------------------- */
+    {
+      G.reseed(909);
+      const o = inst(9, 0.6, 1.6, 5.5, 0), l = [];
+      for (let i = 0; i < 8; i++) l.push({ g: G.cyl(), m: cylM(0.2 + i * 0.4, 0.015, 0.09, 0.0055, 0.18, 'z'), c: 0xd0d2d5 });
+      PM(o, 'Soportes invisibles', 'inox', l, 0, [0, 0, 0.3], { mk: 'soporte', noShadow: true });
+      [0, 1].forEach((i) => {
+        const dx = i ? 0.22 : -0.22;
+        P(o, 'Capa inferior', 'melRovere', i * 1.6, 0, 0, 1.6, 0.015, 0.25, 1, [dx, -0.13, 0.62]);
+        P(o, 'Capa superior', 'melRovere', i * 1.6, 0.015, 0, 1.6, 0.015, 0.25, 1, [dx, 0.13, 0.62]);
+      });
+      const dec = [], cs = [0x232326, 0x232326, 0x2f6fd0, 0x232326, 0xf4f2ee, 0x232326, 0xd9412e, 0x232326, 0x232326, 0xf08a24, 0x232326, 0x3f9b57];
+      for (let i = 0; i < 12; i++) { if (i === 5) continue; G.spool(dec, 0.2 + i * 0.255, 0.13, 0.13, 0.1, 0.07, cs[i], 'z'); }
+      G.fig(dec, 'jarron', 1.47, 0.03, 0.13, 0.2, 0x8f9094, 0);
+      D(o, dec);
+      add(9, [o], { th: 0.4, ph: 1.1, lp: [-1.35, 0] });
+    }
+
+    /* ---- 10 · Mueble bajo con cajones (muro derecho) ----------------------------- */
+    {
+      G.reseed(1010);
+      const o = inst(10, 6, 0, 5.0, -PI / 2);
+      for (let m = 0; m < 5; m++) {
+        const x0 = m * 0.6, dx = (m - 2) * 0.17;
+        P(o, 'Lateral', 'melBlanca', x0, 0.1, 0, 0.015, 0.77, 0.48, 0, [dx - 0.065, 0, 0.45]);
+        P(o, 'Lateral', 'melBlanca', x0 + 0.585, 0.1, 0, 0.015, 0.77, 0.48, 0, [dx + 0.065, 0, 0.45]);
+        P(o, 'Piso', 'melBlanca', x0 + 0.015, 0.1, 0.006, 0.57, 0.015, 0.474, 0, [dx, 0, 0.45]);
+        P(o, 'Amarre', 'melBlanca', x0 + 0.015, 0.855, 0.006, 0.57, 0.015, 0.1, 0, [dx, 0.14, 0.45]);
+        P(o, 'Amarre', 'melBlanca', x0 + 0.015, 0.855, 0.38, 0.57, 0.015, 0.1, 0, [dx, 0.14, 0.45]);
+        P(o, 'Fondo 6 mm', 'fondo', x0 + 0.005, 0.1, 0, 0.59, 0.76, 0.006, 0, [dx, 0, 0], { exA: [0, 0, -0.35] });
+        patas(o, [[x0 + 0.07, 0.07], [x0 + 0.53, 0.07], [x0 + 0.07, 0.42], [x0 + 0.53, 0.42]], 0.1, 1, [dx, 0, 0.45], { exA: [0, 0, 0.45] });
+        const rl = [];
+        for (let j = 0; j < 3; j++) {
+          const y = 0.103 + j * 0.2555, bx = [];
+          G.pushBox(bx, x0 + 0.03, y + 0.04, 0.03, 0.015, 0.18, 0.45, 0xf2f0eb); G.pushBox(bx, x0 + 0.555, y + 0.04, 0.03, 0.015, 0.18, 0.45, 0xf2f0eb);
+          G.pushBox(bx, x0 + 0.045, y + 0.04, 0.03, 0.51, 0.18, 0.015, 0xf2f0eb); G.pushBox(bx, x0 + 0.045, y + 0.04, 0.465, 0.51, 0.18, 0.015, 0xf2f0eb);
+          G.pushBox(bx, x0 + 0.031, y + 0.034, 0.03, 0.538, 0.006, 0.45, 0xf6f4ef);
+          PM(o, 'Caja de cajón', 'decor', bx, 4, [dx, 0, 0.98], { mk: 'melBlanca' });
+          G.pushBox(rl, x0 + 0.016, y + 0.1, 0.03, 0.012, 0.036, 0.45, 0xc6c8cb); G.pushBox(rl, x0 + 0.572, y + 0.1, 0.03, 0.012, 0.036, 0.45, 0xc6c8cb);
+          P(o, 'Frente de cajón', 'melRovere', x0 + 0.002, y, 0.48, 0.596, 0.252, 0.015, 5, [dx, 0, 1.45]);
+          P(o, 'Perfil manija', 'alu', x0 + 0.002, y + 0.243, 0.495, 0.596, 0.011, 0.012, 5, [dx, 0.05, 1.45], { mk: 'manija', noShadow: true });
+        }
+        PM(o, 'Rieles de extensión total', 'alu', rl, 4, [dx, 0, 0.45], { mk: 'riel', noShadow: true, exA: [0, 0, 0.5] });
+      }
+      P(o, 'Tapa lateral', 'melRovere', -0.015, 0, 0, 0.015, 0.87, 0.5, 2, [-0.62, 0, 0.45], { grain: 1 });
+      P(o, 'Tapa lateral', 'melRovere', 3.0, 0, 0, 0.015, 0.87, 0.5, 2, [0.62, 0, 0.45], { grain: 1 });
+      P(o, 'Zócalo', 'melRovere', 0, 0.005, 0.43, 1.5, 0.09, 0.015, 2, [-0.3, 0, 0.9]);
+      P(o, 'Zócalo', 'melRovere', 1.5, 0.005, 0.43, 1.5, 0.09, 0.015, 2, [0.3, 0, 0.9]);
+      [0, 1].forEach((i) => {
+        const dx = i ? 0.3 : -0.3;
+        P(o, 'Tapa blanca (capa inferior)', 'melBlanca', i * 1.5, 0.87, 0, 1.5, 0.015, 0.5, 3, [dx, 0.34, 0.45]);
+        P(o, 'Tapa blanca (capa superior)', 'melBlanca', i * 1.5, 0.885, 0, 1.5, 0.015, 0.5, 3, [dx, 0.5, 0.45]);
+      });
+      const dec = [];
+      G.fig(dec, 'jarron', 0.35, 0.9, 0.25, 0.22, 0xf4f2ee, 0); G.fig(dec, 'gema', 0.62, 0.9, 0.3, 0.12, 0x232326, 0.4);
+      G.pushBox(dec, 1.9, 0.9, 0.12, 0.3, 0.1, 0.24, 0xc9a579, 0.1); G.pushBox(dec, 1.95, 1.0, 0.14, 0.22, 0.08, 0.2, 0xd8b88c, -0.15);
+      G.fig(dec, 'conejo', 1.35, 0.9, 0.26, 0.24, 0xf4f2ee, 0.3);
+      D(o, dec); sombra(o, 0, 0, 3.0, 0.5);
+      add(10, [o], { th: -0.95, ph: 1.05, asm: { off: [0, 0, 0.65], step: 1, first: false } });
+    }
+
+    /* ---- 11 · Panel perforado ------------------------------------------------------ */
+    {
+      G.reseed(1111);
+      const o = inst(11, 6, 1.0, 4.95, -PI / 2);
+      [0, 0.585, 1.17].forEach((y, i) => P(o, 'Listón horizontal', 'negro', 0, y, 0, 2.2, 0.05, 0.015, 0, [0, (i - 1) * 0.18, 0.22], { mk: 'mdf15' }));
+      chazos(o, [0.15, 0.75, 1.45, 2.05].flatMap((x) => [[x, 0.025, 0.03], [x, 1.195, 0.03]]), 0, [0, 0, 0.4]);
+      [0.3, 0.83, 1.32, 1.85].forEach((x) => P(o, 'Listón vertical', 'negro', x, 0.05, 0, 0.05, 1.12, 0.0145, 1, [0, 0, 0.52], { mk: 'mdf15' }));
+      const sheet = P(o, 'Lámina perforada', 'perforada', 0, 0, 0.015, 2.2, 1.22, 0.002, 2, [0, 0, 0.9]);
+      const uv = sheet.geometry.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, (i % 4 === 1 || i % 4 === 3 ? 1 : 0) * 21.6, (i % 4 < 2 ? 1 : 0) * 12);
+      const l = [], cs = [0x2f6fd0, 0xf2c230, 0xd9412e, 0x3f9b57, 0xf08a24, 0x232326, 0xf4f2ee, 0x8a4fd0, 0x2aa3a0, 0xe96aa6];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {            // carretes hacia el fondo del local
+        const x = 0.2 + c * 0.24, y = 1.03 - r * 0.33;
+        G.spool(l, x, y, 0.065, 0.098, 0.062, cs[(r * 4 + c * 3) % cs.length], 'z');
+        l.push({ g: G.cyl(), m: cylM(x, y, 0.06, 0.006, 0.09, 'z'), c: 0x9a9da1 });
+      }
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) {            // accesorios y repuestos hacia la fachada
+        const x = 1.2 + c * 0.2, y = 1.08 - r * 0.27, w = 0.07 + G.rand() * 0.05, hh = 0.1 + G.rand() * 0.07;
+        l.push({ g: G.cyl(), m: cylM(x, y + hh / 2 + 0.01, 0.04, 0.004, 0.05, 'z'), c: 0x9a9da1 });
+        G.pushBox(l, x - w / 2, y - hh / 2, 0.03, w, hh, 0.03, G.rand() > 0.35 ? 0x26272a : 0xe9e7e2);
+      }
+      PM(o, 'Ganchos, carretes y accesorios', 'decor', l, 3, [0, 0, 1.32], { mk: 'ganchos' });
+      add(11, [o], { th: -1.0, ph: 1.2 });
+    }
+
+    /* ---- 12 · Vitrina vertical mural ---------------------------------------------- */
+    {
+      G.reseed(1212);
+      const o = inst(12, 6, 1.05, 2.5, -PI / 2);
+      P(o, 'Lateral', 'melBlanca', 0, 0, 0, 0.015, 1.2, 0.15, 0, [-0.2, 0, 0.26]);
+      P(o, 'Lateral', 'melBlanca', 0.385, 0, 0, 0.015, 1.2, 0.15, 0, [0.2, 0, 0.26]);
+      P(o, 'Piso', 'melBlanca', 0.015, 0, 0, 0.37, 0.015, 0.15, 0, [0, -0.2, 0.26]);
+      P(o, 'Fondo 6 mm', 'fondoLit', 0.005, 0.005, 0, 0.39, 1.19, 0.006, 0, [0, 0, 0], { mk: 'fondo', exA: [0, 0, -0.2] });
+      [0.3, 0.6, 0.9].forEach((y) => P(o, 'Entrepaño de acrílico', 'acrilico', 0.016, y, 0.007, 0.368, 0.003, 0.14, 1, [0, 0, 0.55], { noShadow: true, order: 3 }));
+      P(o, 'Frente de acrílico', 'acrilico', 0.002, 0.002, 0.139, 0.396, 1.196, 0.003, 2, [0, 0, 0.85], { noShadow: true, order: 4 });
+      P(o, 'Techo', 'melBlanca', 0.015, 1.185, 0, 0.37, 0.015, 0.15, 2, [0, 0.24, 0.26]);
+      P(o, 'Perfil LED (retal)', 'led', 0.017, 0.02, 0.118, 0.012, 1.16, 0.01, 3, [-0.1, 0, 0.6], { noShadow: true });
+      P(o, 'Fuente 12 V', 'equipo', 0.14, 1.2, 0.04, 0.12, 0.03, 0.05, 3, [0, 0.4, 0.26], { mk: 'fuente' });
+      chazos(o, [[0.1, 1.1, 0.03], [0.3, 1.1, 0.03]], 4, [0, 0, 0.2], { exA: [0, 0, 0.3] });
+      const dec = [];
+      [0.015, 0.303, 0.603, 0.903].forEach((y, i) => { G.fig(dec, ['torre', 'conejo', 'busto', 'jarron'][i], 0.13, y, 0.075, 0.2, [0x232326, 0xf4f2ee, 0x232326, 0x2f6fd0][i], 0.3); G.fig(dec, ['gema', 'nudo', 'aro', 'facetado'][i], 0.28, y, 0.075, 0.13, [0xf4f2ee, 0x232326, 0xf4f2ee, 0x232326][i], 0); });
+      D(o, dec);
+      add(12, [o], { th: -0.9, ph: 1.25, asm: { off: [0, 0, 0.5], step: 4, first: true } });
+    }
+
+    /* ---- 13 · Estantería exhibidora alta (muro derecho) ------------------------- */
+    {
+      G.reseed(1313);
+      const o = inst(13, 6, 0, 1.5, -PI / 2), dec = [];
+      P(o, 'Lateral', 'melRovere', 0, 0, 0, 0.015, 2.4, 0.35, 0, [-0.3, 0, 0.5]);
+      P(o, 'Lateral', 'melRovere', 1.185, 0, 0, 0.015, 2.4, 0.35, 0, [0.3, 0, 0.5]);
+      P(o, 'Piso', 'melRovere', 0.015, 0.08, 0.006, 1.17, 0.015, 0.344, 0, [0, 0, 0.5]);
+      P(o, 'Techo', 'melRovere', 0.015, 2.385, 0.006, 1.17, 0.015, 0.344, 0, [0, 0.32, 0.5]);
+      P(o, 'Fondo 6 mm', 'fondoLit', 0.005, 0.005, 0, 1.19, 2.39, 0.006, 1, [0, 0, 0], { mk: 'fondo', exA: [0, 0, -0.42] });
+      patas(o, [[0.1, 0.06], [1.1, 0.06], [0.1, 0.28], [1.1, 0.28]], 0.08, 2, [0, 0, 0.5], { exA: [0, 0, 0.55] });
+      P(o, 'Zócalo', 'melRovere', 0.015, 0, 0.31, 1.17, 0.08, 0.015, 2, [0, 0, 0.95]);
+      P(o, 'Perfil LED', 'led', 0.017, 0.1, 0.324, 0.014, 2.28, 0.012, 3, [-0.15, 0, 0.8], { noShadow: true });
+      P(o, 'Perfil LED', 'led', 1.169, 0.1, 0.324, 0.014, 2.28, 0.012, 3, [0.15, 0, 0.8], { noShadow: true });
+      P(o, 'Fuente 12 V', 'equipo', 0.5, 2.4, 0.1, 0.16, 0.04, 0.06, 3, [0, 0.5, 0.5], { mk: 'fuente' });
+      chazos(o, [[0.3, 2.2, 0.03], [0.9, 2.2, 0.03]], 4, [0, 0, 0.28], { exA: [0, 0, 0.4] });
+      const ys = [1, 2, 3, 4, 5].map((i) => 0.095 + i * 0.3817);
+      ys.forEach((y) => P(o, 'Entrepaño', 'melRovere', 0.015, y, 0.006, 1.17, 0.015, 0.33, 4, [0, 0, 0.9]));
+      const pal = [0x232326, 0x232326, 0xf4f2ee, 0xf4f2ee, 0x2f6fd0, 0x232326, 0xf4f2ee];
+      [0.095].concat(ys).forEach((y, k) => fila(dec, 0.1, 1.1, y + 0.015, 0.18, 2 + (k % 2), 0.17, 0.3, pal));
+      D(o, dec); sombra(o, 0, 0, 1.2, 0.35);
+      add(13, [o], { th: -0.85, asm: { off: [0, 0, 0.8], step: 4, first: true } });
+    }
+
+    /* ---- 14 · Maceteros con planta (4) --------------------------------------------- */
+    {
+      G.reseed(1414);
+      const mk = (X, Dd) => {
+        const o = inst(14, X, 0, Dd, 0);
+        const g = new T.CylinderGeometry(0.2828, 0.215, 0.75, 4, 1); g.rotateY(PI / 4); g.translate(0, 0.375, 0);
+        P(o, 'Matera Urbi Beton', 'cemento', 0, 0, 0, 0, 0, 0, 0, [0, 0, 0], { geo: g, mk: 'producto' });
+        const l = []; G.pushBox(l, -0.17, 0.72, -0.17, 0.34, 0.025, 0.34, 0x3a2e24); G.plant(l, 0, 0.73, 0, 0.56, 15);
+        const m = new T.Mesh(G.merge(l), L.mats.decorMate); m.castShadow = true; m.receiveShadow = true;
+        reg(o, m, { plant: true }); o.plants = [m]; sombra(o, -0.2, -0.2, 0.4, 0.4, 0.3);
+        return o;
+      };
+      add(14, [mk(0.45, 0.30), mk(5.75, 1.76), mk(5.86, -0.6), mk(0.3, 5.2)], { th: 0.5, ph: 1.1 });
+    }
+
+    /* ---- 15 · Mampara de vidrio con puerta ----------------------------------------- */
+    {
+      const o = inst(15, 3.9, 0, 5.6, 0);
+      P(o, 'Canal de piso', 'acero', 0, 0, 0.03, 1.05, 0.025, 0.04, 0, [-0.2, 0, 0.5], { mk: 'canal' });
+      P(o, 'Canal de cielo', 'acero', 0, 2.375, 0.03, 1.95, 0.025, 0.04, 0, [0, 0, 0.5], { mk: 'canal' });
+      P(o, 'Canal lateral', 'acero', 0, 0.025, 0.03, 0.025, 2.35, 0.04, 0, [-0.35, 0, 0.5], { mk: 'canal' });
+      P(o, 'Canal de columna', 'acero', 1.925, 0, 0.03, 0.025, 2.375, 0.04, 0, [0.12, 0, 0.5], { mk: 'canal' });
+      P(o, 'Vidrio fijo 1050 × 2400', 'vidrio', 0.025, 0.025, 0.045, 1.02, 2.35, 0.01, 1, [-0.2, 0, 0.9], { noShadow: true, order: 3 });
+      P(o, 'Puerta 900 × 2400', 'vidrio', 1.05, 0.012, 0.045, 0.875, 2.36, 0.01, 2, [0, 0, 1.3], { noShadow: true, order: 3 });
+      PM(o, 'Bisagras', 'inox', [0.35, 2.05].map((y) => ({ g: new T.BoxGeometry(0.07, 0.1, 0.03), m: G.mat(1.9, y, 0.05), c: 0xd9dbde })), 2, [0.1, 0, 1.3], { mk: 'kit' });
+      PM(o, 'Manija', 'inox', [{ g: G.cyl(), m: cylM(1.13, 1.1, 0.085, 0.011, 0.42), c: 0xd9dbde }, { g: G.cyl(), m: cylM(1.13, 1.1, 0.015, 0.011, 0.42), c: 0xd9dbde }, { g: G.cyl(), m: cylM(1.13, 0.96, 0.05, 0.007, 0.08, 'z'), c: 0xd9dbde }, { g: G.cyl(), m: cylM(1.13, 1.24, 0.05, 0.007, 0.08, 'z'), c: 0xd9dbde }], 3, [0, 0, 1.6], { mk: 'kit' });
+      P(o, 'Franja visible', 'escarcha', 0.03, 1.45, 0.056, 1.01, 0.09, 0.001, 4, [-0.2, 0, 1.75], { noShadow: true, order: 4, mk: 'franja' });
+      P(o, 'Franja visible', 'escarcha', 1.06, 1.45, 0.056, 0.855, 0.09, 0.001, 4, [0, 0, 1.9], { noShadow: true, order: 4, mk: 'franja' });
+      add(15, [o], { th: 0.1, ph: 1.25 });
+    }
+
+    /* ---- 16 · Estanterías de bodega (2, trastienda) --------------------------------- */
+    {
+      G.reseed(1616);
+      const o = inst(16, 3.2, 0, 7.0, 0), dec = [];
+      for (let u = 0; u < 2; u++) {
+        const x0 = u * 0.9, dx = u ? 0.25 : -0.25, post = [];
+        [[0, 0], [0.87, 0], [0, 0.37], [0.87, 0.37]].forEach((p) => G.pushBox(post, x0 + p[0], 0, p[1], 0.03, 1.8, 0.03, 0x8d9094));
+        PM(o, 'Parales', 'gris', post, 0, [dx, 0, 0.3], { mk: 'producto' });
+        [0.08, 0.5, 0.93, 1.36, 1.77].forEach((y, k) => {
+          P(o, 'Nivel', 'gris', x0 + 0.005, y, 0.005, 0.89, 0.03, 0.39, 1, [dx, 0.06 * k, 0.75], { mk: 'producto' });
+          if (k < 4) for (let b = 0; b < 2; b++) { const w = 0.22 + G.rand() * 0.14, h = 0.14 + G.rand() * 0.14; G.pushBox(dec, x0 + 0.08 + b * 0.42 + G.rand() * 0.05, y + 0.03, 0.06, w, h, 0.26, pick([0xc9a579, 0xb8935f, 0xd8b88c, 0x2b2c2f, 0xe9e7e2])); }
+        });
+      }
+      D(o, dec, 'decorMate'); sombra(o, 0, 0, 1.8, 0.4, 0.26);
+      add(16, [o], { th: 0.3, ph: 0.6, zone: 'trastienda' });
+    }
+
+    /* ---- 17 · Escritorio de diseño (trastienda) ---------------------------------------- */
+    {
+      const o = inst(17, 0.2, 0, 7.0, 0), a = 0.025;
+      P(o, 'Larguero', 'acero', 0.05 + a, 0.71, 0.07, 1.05, a, a, 0, [0, 0.24, 0]);
+      P(o, 'Larguero', 'acero', 0.05 + a, 0.71, 0.505, 1.05, a, a, 0, [0, 0.24, 0]);
+      P(o, 'Travesaño', 'acero', 0.05, 0.71, 0.07 + a, a, a, 0.41, 0, [0, 0.24, 0]);
+      P(o, 'Travesaño', 'acero', 1.125, 0.71, 0.07 + a, a, a, 0.41, 0, [0, 0.24, 0]);
+      [[0.05, 0.07, -1, -1], [1.125, 0.07, 1, -1], [0.05, 0.505, -1, 1], [1.125, 0.505, 1, 1]].forEach((p) => P(o, 'Pata', 'acero', p[0], 0, p[1], a, 0.71, a, 1, [p[2] * 0.24, 0, p[3] * 0.2]));
+      P(o, 'Tapa blanca', 'melBlanca', 0, 0.735, 0, 1.2, 0.015, 0.6, 2, [0, 0.62, 0]);
+      PM(o, 'Pasacable', 'plastico', [{ g: G.cyl(), m: cylM(1.1, 0.751, 0.08, 0.03, 0.004), c: 0x111113 }], 2, [0, 0.72, 0], { mk: 'pasacable', noShadow: true });
+      const dec = [];
+      G.pushBox(dec, 0.33, 0.75, 0.1, 0.24, 0.012, 0.14, 0x1a1b1e); G.pushBox(dec, 0.44, 0.76, 0.14, 0.03, 0.12, 0.03, 0x1a1b1e);
+      G.pushBox(dec, 0.15, 0.86, 0.13, 0.6, 0.34, 0.018, 0x1a1b1e); G.pushBox(dec, 0.165, 0.875, 0.149, 0.57, 0.31, 0.002, 0x4f79b8);
+      G.pushBox(dec, 0.26, 0.75, 0.36, 0.38, 0.012, 0.13, 0xdedcd7); G.pushBox(dec, 0.72, 0.75, 0.38, 0.06, 0.02, 0.1, 0xdedcd7);
+      D(o, dec, 'decorMate'); sombra(o, 0, 0, 1.2, 0.6, 0.16);
+      add(17, [o], { th: 0.35, ph: 0.6, zone: 'trastienda' });
+    }
+
+    /* ---- 18 · Silla de trabajo (trastienda) ---------------------------------------------- */
+    {
+      const o = inst(18, 0.82, 0, 6.02, PI), l = [], c = 0x151517;
+      for (let i = 0; i < 5; i++) l.push({ g: new T.BoxGeometry(0.28, 0.025, 0.04), m: G.mat(Math.cos(i * PI * 0.4) * 0.14, 0.05, Math.sin(i * PI * 0.4) * 0.14, 0, -i * PI * 0.4, 0), c });
+      l.push({ g: G.cyl(), m: cylM(0, 0.24, 0, 0.025, 0.38), c: 0x8d9094 });
+      G.pushBox(l, -0.23, 0.42, -0.22, 0.46, 0.06, 0.44, c);
+      G.pushBox(l, -0.21, 0.56, 0.2, 0.42, 0.42, 0.035, 0x232326);
+      G.pushBox(l, -0.03, 0.44, 0.19, 0.06, 0.16, 0.03, c);
+      PM(o, 'Silla ergonómica', 'decorMate', l, 0, [0, 0, 0], { mk: 'producto' }); sombra(o, -0.25, -0.25, 0.5, 0.5, 0.2);
+      add(18, [o], { th: 0.35, ph: 0.6, zone: 'trastienda' });
+    }
+
+    /* ---- 19 · Tótem de categorías (pilar izquierdo, exterior) ----------------------- */
+    {
+      const o = inst(19, 0, 0.3, -R.dim.PD, 0);
+      P(o, 'Panel Plomo 2200 × 600', 'melPlomo', 0, 0, 0, 0.6, 2.2, 0.015, 0, [0, 0, 0.3], { grain: 1 });
+      chazos(o, [[0.12, 0.2, 0.0], [0.48, 0.2, 0.0], [0.12, 2.0, 0.0], [0.48, 2.0, 0.0]], 0, [0, 0, 0.55]);
+      ['Prototipos', 'Personalizados', 'Regalos', 'Decoración', 'Figuras'].forEach((name, i) => {
+        const g = new T.PlaneGeometry(0.3, 0.375); g.translate(0.3, 0.3 + i * 0.4, 0.019);
+        const mat = new T.MeshBasicMaterial({ map: iconTex(name), transparent: true, toneMapped: false, alphaTest: 0.08 });
+        P(o, 'Ícono «' + name + '»', mat, 0, 0, 0, 0, 0, 0, 1, [0, 0, 0.62 + i * 0.07], { geo: g, mk: 'petg', noShadow: true });
+      });
+      add(19, [o], { th: 0.35, ph: 1.3, zone: 'fachada' });
+    }
+
+    /* ---- 20 · Pantalla 43" en vertical (pilar derecho, exterior) -------------------- */
+    {
+      const o = inst(20, 5.395, 1.27, -R.dim.PD, 0);
+      PM(o, 'Soporte fijo', 'acero', [{ g: new T.BoxGeometry(0.3, 0.3, 0.02), m: G.mat(0.305, 0.485, 0.01), c: 0x2a2a2c }], 0, [0, 0, 0.14], { mk: 'soporte' });
+      const tv = P(o, 'Televisor 43"', 'plastico', 0, 0, 0.03, 0.61, 0.97, 0.04, 1, [0, 0, 0.5], { mk: 'producto' });
+      const scr = new T.Mesh(new T.PlaneGeometry(0.59, 0.95), screenMat(canvasTex(384, 620, drawCubeScreen)));
+      scr.position.z = 0.021; tv.add(scr); scr.userData = { n: 20, inst: o, child: true };
+      add(20, [o], { th: -0.35, ph: 1.3, zone: 'fachada', lp: [-0.3, 0.12] });
+    }
+
+    // cajas envolventes y datos derivados
+    F.order.forEach((n) => F.items[n].insts.forEach((o) => {
+      o.group.updateMatrixWorld(true);
+      o.box = new T.Box3();
+      o.parts.forEach((p) => o.box.expandByObject(p));
+      o.center = o.box.getCenter(new T.Vector3()); o.radius = o.box.getSize(new T.Vector3()).length() / 2;
+      o.steps = o.parts.reduce((a, p) => Math.max(a, p.userData.step + 1), 0);
+    }));
+  };
+})();
