@@ -74,7 +74,7 @@
     R.divShell = E.addShell(div, (c) => !(R.hideDiv && c.z > -2.2));
 
     /* ----------------------------------------------------------------- fachada */
-    // pilares: sostienen el tótem y la pantalla; solo se apartan si tapan lo que se está mirando
+    // pilares: sostienen las dos pantallas exteriores; solo se apartan si tapan lo que se está mirando
     const pilL = new T.Group(), pilR = new T.Group(); pilL.name = 'Pilar izquierdo'; pilR.name = 'Pilar derecho'; root.add(pilL, pilR);
     pilL.add(box(M.fachada, -TH, 0, -PD, 0.6 + TH, HS, PD, { cast: true, bev: 0.004 }));
     pilR.add(box(M.fachada, 5.4, 0, -PD, 0.6 + TH, HS, PD, { cast: true, bev: 0.004 }));

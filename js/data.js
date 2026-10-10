@@ -52,14 +52,14 @@
       origen: 'fabrica', grupo: 'Mobiliario de exhibición',
       dims: '2.40 × 0.40 × 2.40 m', cant: '1 (2 módulos de 1.20)',
       ubic: 'Muro izquierdo, a 1.60 m de la fachada',
-      total: 1669546,
+      total: 1741487,
       resumen: 'Dos módulos de 1.20 × 0.40 × 2.40 m con gabinete inferior, ocho entrepaños y luz LED vertical tras cada lateral.',
       mats: [
         { key: 'melBlanca', proc: ['aglomerado', 'melamina'], m: 'Melamina blanca RH 15 mm', uso: '4 laterales 2400 × 400; 6 techos, pisos y divisores 1170 × 400; 8 entrepaños 1170 × 380', cant: '10.20 m²', pu: '$226.756 por lámina', costo: 597867 },
-        { key: 'melPlomo', proc: ['aglomerado', 'melamina'], m: 'Melamina Plomo RH 15 mm', uso: '4 puertas 596 × 520; 2 zócalos 1170 × 80', cant: '1.43 m²', pu: '$592.833 por lámina', costo: 260308 },
+        { key: 'melPlomo', proc: ['aglomerado', 'melamina'], m: 'Melamina Plomo RH 15 mm', uso: '4 puertas 596 × 520; 2 zócalos 1170 × 80', cant: '1.43 m²', pu: '$592.833 por lámina', costo: 327318 },
         { key: 'fondo', proc: ['aglomerado', 'melamina'], m: 'Fondo blanco 6 mm', uso: '2 fondos 2390 × 1190', cant: '5.69 m²', pu: '$212.534 por lámina', costo: 349980 },
-        { key: 'canto', proc: ['canto'], m: 'Canto PVC 19 mm', uso: '27.6 m blanco y 8.9 m Plomo', cant: '36.5 m', pu: '$167.200 y $96.400 por rollo', costo: 72951 },
-        { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte de láminas y pegado de canto', cant: '36.5 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 93263 },
+        { key: 'canto', proc: ['canto'], m: 'Canto PVC 19 mm', uso: '27.6 m blanco y 8.9 m Plomo', cant: '36.5 m', pu: '$167.200 y $96.400 por rollo', costo: 77338 },
+        { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte de láminas y pegado de canto', cant: '36.5 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 93807 },
         { key: 'led', proc: ['aluminio', 'led'], m: 'Perfil LED con cinta integrada', uso: 'Vertical, cortado a 1.80 m, uno por lateral', cant: '4 tramos de 3 m', pu: '$44.910 por tramo', costo: 179640 },
         { key: 'fuente', m: 'Fuente 12 V (variante 8 m)', uso: 'Una para los dos módulos, que suman 7.2 m de LED', cant: '1', pu: '$67.250 por unidad', costo: 67250 },
         { key: 'herraje', m: 'Bisagras cierre lento', uso: 'Dos por puerta', cant: '4 pares', pu: '$3.137 por par', costo: 12548 },
@@ -263,15 +263,15 @@
       origen: 'fabrica', grupo: 'Mobiliario de trabajo',
       dims: '3.20 × 0.60 × 0.90 m', cant: '1',
       ubic: 'Contra el muro de listones del fondo, a 0.60 m del muro izquierdo',
-      total: 1967225,
+      total: 2153047,
       resumen: 'Cuatro módulos de 0.80 m, uno por impresora, con puertas Plomo y una tapa Rovere de 30 mm que reparte la carga y vibra menos.',
       mats: [
         { key: 'melBlanca', proc: ['aglomerado', 'melamina'], m: 'Melamina blanca RH 15 mm', uso: '8 laterales 770 × 580; 4 pisos 770 × 580; 8 amarres 770 × 100; 4 entrepaños 770 × 560; 2 subtapas 1600 × 600', cant: '9.62 m²', pu: '$226.756 por lámina', costo: 563606 },
-        { key: 'melPlomo', proc: ['aglomerado', 'melamina'], m: 'Melamina Plomo RH 15 mm', uso: '8 puertas 764 × 396; 2 zócalos 1600 × 90; 2 tapas laterales 870 × 600', cant: '3.75 m²', pu: '$592.833 por lámina', costo: 684548 },
+        { key: 'melPlomo', proc: ['aglomerado', 'melamina'], m: 'Melamina Plomo RH 15 mm', uso: '8 puertas 764 × 396; 2 zócalos 1600 × 90; 2 tapas laterales 870 × 600', cant: '3.75 m²', pu: '$592.833 por lámina', costo: 858348 },
         { key: 'melRovere', proc: ['aglomerado', 'melamina'], m: 'Melamina Rovere RH 15 mm', uso: '2 tapas 1600 × 600', cant: '1.92 m²', pu: '$444.625 por lámina', costo: 254411 },
         { key: 'fondo', proc: ['aglomerado', 'melamina'], m: 'Fondo blanco 6 mm', uso: '4 fondos 760 × 790', cant: '2.40 m²', pu: '$212.534 por lámina', costo: 147764 },
-        { key: 'canto', proc: ['canto'], m: 'Canto PVC 19 mm', uso: '12.3 m blanco, 21.5 m Plomo y 4.4 m Rovere', cant: '38.2 m', pu: '$167.200, $96.400 y $285.600 por rollo', costo: 96846 },
-        { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte y pegado de canto', cant: '38.2 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 96983 },
+        { key: 'canto', proc: ['canto'], m: 'Canto PVC 19 mm', uso: '12.3 m blanco, 21.5 m Plomo y 4.4 m Rovere', cant: '38.2 m', pu: '$167.200, $96.400 y $285.600 por rollo', costo: 107443 },
+        { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte y pegado de canto', cant: '38.2 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 98408 },
         { key: 'servicio', m: 'Servicio de engruese tipo sánduche', uso: 'Une cada tapa Rovere con su subtapa blanca', cant: '2', pu: '$19.931', costo: 39862 },
         { key: 'herraje', m: 'Bisagras cierre lento', uso: 'Dos por puerta', cant: '8 pares', pu: '$3.137 por par', costo: 25096 },
         { key: 'patas', m: 'Patas niveladoras', uso: 'Cuatro por módulo', cant: '16', pu: '$2.042 por unidad', costo: 32672 },
@@ -545,16 +545,16 @@
     {
       n: 14, id: 'maceteros', name: 'Macetero con planta', short: 'Maceteros',
       origen: 'compra', grupo: 'Mobiliario comprado',
-      dims: '0.40 × 0.40 × 0.75 m', cant: '4',
-      ubic: 'Acceso izquierdo, muro derecho, exterior del pilar derecho y esquina del fondo',
-      total: 1359600,
-      resumen: 'Cuatro materas color cemento. Las plantas se compran aparte y no están en el presupuesto.',
+      dims: '0.40 × 0.40 × 0.75 m', cant: '3',
+      ubic: 'Acceso izquierdo, muro derecho y esquina del fondo, todos dentro del local',
+      total: 1019700,
+      resumen: 'Tres materas color cemento, todas dentro del local: la fachada queda despejada para las pantallas de los pilares. Las plantas se compran aparte y no están en el presupuesto.',
       mats: [
-        { key: 'producto', m: 'Matera plástica Urbi Beton color cemento, Tumatera', uso: '40 × 40 × 75 cm', cant: '4', pu: '$339.900 por unidad', costo: 1359600, prov: 'Homecenter', nota: 'No incluye la planta' }
+        { key: 'producto', m: 'Matera plástica Urbi Beton color cemento, Tumatera', uso: '40 × 40 × 75 cm', cant: '3', pu: '$339.900 por unidad', costo: 1019700, prov: 'Homecenter', nota: 'No incluye la planta' }
       ],
       fab: [],
       ens: [
-        'Uno en el acceso izquierdo, uno junto al mueble bajo, uno fuera del pilar derecho y uno en la esquina del fondo.',
+        'Uno en el acceso izquierdo, uno junto al mueble bajo y uno en la esquina del fondo.',
         'Las plantas se compran aparte.'
       ],
       seq: [],
@@ -676,64 +676,62 @@
     },
     /* ----------------------------------------------------------------- 19 */
     {
-      n: 19, id: 'totem', name: 'Tótem de categorías', short: 'Tótem de categorías',
-      origen: 'fabrica', grupo: 'Mampara y fachada',
-      dims: '0.60 × 0.05 × 2.20 m', cant: '1',
-      ubic: 'Cara exterior del pilar izquierdo de la fachada',
-      total: 367406,
-      resumen: 'Un panel Plomo con cinco íconos impresos en el propio taller: Figuras, Decoración, Regalos, Personalizados y Prototipos.',
-      mats: [
-        { key: 'melPlomo', proc: ['aglomerado', 'melamina'], m: 'Melamina Plomo RH 15 mm', uso: 'Panel 2200 × 600', cant: '1.32 m²', pu: '$592.833 por lámina', costo: 240810 },
-        { key: 'canto', proc: ['canto'], m: 'Canto PVC Plomo 19 mm', uso: 'Perímetro', cant: '5.6 m', pu: '$96.400 por rollo', costo: 14984 },
-        { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte y pegado de canto', cant: '5.6 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 12312 },
-        { key: 'petg', m: 'Filamento PETG blanco', uso: 'Íconos y rótulos impresos en el propio taller', cant: '1 kg', pu: '$93.900 por kg', costo: 93900 },
-        { key: 'anclaje', m: 'Chazos', uso: 'Fijación al pilar', cant: '1 paquete de 4', pu: '$5.400 por paquete', costo: 5400 }
-      ],
-      fab: [
-        'Cortar y enchapar el panel.',
-        'Modelar los cinco íconos y sus rótulos con 3 mm de relieve y dos espigos de 4 mm por pieza en la cara trasera.',
-        'Imprimirlos en blanco en las impresoras del taller.',
-        'Perforar el panel con una plantilla impresa, a 4 mm, en la posición de cada espigo.'
-      ],
-      ens: [
-        'Fijar el panel al pilar con cuatro chazos, avellanando las cabezas.',
-        'Encajar a presión íconos y rótulos; los íconos tapan las cabezas de los tornillos.'
-      ],
-      seq: [
-        { t: 'Panel Plomo al pilar con cuatro chazos', src: 'Ensamble 1' },
-        { t: 'Íconos y rótulos impresos en 3D, encajados a presión', src: 'Ensamble 2' }
-      ],
-      why: [
-        { t: 'Íconos impresos', d: 'Son la primera muestra del producto: el cliente ve en la fachada lo que el taller fabrica.' },
-        { t: 'Plomo', d: 'Es el mismo tablero de las puertas del mesón, y el panel sale del sobrante de las dos láminas compradas.' }
-      ]
-    },
-    /* ----------------------------------------------------------------- 20 */
-    {
-      n: 20, id: 'pantalla43', name: 'Pantalla «La imaginación también se imprime»', short: 'Pantalla 43"',
+      n: 19, id: 'pantalla-pilar-izq', name: 'Pantalla exterior «Entra y crea» (pilar izquierdo)', short: 'Pantalla 55" pilar izquierdo',
       origen: 'compra', grupo: 'Fachada y pantallas',
-      dims: '0.61 × 0.97 m de frente (43" en vertical)', cant: '1',
-      ubic: 'Cara exterior del pilar derecho de la fachada',
-      total: 436800,
-      resumen: 'Televisor de 43" en vertical sobre el pilar derecho, hacia el pasillo del centro comercial.',
+      dims: '0.69 × 1.21 m de frente (55" en vertical)', cant: '1',
+      ubic: 'Cara exterior del pilar izquierdo de la fachada; base a 0.90 m del piso',
+      total: 1790800,
+      resumen: 'Televisor de 55" en vertical sobre el pilar izquierdo, hacia el pasillo del centro comercial. Reproduce en bucle el mismo video que la pantalla del pilar derecho: invita a entrar a BlackForge y a conocer la impresión 3D.',
       mats: [
-        { key: 'producto', m: 'Televisor Volker 43" FHD', uso: '97.2 × 61.3 cm; 6 kg', cant: '1', pu: '$345.900 por unidad', costo: 345900, prov: 'Homecenter', nota: 'Sin stock en línea' },
+        { key: 'producto', m: 'Televisor Hisense 55" QLED 4K 55Q6QV', uso: '121.1 × 69.3 × 7.2 cm', cant: '1', pu: '$1.699.900 por unidad', costo: 1699900, prov: 'Homecenter', nota: 'En oferta (normal $2.469.900); precio consultado el 10 de octubre de 2026' },
         { key: 'soporte', m: 'Soporte fijo de TV de 32" a 75", Power', uso: 'Carga máxima 70 kg; se fija girado 90°', cant: '1', pu: '$90.900 por unidad', costo: 90900, prov: 'Homecenter', nota: 'Sin stock en línea' }
       ],
       fab: [],
       ens: [
-        'Fijar el soporte girado 90°, para colgar el televisor en vertical.',
+        'Fijar el soporte girado 90°, para colgar el televisor en vertical, con la base de la pantalla a 0.90 m del piso.',
         'Dejar una toma eléctrica detrás de la pantalla antes de colgarla.',
-        'Colgar el televisor en la cara exterior del pilar derecho.',
-        'Cargar el contenido en formato vertical y dejarlo en reproducción continua.'
+        'Colgar el televisor en la cara exterior del pilar izquierdo, centrado en el ancho del pilar.',
+        'Cargar el video vertical «Entra y crea» en una memoria USB y dejarlo en reproducción continua; las dos pantallas llevan el mismo archivo.'
       ],
       seq: [
         { t: 'Fijar el soporte girado 90°', src: 'Instalación 1' },
         { t: 'Colgar el televisor en vertical', src: 'Instalación 3' }
       ],
       why: [
-        { t: 'Medida comercial', d: 'El de 43" ocupa 0.61 × 0.97 m, más ancho y más corto que los 0.45 × 1.20 m dibujados, pero cabe en el pilar de 0.75 m.' },
-        { t: 'Antes de comprar', d: 'Conviene confirmar con el fabricante que el modelo admite montaje vertical.' }
+        { t: 'Una pantalla en cada pilar', d: 'Quien camina por el pasillo ve el video llegue por donde llegue, y las dos pantallas iguales enmarcan la entrada como un portal.' },
+        { t: 'Medida comercial', d: 'El de 55" ocupa 0.69 × 1.21 m en vertical: es el más grande que cabe en el pilar de 0.75 m, con 3 cm libres a cada lado.' },
+        { t: 'Mismo modelo que la de 75"', d: 'Es la misma línea Hisense QLED de la pantalla interior: los colores del video se ven iguales afuera y adentro.' },
+        { t: 'Antes de comprar', d: 'Conviene confirmar con el fabricante que el modelo admite montaje vertical y encendido continuo durante el horario del centro comercial.' }
+      ]
+    },
+    /* ----------------------------------------------------------------- 20 */
+    {
+      n: 20, id: 'pantalla-pilar-der', name: 'Pantalla exterior «Entra y crea» (pilar derecho)', short: 'Pantalla 55" pilar derecho',
+      origen: 'compra', grupo: 'Fachada y pantallas',
+      dims: '0.69 × 1.21 m de frente (55" en vertical)', cant: '1',
+      ubic: 'Cara exterior del pilar derecho de la fachada; base a 0.90 m del piso',
+      total: 1790800,
+      resumen: 'Televisor de 55" en vertical sobre el pilar derecho, hacia el pasillo del centro comercial. Reproduce en bucle el mismo video que la pantalla del pilar izquierdo: invita a entrar a BlackForge y a conocer la impresión 3D.',
+      mats: [
+        { key: 'producto', m: 'Televisor Hisense 55" QLED 4K 55Q6QV', uso: '121.1 × 69.3 × 7.2 cm', cant: '1', pu: '$1.699.900 por unidad', costo: 1699900, prov: 'Homecenter', nota: 'En oferta (normal $2.469.900); precio consultado el 10 de octubre de 2026' },
+        { key: 'soporte', m: 'Soporte fijo de TV de 32" a 75", Power', uso: 'Carga máxima 70 kg; se fija girado 90°', cant: '1', pu: '$90.900 por unidad', costo: 90900, prov: 'Homecenter', nota: 'Sin stock en línea' }
+      ],
+      fab: [],
+      ens: [
+        'Fijar el soporte girado 90°, para colgar el televisor en vertical, con la base de la pantalla a 0.90 m del piso.',
+        'Dejar una toma eléctrica detrás de la pantalla antes de colgarla.',
+        'Colgar el televisor en la cara exterior del pilar derecho, centrado en el ancho del pilar.',
+        'Cargar el video vertical «Entra y crea» en una memoria USB y dejarlo en reproducción continua; las dos pantallas llevan el mismo archivo.'
+      ],
+      seq: [
+        { t: 'Fijar el soporte girado 90°', src: 'Instalación 1' },
+        { t: 'Colgar el televisor en vertical', src: 'Instalación 3' }
+      ],
+      why: [
+        { t: 'Una pantalla en cada pilar', d: 'Quien camina por el pasillo ve el video llegue por donde llegue, y las dos pantallas iguales enmarcan la entrada como un portal.' },
+        { t: 'Medida comercial', d: 'El de 55" ocupa 0.69 × 1.21 m en vertical: es el más grande que cabe en el pilar de 0.75 m, con 3 cm libres a cada lado.' },
+        { t: 'Mismo modelo que la de 75"', d: 'Es la misma línea Hisense QLED de la pantalla interior: los colores del video se ven iguales afuera y adentro.' },
+        { t: 'Antes de comprar', d: 'Conviene confirmar con el fabricante que el modelo admite montaje vertical y encendido continuo durante el horario del centro comercial.' }
       ]
     }
   ];
@@ -853,14 +851,13 @@
         { m: 'Lámina de acrílico transparente 3 mm', pres: 'Lámina 1.80 × 1.22 m', precio: '$215.000 por lámina', prov: 'Asia Colombia', nota: 'La ficha técnica de la página dice 5 mm: confirmar el espesor al comprar', u: 'https://www.asiacolombia.com.co/producto/lamina-de-acrilico-transparente-3mm/' },
         { m: 'Lámina perforada de acero calibre 20, Induya', pres: 'Lámina 4 × 8 pies (1.22 × 2.44 m)', precio: '$360.900 por lámina', prov: 'Homecenter', nota: 'Negro gofrado, perforación de 6 mm cada pulgada; sin stock en línea', u: HC + '3022072/lamina-perforada-4x8-cal-20-tablero-herramientero/3022072/' },
         { m: 'Ganchos para tablero perforado, Crawford', pres: 'Juego de 43 piezas', precio: '$89.900 por juego', prov: 'Homecenter', nota: 'Sin stock en línea', u: HC + '590124/ganchos-para-tablero-perforado-de-43-piezas-crawford/590124/' },
-        { m: 'Filamento PETG 1.75 mm, Overture', pres: 'Carrete de 1 kg', precio: '$93.900 por kg', prov: 'Electronilab, Bogotá', nota: 'Precio de referencia tomado del color amarillo', u: 'https://electronilab.co/tienda/filamento-3d-petg-1-75-mm-1kg-color-amarillo/' }
       ]
     },
     {
       grupo: 'Muebles y equipos que se compran hechos', filas: [
         { m: 'Impresora 3D Bambu Lab P1S Combo AMS', pres: '389 × 389 × 458 mm, 12.95 kg', precio: '$4.199.000 por unidad', prov: 'makeR, distribuidor autorizado en Colombia', nota: 'IVA incluido; antes $5.199.000', u: 'https://somosmaker.com/producto/bambu-lab-p1s-combo-ams/' },
         { m: 'Televisor Hisense 75" QLED 4K 75Q6QV', pres: '166.9 × 95.2 × 7.9 cm', precio: '$2.899.900 por unidad', prov: 'Homecenter', nota: 'En oferta (normal $4.579.900); sin stock en línea', u: HC + '3029093/televisor-hisense-75-pulgadas-qled-uhd-4k-smart-tv-75q6qv/3029093/' },
-        { m: 'Televisor Volker 43" FHD', pres: '97.2 × 61.3 cm, 6 kg', precio: '$345.900 por unidad', prov: 'Homecenter', nota: 'Sin stock en línea', u: HC + '898323/televisor-smart-tv-43-pulgadas-fhd/898323/' },
+        { m: 'Televisor Hisense 55" QLED 4K 55Q6QV', pres: '121.1 × 69.3 × 7.2 cm', precio: '$1.699.900 por unidad', prov: 'Homecenter', nota: 'En oferta (normal $2.469.900); consultado el 10 de octubre de 2026', u: HC + '3029106/televisor-hisense-55-pulgadas-qled-uhd-4k-smart-tv-55q6qv/3029106/' },
         { m: 'Soporte fijo de TV de 32" a 75", Power', pres: 'Carga máxima 70 kg', precio: '$90.900 por unidad', prov: 'Homecenter', nota: 'Sin stock en línea', u: HC + '573029/soporte-fijo-de-tv-soporte-pantallas-32-a-75/573029/' },
         { m: 'Silla para bar Palermo negra', pres: 'Asiento a 78 cm; 48 × 52 × 108 cm', precio: '$249.900 por unidad', prov: 'Madecentro', nota: 'Polipropileno; antes $299.900', u: MC + 'silla-para-bar-palermo-negro-con-reposa-pies-doble-proposito' },
         { m: 'Matera plástica Urbi Beton color cemento, Tumatera', pres: '40 × 40 × 75 cm', precio: '$339.900 por unidad', prov: 'Homecenter', nota: 'No incluye la planta', u: HC + '500578/matera-plastica-rectangular-urbi-beton-40x75x40cm-cemento/500578/' },
@@ -874,39 +871,38 @@
      Presupuesto consolidado
      ------------------------------------------------------------------- */
   const presupuesto = {
-    total: 36092821,
-    fabricado: 12310321,
-    comprado: 23782500,
+    total: 38788078,
+    fabricado: 12200678,
+    comprado: 26587400,
     impresoras: 16796000,
     rubros: [
       { r: 'Impresoras 3D', q: '4 Bambu Lab P1S Combo AMS', c: 16796000 },
       { r: 'Tableros', q: '27 láminas de melamina, fondo y MDF', c: 7250665 },
-      { r: 'Mobiliario comprado', q: 'Taburetes, maceteros, estanterías de bodega y silla', c: 3558900 },
-      { r: 'Pantallas', q: 'Televisores de 75" y 43" con sus soportes', c: 3427600 },
-      { r: 'Metal, vidrio, plásticos y acabados', q: 'Tubo, vidrio templado y kit, acrílico, lámina perforada, ganchos, laca, anticorrosivo, pegante, filamento', c: 2708400 },
-      { r: 'Herrajes e iluminación', q: 'Bisagras, rieles, patas, soportes, tornillería, chazos, perfiles y tiras LED, fuentes', c: 1176590 },
-      { r: 'Servicios de Madecentro', q: 'Corte de 21 láminas, 202 m de enchape y 7 engrueses', c: 625466 },
+      { r: 'Pantallas', q: 'Un televisor de 75" adentro y dos de 55" en los pilares, con sus soportes', c: 6572400 },
+      { r: 'Mobiliario comprado', q: 'Taburetes, maceteros, estanterías de bodega y silla', c: 3219000 },
+      { r: 'Metal, vidrio, plásticos y acabados', q: 'Tubo, vidrio templado y kit, acrílico, lámina perforada, ganchos, laca, anticorrosivo, pegante', c: 2614500 },
+      { r: 'Herrajes e iluminación', q: 'Bisagras, rieles, patas, soportes, tornillería, chazos, perfiles y tiras LED, fuentes', c: 1171190 },
+      { r: 'Servicios de Madecentro', q: 'Corte de 21 láminas, 196 m de enchape y 7 engrueses', c: 615123 },
       { r: 'Cantos', q: 'Tres rollos de PVC de 19 mm', c: 549200 }
     ],
     tiendas: [
       { r: 'makeR', q: 'Las cuatro impresoras', c: 16796000 },
-      { r: 'Madecentro', q: 'Melaminas, fondos, cantos, servicios, herrajes, perfiles LED y taburetes', c: 9680121 },
-      { r: 'Homecenter', q: 'MDF, tubo, pinturas, pegante, tira LED, chazos, kit de vidrio, panel perforado, pantallas, maceteros, estanterías y silla', c: 8371800 },
+      { r: 'Homecenter', q: 'Pantallas, MDF, tubo, pinturas, pegante, tira LED, chazos, kit de vidrio, panel perforado, maceteros, estanterías y silla', c: 11171300 },
+      { r: 'Madecentro', q: 'Melaminas, fondos, cantos, servicios, herrajes, perfiles LED y taburetes', c: 9669778 },
       { r: 'El Ruso Shop', q: 'Vidrio templado', c: 936000 },
-      { r: 'Asia Colombia', q: 'Acrílico', c: 215000 },
-      { r: 'Electronilab', q: 'Filamento', c: 93900 }
+      { r: 'Asia Colombia', q: 'Acrílico', c: 215000 }
     ],
     corte: [
       { t: 'Melamina blanca RH 15 mm', f: '1.83 × 2.44', piezas: 138, area: '34.83', laminas: 9, ap: 87, c: 2040804 },
       { t: 'Melamina Rovere RH 15 mm', f: '2.15 × 2.44', piezas: 39, area: '16.78', laminas: 5, ap: 64, c: 2223125 },
-      { t: 'Melamina Plomo RH 15 mm', f: '2.15 × 2.44', piezas: 19, area: '6.50', laminas: 2, ap: 62, c: 1185666 },
+      { t: 'Melamina Plomo RH 15 mm', f: '2.15 × 2.44', piezas: 18, area: '5.18', laminas: 2, ap: 49, c: 1185666 },
       { t: 'Fondo blanco 6 mm', f: '2.15 × 2.44', piezas: 28, area: '17.27', laminas: 5, ap: 66, c: 1062670 },
       { t: 'MDF 15 mm', f: '1.83 × 2.44', piezas: 37, area: '14.49', laminas: 5, ap: 65, c: 674500 },
       { t: 'MDF 5.5 mm', f: '1.83 × 2.44', piezas: 10, area: '3.14', laminas: 1, ap: 70, c: 63900 }
     ],
-    corteNota: 'Se compran 27 láminas. El conteo sale de acomodar las 271 piezas del despiece en cada formato, con 4 mm de sierra y 10 mm de saneo por borde. El Rovere y el fondo rinden poco porque las piezas de 2.40 m de las estanterías ocupan casi todo el largo de la lámina.',
+    corteNota: 'Se compran 27 láminas. El conteo sale de acomodar las 270 piezas del despiece en cada formato, con 4 mm de sierra y 10 mm de saneo por borde. El Rovere y el fondo rinden poco porque las piezas de 2.40 m de las estanterías ocupan casi todo el largo de la lámina. El Plomo rinde menos: sus piezas no caben en una sola lámina, así que se compran dos y el sobrante queda para reposiciones.',
     supuestos: [
-      'Los precios son los publicados en línea el 9 de octubre de 2026; varios están en oferta y seis productos figuraban sin stock ese día.',
+      'Los precios son los publicados en línea el 9 de octubre de 2026; varios están en oferta y cinco productos figuraban sin stock ese día. El televisor de 55" se consultó el 10 de octubre de 2026.',
       'Las medidas vienen del plano, que se estimó desde la imagen: hay que verificarlas en sitio antes de pedir el corte.',
       'El total no incluye mano de obra, transporte, instalación eléctrica, plantas ni el canal perimetral de la mampara.',
       'Los precios y los procesos industriales tienen su fuente enlazada. El despiece, las cantidades y los métodos de fabricación y ensamble son diseño propio del documento del proyecto.'
@@ -914,7 +910,7 @@
     pendientes: [
       'Verificar en sitio las medidas del local y de cada muro; las del plano son estimadas desde la imagen.',
       'Definir las tomas eléctricas: una de piso bajo la isla principal, una detrás de cada pantalla, cuatro en el mesón con circuito propio y una por cada fuente LED.',
-      'Confirmar existencias de los seis productos que figuraban sin stock en línea: laca, lámina perforada, ganchos, los dos televisores y el soporte.',
+      'Confirmar existencias de los cinco productos que figuraban sin stock en línea: laca, lámina perforada, ganchos, el televisor de 75" y el soporte (se necesitan tres). Confirmar también el precio de los dos televisores de 55".',
       'Pedir a Madecentro la unidad exacta de cobro del enchape y del engruese, que la página no indica.',
       'Cotizar con la vidriería el canal perimetral negro y la instalación de la mampara.'
     ]
@@ -930,16 +926,16 @@
       { t: 'Carpintería', d: ['Corte y enchape', 'Módulos de melamina', 'Islas en MDF y laca'] },
       { t: 'Metalmecánica', d: ['Mesa alta soldada', 'Escritorio soldado', 'Pintura negra mate'] },
       { t: 'Vidriería', d: ['Medir vano terminado', 'Corte y perforaciones', 'Templado'] },
-      { t: 'Compras', d: ['Impresoras y pantallas', 'Taburetes y maceteros', 'Estanterías y silla'] }
+      { t: 'Compras', d: ['Impresoras y tres pantallas', 'Taburetes y maceteros', 'Estanterías y silla'] }
     ],
-    /* items: números del plano que entran en cada paso; '14e' = macetero exterior, '14i' = interiores */
+    /* items: números del plano que entran en cada paso */
     pasos: [
       { t: 'Fondo y trastienda', d: 'Mesón, repisa, mampara, estanterías y escritorio', items: [7, 9, 15, 16, 17, 18] },
       { t: 'Muro derecho', d: 'Mueble bajo, panel perforado, vitrina y estantería alta', items: [10, 11, 12, 13] },
       { t: 'Muro izquierdo', d: 'Estantería retroiluminada y pantalla de 75 pulgadas', items: [2, 1] },
       { t: 'Centro', d: 'Mesa alta, isla principal e isla secundaria', items: [5, 3, 4] },
-      { t: 'Fachada', d: 'Tótem, pantalla del pilar y macetero exterior', items: [19, 20, '14e'] },
-      { t: 'Puesta en marcha', d: 'Impresoras, LED, taburetes y maceteros interiores', items: [8, 6, '14i'], led: true }
+      { t: 'Fachada', d: 'Pantallas de 55 pulgadas en los dos pilares, con el video de bienvenida', items: [19, 20] },
+      { t: 'Puesta en marcha', d: 'Impresoras, LED, taburetes y maceteros', items: [8, 6, 14], led: true }
     ]
   };
 

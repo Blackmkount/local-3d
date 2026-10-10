@@ -81,19 +81,12 @@
   }
 
   /* ----------------------------------------------------- texturas con texto */
-  const FONT = '"Jost","Century Gothic","Futura","Avenir Next",system-ui,sans-serif';
   function canvasTex(w, h, draw) {
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     draw(c.getContext('2d'), w, h);
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8;
     L.redraws.push(() => { const g = c.getContext('2d'); g.clearRect(0, 0, w, h); draw(g, w, h); t.needsUpdate = true; });
     return t;
-  }
-  function cubeIcon(g, cx, cy, s, lw) {
-    g.lineWidth = lw; g.strokeStyle = '#fff'; g.lineJoin = 'round';
-    const p = (i) => [cx + Math.cos(-PI / 2 + i * PI / 3) * s, cy + Math.sin(-PI / 2 + i * PI / 3) * s];
-    g.beginPath(); for (let i = 0; i < 6; i++) { const q = p(i); if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); } g.closePath(); g.stroke();
-    g.beginPath(); [1, 3, 5].forEach((i) => { const q = p(i); g.moveTo(cx, cy); g.lineTo(q[0], q[1]); }); g.stroke();
   }
   /* imagen fija de la pantalla de 75" (mientras carga el video o si no se puede reproducir):
      la portada del video del proceso de impresión, con la misma composición */
@@ -118,26 +111,23 @@
       txt('0' + (i + 1), 56, y, 26, 700, '#ffa31a'); txt(n, 118, y, 46, 600, '#f5f5f7');
     });
   }
-  function drawCubeScreen(g, w, h) {
-    const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#191a1e'); bg.addColorStop(1, '#0e0f12');
+  /* imagen fija de las pantallas exteriores: la portada de su video («Entra y crea») */
+  function drawExteriorScreen(g, w, h) {
+    const s = w / 720, Y = (v) => v * h / 1280;
+    const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#101114'); bg.addColorStop(1, '#060607');
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#fff'; g.textBaseline = 'top'; g.font = '400 ' + Math.round(w * 0.098) + 'px ' + FONT;
-    ['La imaginación', 'también se', 'imprime'].forEach((t, i) => g.fillText(t, w * 0.1, h * 0.2 + i * w * 0.13));
-    cubeIcon(g, w * 0.24, h * 0.68, w * 0.11, w * 0.014);
-  }
-  const ICONS = {
-    Figuras(g, c, s) { g.beginPath(); g.arc(c, c - s * 0.42, s * 0.3, 0, 7); g.stroke(); g.beginPath(); g.moveTo(c - s * 0.62, c + s * 0.75); g.quadraticCurveTo(c - s * 0.6, c + s * 0.05, c, c + s * 0.05); g.quadraticCurveTo(c + s * 0.6, c + s * 0.05, c + s * 0.62, c + s * 0.75); g.closePath(); g.stroke(); },
-    'Decoración'(g, c, s) { g.beginPath(); g.moveTo(c - s * 0.75, c - s * 0.02); g.lineTo(c, c - s * 0.72); g.lineTo(c + s * 0.75, c - s * 0.02); g.stroke(); g.beginPath(); g.moveTo(c - s * 0.52, c - s * 0.18); g.lineTo(c - s * 0.52, c + s * 0.7); g.lineTo(c + s * 0.52, c + s * 0.7); g.lineTo(c + s * 0.52, c - s * 0.18); g.stroke(); g.strokeRect(c - s * 0.15, c + s * 0.22, s * 0.3, s * 0.48); },
-    Regalos(g, c, s) { g.strokeRect(c - s * 0.62, c - s * 0.2, s * 1.24, s * 0.34); g.strokeRect(c - s * 0.5, c + s * 0.14, s, s * 0.6); g.beginPath(); g.moveTo(c, c - s * 0.2); g.lineTo(c, c + s * 0.74); g.stroke(); g.beginPath(); g.ellipse(c - s * 0.24, c - s * 0.42, s * 0.24, s * 0.17, 0.5, 0, 7); g.stroke(); g.beginPath(); g.ellipse(c + s * 0.24, c - s * 0.42, s * 0.24, s * 0.17, -0.5, 0, 7); g.stroke(); },
-    Personalizados(g, c, s) { g.beginPath(); g.arc(c, c - s * 0.36, s * 0.34, 0, 7); g.stroke(); g.beginPath(); g.moveTo(c - s * 0.7, c + s * 0.72); g.bezierCurveTo(c - s * 0.7, c + s * 0.1, c + s * 0.7, c + s * 0.1, c + s * 0.7, c + s * 0.72); g.stroke(); },
-    Prototipos(g, c, s) { g.beginPath(); for (let i = 0; i < 16; i++) { const a = i * PI / 8, r = i % 2 ? s * 0.74 : s * 0.56; const a2 = a + PI / 16; g.lineTo(c + Math.cos(a - PI / 32) * r, c + Math.sin(a - PI / 32) * r); g.lineTo(c + Math.cos(a2 - PI / 32) * r, c + Math.sin(a2 - PI / 32) * r); } g.closePath(); g.stroke(); g.beginPath(); g.arc(c, c, s * 0.24, 0, 7); g.stroke(); }
-  };
-  function iconTex(name) {
-    return canvasTex(256, 320, (g, w, h) => {
-      g.strokeStyle = '#fff'; g.fillStyle = '#fff'; g.lineWidth = 7; g.lineJoin = 'round'; g.lineCap = 'round';
-      ICONS[name](g, 128, 112, 78);
-      g.font = '400 ' + (name.length > 11 ? 31 : 38) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(name, 128, 262);
-    });
+    const halo = g.createRadialGradient(w * 0.5, h * 0.62, 0, w * 0.5, h * 0.62, w * 0.95);
+    halo.addColorStop(0, 'rgba(255,159,10,0.16)'); halo.addColorStop(0.5, 'rgba(255,159,10,0.05)'); halo.addColorStop(1, 'rgba(255,159,10,0)');
+    g.fillStyle = halo; g.fillRect(0, 0, w, h);
+    const B = L.brand;
+    if (B) { const k = 500 * s / B.viewBox[0]; g.save(); g.translate(110 * s, Y(440)); g.scale(k, k); g.fillStyle = '#f5f5f7'; B.paths.forEach((d) => g.fill(new Path2D(d))); g.restore(); }
+    g.textBaseline = 'alphabetic'; g.textAlign = 'center';
+    const txt = (t, y, size, weight, color) => { g.font = weight + ' ' + Math.round(size * s) + 'px ' + INTER; g.fillStyle = color; g.fillText(t, w / 2, Y(y)); };
+    txt('Entra y crea', 720, 92, 700, '#f5f5f7');
+    txt('Te esperamos aquí mismo', 780, 32, 400, '#a1a1a6');
+    g.strokeStyle = '#ffa31a'; g.lineWidth = 5 * s; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(w / 2 - 26 * s, Y(905)); g.lineTo(w / 2, Y(929)); g.lineTo(w / 2 + 26 * s, Y(905)); g.stroke();
+    txt('IMPRESIÓN 3D · DISEÑO · REGALOS', 1150, 22, 600, '#ffa31a');
   }
   function printerWindow(color) {
     return canvasTex(256, 256, (g, w, h) => {
@@ -153,31 +143,41 @@
   }
   const screenMat = (tex) => { const m = new T.MeshBasicMaterial({ map: tex, toneMapped: false }); m.name = 'pantalla'; return m; };
 
-  /* Video en bucle sobre una pantalla, sin sonido. Mientras carga, si el archivo no está, si el navegador
+  /* Video en bucle sobre una o varias pantallas, sin sonido. Mientras carga, si el archivo no está, si el navegador
      no deja usarlo (página abierta con doble clic: file://) o si el sistema pide reducir movimiento, queda
-     la imagen fija. Solo se reproduce mientras la pantalla está a la vista: así no gasta batería ni GPU. */
+     la imagen fija. Solo se reproduce mientras alguna de sus pantallas está a la vista: así no gasta batería ni GPU.
+     Las pantallas que piden el mismo archivo comparten un solo video (las dos de los pilares van sincronizadas). */
   const _fr = new T.Frustum(), _pm = new T.Matrix4(), _sp = new T.Sphere(), _nv = new T.Vector3(), _dv = new T.Vector3();
+  const videos = {};
   function screenVideo(mesh, base) {
     if (E.reduced || location.protocol === 'file:') return;
-    const mat = mesh.material, v = document.createElement('video');
+    if (videos[base]) { videos[base].add(mesh); return; }
+    const v = document.createElement('video'), meshes = [];
     // MP4 (H.264) en casi todos los navegadores; WebM (VP9) para los que no traen H.264
     const src = base + (v.canPlayType('video/mp4; codecs="avc1.640028"') ? '.mp4' : '.webm');
     v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
     v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
     let tex = null, on = false;
-    const shown = () => { for (let o = mesh; o; o = o.parent) if (!o.visible) return false; return mesh.material === mat; };
+    const use = (m) => { const mat = m.material; mat._poster = mat.map; mat.map = tex; mat.needsUpdate = true; };
+    const shown = (m) => { for (let o = m; o; o = o.parent) if (!o.visible) return false; return m.material === m.userData.screenMat; };
+    const seen = (m) => {
+      const cam = E.camera;
+      if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere();
+      _sp.copy(m.geometry.boundingSphere).applyMatrix4(m.matrixWorld);
+      _nv.set(0, 0, 1).transformDirection(m.matrixWorld); _dv.copy(cam.position).sub(_sp.center);
+      return shown(m) && _fr.intersectsSphere(_sp) && _nv.dot(_dv) > 0 && _dv.length() < 16;
+    };
     const check = () => {
       if (!tex) return;
       const cam = E.camera;
       _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); _fr.setFromProjectionMatrix(_pm);
-      if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
-      _sp.copy(mesh.geometry.boundingSphere).applyMatrix4(mesh.matrixWorld);
-      _nv.set(0, 0, 1).transformDirection(mesh.matrixWorld); _dv.copy(cam.position).sub(_sp.center);
-      const vis = shown() && _fr.intersectsSphere(_sp) && _nv.dot(_dv) > 0 && _dv.length() < 16;
+      const vis = meshes.some(seen);
       if (vis === on) return;
       on = vis;
       if (on) { const p = v.play(); if (p && p.catch) p.catch(() => { on = false; }); } else v.pause();
     };
+    videos[base] = { add(m) { m.userData.screenMat = m.material; meshes.push(m); if (tex) use(m); } };
+    videos[base].add(mesh);
     // cada cuadro nuevo del video pide redibujar el modelo, solo mientras se ve
     const frameCb = () => { if (on) E.invalidate(1); v.requestVideoFrameCallback(frameCb); };
     v.addEventListener('loadeddata', () => {
@@ -186,7 +186,7 @@
         const g = c.getContext('2d'); g.drawImage(v, 0, 0, 1, 1); g.getImageData(0, 0, 1, 1);
       } catch (err) { return; }
       tex = new T.VideoTexture(v); tex.colorSpace = T.SRGBColorSpace;
-      mat._poster = mat.map; mat.map = tex; mat.needsUpdate = true;
+      meshes.forEach(use);
       if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(frameCb);
       else setInterval(() => { if (on) E.invalidate(1); }, 1000 / 30);
       E.hooks.push(check); check(); E.invalidate(2);
@@ -516,7 +516,7 @@
       add(13, [o], { th: -0.85, asm: { off: [0, 0, 0.8], step: 4, first: true } });
     }
 
-    /* ---- 14 · Maceteros con planta (4) --------------------------------------------- */
+    /* ---- 14 · Maceteros con planta (3, todos dentro del local) --------------------------------------------- */
     {
       G.reseed(1414);
       const mk = (X, Dd) => {
@@ -528,7 +528,7 @@
         reg(o, m, { plant: true }); o.plants = [m]; sombra(o, -0.2, -0.2, 0.4, 0.4, 0.3);
         return o;
       };
-      add(14, [mk(0.45, 0.30), mk(5.75, 1.76), mk(5.86, -0.6), mk(0.3, 5.2)], { th: 0.5, ph: 1.1 });
+      add(14, [mk(0.45, 0.30), mk(5.75, 1.76), mk(0.3, 5.2)], { th: 0.5, ph: 1.1 });
     }
 
     /* ---- 15 · Mampara de vidrio con puerta ----------------------------------------- */
@@ -594,28 +594,19 @@
       add(18, [o], { th: 0.35, ph: 0.6, zone: 'trastienda' });
     }
 
-    /* ---- 19 · Tótem de categorías (pilar izquierdo, exterior) ----------------------- */
-    {
-      const o = inst(19, 0, 0.3, -R.dim.PD, 0);
-      P(o, 'Panel Plomo 2200 × 600', 'melPlomo', 0, 0, 0, 0.6, 2.2, 0.015, 0, [0, 0, 0.3], { grain: 1 });
-      chazos(o, [[0.12, 0.2, 0.0], [0.48, 0.2, 0.0], [0.12, 2.0, 0.0], [0.48, 2.0, 0.0]], 0, [0, 0, 0.55]);
-      ['Prototipos', 'Personalizados', 'Regalos', 'Decoración', 'Figuras'].forEach((name, i) => {
-        const g = new T.PlaneGeometry(0.3, 0.375); g.translate(0.3, 0.3 + i * 0.4, 0.019);
-        const mat = new T.MeshBasicMaterial({ map: iconTex(name), transparent: true, toneMapped: false, alphaTest: 0.08 }); mat.name = 'icono';
-        P(o, 'Ícono «' + name + '»', mat, 0, 0, 0, 0, 0, 0, 1, [0, 0, 0.62 + i * 0.07], { geo: g, mk: 'petg', noShadow: true });
-      });
-      add(19, [o], { th: 0.35, ph: 1.3, zone: 'fachada' });
-    }
-
-    /* ---- 20 · Pantalla 43" en vertical (pilar derecho, exterior) -------------------- */
-    {
-      const o = inst(20, 5.395, 1.27, -R.dim.PD, 0);
-      PM(o, 'Soporte fijo', 'acero', [{ g: new T.BoxGeometry(0.3, 0.3, 0.02), m: G.mat(0.305, 0.485, 0.01), c: 0x2a2a2c }], 0, [0, 0, 0.14], { mk: 'soporte' });
-      const tv = P(o, 'Televisor 43"', 'plastico', 0, 0, 0.03, 0.61, 0.97, 0.04, 1, [0, 0, 0.5], { mk: 'producto' });
-      const scr = new T.Mesh(new T.PlaneGeometry(0.59, 0.95), screenMat(canvasTex(384, 620, drawCubeScreen)));
-      scr.position.z = 0.021; tv.add(scr); scr.userData = { n: 20, inst: o, child: true };
-      add(20, [o], { th: -0.35, ph: 1.3, zone: 'fachada', lp: [-0.3, 0.12] });
-    }
+    /* ---- 19 y 20 · Pantallas de 55" en vertical (pilares de la fachada, exterior) --------
+       Las dos reproducen el mismo video; cada una va centrada en su pilar de 0.75 m, con la base a 0.90 m. */
+    const pilar = (n, X, cfg) => {
+      const o = inst(n, X - 0.3465, 0.9, -R.dim.PD, 0);
+      PM(o, 'Soporte fijo', 'acero', [{ g: new T.BoxGeometry(0.44, 0.44, 0.022), m: G.mat(0.3465, 0.6055, 0.011), c: 0x2a2a2c }, { g: new T.BoxGeometry(0.05, 0.6, 0.03), m: G.mat(0.2115, 0.6055, 0.022), c: 0x2a2a2c }, { g: new T.BoxGeometry(0.05, 0.6, 0.03), m: G.mat(0.4815, 0.6055, 0.022), c: 0x2a2a2c }], 0, [0, 0, 0.14], { mk: 'soporte' });
+      const tv = P(o, 'Televisor 55"', 'plastico', 0, 0, 0.035, 0.693, 1.211, 0.045, 1, [0, 0, 0.55], { mk: 'producto' });
+      const scr = new T.Mesh(new T.PlaneGeometry(0.677, 1.195), screenMat(canvasTex(432, 768, drawExteriorScreen)));
+      scr.position.z = 0.0235; tv.add(scr); scr.userData = { n, inst: o, child: true };
+      screenVideo(scr, 'assets/video/pantalla-exterior');
+      add(n, [o], Object.assign({ ph: 1.3, zone: 'fachada' }, cfg));
+    };
+    pilar(19, 0.225, { th: 0.35 });
+    pilar(20, 5.775, { th: -0.35, lp: [-0.3, 0.12] });
 
     // cajas envolventes y datos derivados
     F.order.forEach((n) => F.items[n].insts.forEach((o) => {
