@@ -49,6 +49,8 @@
       if (u.lift) out.color.setRGB(1, 1, 1);                    // pantallas: sin la compensación del tone mapping del visor
       if (u.op !== undefined) { out.opacity = u.op; out.transparent = u.tr; out.depthWrite = !u.tr; }   // muros que el visor desvanece
     }
+    // pantalla con video: se exporta su imagen fija
+    if (out && out.map && out.map.isVideoTexture) { if (out === m) out = m.clone(); out.map = m._poster || null; }
     // la textura de rugosidad ya trae el canal azul en blanco: sirve también de mapa metálico y evita
     // que el exportador cree una imagen combinada por cada material
     if (out && out.roughnessMap && !out.metalnessMap) { if (out === m) out = m.clone(); out.metalnessMap = out.roughnessMap; }

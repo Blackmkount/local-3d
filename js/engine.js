@@ -966,6 +966,7 @@
   /* ------------------------------------------------------------------ ciclo */
   let last = performance.now(), slow = 0;
   E.onFrame = null;
+  E.hooks = [];                                    // funciones que revisan algo en cada cuadro con cambios (p. ej. si un video está a la vista)
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(0.12, (now - last) / 1000); last = now;
@@ -989,6 +990,7 @@
       if (P.jit) unjitter();
       if (E.shadowDirty || active) { E.renderer.shadowMap.needsUpdate = true; E.shadowDirty = false; }
       if (E.onFrame) E.onFrame(dt, now);
+      for (let i = 0; i < E.hooks.length; i++) E.hooks[i](dt);
       P.n = 0;
       // calidad adaptable: si moverse cuesta más de ~22 cuadros por segundo, baja la resolución una vez
       if (P.on && moving) {
