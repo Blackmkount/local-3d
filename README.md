@@ -17,7 +17,28 @@ costos, fabricación, ensamble y la razón de cada material.
 - **Planta**: vista superior con los números del plano y las cotas generales.
 - **Renders**: galería de imágenes fotorrealistas del local hechas con Blender Cycles, y el botón para descargar el modelo completo en `.glb` y abrirlo en Unreal Engine, Blender, Twinmotion o D5.
 
-Un enlace que termina en `#m7` abre directamente la ficha del elemento 7 (sirve con cualquier número del 1 al 20).
+Un enlace que termina en `#m7` abre directamente la ficha del elemento 7 (sirve con cualquier número del 1 al 20);
+el botón de compartir de cada ficha copia ese enlace.
+
+## Interfaz
+
+Diseñada con el lenguaje de macOS: los controles flotan sobre el modelo como vidrio esmerilado (fondo translúcido con
+desenfoque y saturación, borde de media línea y sombras suaves), con la tipografía del sistema (SF en equipos Apple,
+Inter en los demás) y un solo acento, el ámbar de la luz LED del local.
+
+- **Barra de herramientas en cápsula** y **controles segmentados** con un indicador que se desliza bajo la opción elegida
+  (vistas, filtro del mobiliario y pestañas de la ficha).
+- **Paneles y ventanas animados**: el mobiliario y la ficha entran y salen deslizándose con curva de resorte; las
+  ventanas (Presupuesto, Materiales, Renders) crecen desde el botón que las abrió, se arrastran por la barra de título y
+  tienen el semáforo de macOS: rojo cierra, amarillo minimiza hacia el botón de origen y verde amplía (también con doble
+  clic en la barra).
+- **Búsqueda tipo Spotlight** con <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> o <kbd>/</kbd>: muebles, vistas y acciones en un solo
+  lugar, sin tildes ni mayúsculas, con flechas y <kbd>Enter</kbd>.
+- **Buscador en el mobiliario**, filas con selección en color de acento y entrada escalonada.
+- **Renders a pantalla completa** con zoom desde la miniatura; un render que aún no se generó aparece como pendiente.
+- **Notificaciones** al copiar un enlace o exportar el modelo.
+- **En el teléfono** la ficha es una hoja inferior: se arrastra hacia arriba para ampliarla y hacia abajo para cerrarla.
+- **Modo claro y oscuro** según el sistema; respeta *reducir movimiento* y *reducir transparencia*.
 
 ## Renders fotorrealistas
 
@@ -96,13 +117,14 @@ Para cambiar un precio o un paso se edita ese archivo y se recarga la página; e
 | Archivo | Qué contiene |
 |---|---|
 | `index.html` | Estructura de la página |
-| `css/styles.css` | Apariencia de la interfaz |
+| `css/styles.css` | Apariencia de la interfaz (materiales de vidrio, modo claro y oscuro) |
 | `js/data.js` | **Datos del proyecto**: 20 elementos, catálogo de precios, presupuesto, montaje |
 | `js/furniture.js` | Los muebles modelados pieza por pieza: medidas, material y paso de armado de cada una |
 | `js/room.js` | Muros, fachada, cielo, luces y cotas |
 | `js/engine.js` | Motor: texturas PBR procedurales, materiales, luces, postproceso HDR, refinamiento progresivo, cámara, reflejo del piso y animaciones |
 | `js/geo.js` | Utilidades de geometría (tableros con canto redondeado) |
 | `js/export.js` | Exporta el local completo a `.glb` |
+| `js/ui.js` | Comportamiento de la interfaz: paneles animados, segmentados, ventanas, notificaciones y zoom de imágenes |
 | `js/app.js` | Interacción: selección, explosionado, armado, fichas, presupuesto y galería de renders |
 | `renders/` | Renders fotorrealistas de Blender Cycles |
 | `tools/blender/render_local.py` | Monta la escena en Blender (materiales físicos, luminarias, cámaras) y renderiza |

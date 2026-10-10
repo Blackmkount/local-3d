@@ -7,7 +7,8 @@
 <meta name="description" content="Recorrido 3D interactivo del local de exhibición y taller de impresión 3D: mobiliario, materiales, costos, fabricación y armado paso a paso.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Jost:wght@300;400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Jost:wght@300;400;600&display=swap">
+<meta name="theme-color" content="#e9e5de">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -19,56 +20,57 @@
   </div>
 
   <header id="top">
-    <div class="brand">
-      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 34 12v16L20 36 6 28V12z M20 20 34 12 M20 20 6 12 M20 20v16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+    <div class="brand glass">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 34 12v16L20 36 6 28V12z M20 20 34 12 M20 20 6 12 M20 20v16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/></svg>
       <div class="brand-text">
         <span class="brand-name">IMPRESIÓN <b>3D</b></span>
-        <span class="brand-sub">Local de exhibición y taller · 6.00 × 7.00 m</span>
+        <span class="brand-sub">Exhibición y taller · 6.00 × 7.00 m</span>
       </div>
     </div>
-    <div class="top-scroll">
-      <nav id="views" class="seg" aria-label="Vistas del local">
-        <button type="button" data-view="fachada" class="is-on">Fachada</button>
-        <button type="button" data-view="interior">Interior</button>
-        <button type="button" data-view="taller">Taller</button>
-        <button type="button" data-view="aerea">Aérea</button>
-        <button type="button" data-view="planta">Planta</button>
-      </nav>
-      <div id="tools">
-        <button type="button" id="btn-inv" class="btn" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Mobiliario</button>
-        <button type="button" id="btn-montaje" class="btn"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16V9l6-5 6 5v7M8 16v-4h4v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>Montaje</button>
-        <button type="button" id="btn-budget" class="btn"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16V8M10 16V4M16 16v-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Presupuesto</button>
-        <button type="button" id="btn-mats" class="btn"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3 17 7l-7 4-7-4zM3 10.5l7 4 7-4M3 14l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Materiales</button>
-        <button type="button" id="btn-renders" class="btn"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.8 6.8h3.1l1.4-2h5.4l1.4 2h3.1v9.4H2.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="10" cy="11.3" r="2.9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>Renders</button>
-        <button type="button" id="btn-labels" class="btn" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.6 7.6 10.4 6.8v6.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Números</button>
-      </div>
+    <nav id="views" class="seg glass" aria-label="Vistas del local">
+      <button type="button" data-view="fachada" class="is-on">Fachada</button>
+      <button type="button" data-view="interior">Interior</button>
+      <button type="button" data-view="taller">Taller</button>
+      <button type="button" data-view="aerea">Aérea</button>
+      <button type="button" data-view="planta">Planta</button>
+    </nav>
+    <div id="tools" class="toolbar glass" role="toolbar" aria-label="Herramientas">
+      <button type="button" id="btn-search" class="tb tb-search" title="Buscar"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m12.6 12.6 4.4 4.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Buscar</span><kbd id="kbd-k">⌘K</kbd></button>
+      <i class="tb-sep" aria-hidden="true"></i>
+      <button type="button" id="btn-inv" class="tb" aria-pressed="false" title="Mobiliario"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.6" y="3.8" width="14.8" height="12.4" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7.6 4v12" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.4 7h1.4M4.4 9.4h1.4M4.4 11.8h1.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span>Mobiliario</span></button>
+      <button type="button" id="btn-montaje" class="tb" title="Montaje"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16.2V9l6-5 6 5v7.2M8 16.2v-4h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Montaje</span></button>
+      <button type="button" id="btn-budget" class="tb" title="Presupuesto"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 16V9M10 16V4.5M15.5 16v-5.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg><span>Presupuesto</span></button>
+      <button type="button" id="btn-mats" class="tb" title="Materiales"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3 17 7l-7 4-7-4zM3 10.5l7 4 7-4M3 14l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><span>Materiales</span></button>
+      <button type="button" id="btn-renders" class="tb" title="Renders"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.8 6.8h3.1l1.4-2h5.4l1.4 2h3.1v9.4H2.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="11.3" r="2.8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Renders</span></button>
+      <button type="button" id="btn-labels" class="tb" aria-pressed="false" title="Números del plano"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17.4s-5.2-4.6-5.2-8.6a5.2 5.2 0 1 1 10.4 0c0 4-5.2 8.6-5.2 8.6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.1 7.1 10.4 6.4v4.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Números</span></button>
     </div>
   </header>
 
-  <aside id="inv" class="pane" hidden aria-label="Mobiliario y equipos">
+  <aside id="inv" class="pane sidebar" hidden aria-label="Mobiliario y equipos">
     <div class="inv-head">
-      <h2>Mobiliario y equipos</h2>
-      <p>20 elementos del plano. Elige uno para ver materiales, costos y armado.</p>
-      <div class="chips" id="inv-filter" role="group" aria-label="Filtrar por origen">
+      <div class="side-title"><h2>Mobiliario</h2><span>20 elementos del plano</span></div>
+      <label class="search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m12.6 12.6 4.4 4.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input type="search" id="inv-search" placeholder="Buscar en el mobiliario" autocomplete="off" spellcheck="false" aria-label="Buscar en el mobiliario"></label>
+      <div class="seg seg-sm" id="inv-filter" role="group" aria-label="Filtrar por origen">
         <button type="button" data-f="todos" class="chip is-on">Todos <i>20</i></button>
         <button type="button" data-f="fabrica" class="chip">Se fabrica <i>13</i></button>
         <button type="button" data-f="compra" class="chip">Se compra <i>7</i></button>
       </div>
     </div>
     <ol id="inv-list"></ol>
+    <p class="inv-empty" id="inv-empty" hidden>Ningún elemento coincide con la búsqueda.</p>
     <button type="button" class="inv-foot" id="inv-total"></button>
   </aside>
 
-  <aside id="mont" class="pane" hidden aria-label="Orden de fabricación y montaje"></aside>
+  <aside id="mont" class="pane sidebar" hidden aria-label="Orden de fabricación y montaje"></aside>
 
-  <section id="panel" class="pane" hidden aria-label="Ficha del elemento"></section>
+  <section id="panel" class="pane inspector" hidden aria-label="Ficha del elemento"></section>
 
   <div id="dock">
-    <p id="hint"><span class="hint-desk">Arrastra para girar · rueda para acercar · clic derecho para desplazar · <b>clic en un mueble</b> para ver su ficha</span><span class="hint-touch">Arrastra para girar · pellizca para acercar · <b>toca un mueble</b> para ver su ficha</span></p>
-    <div id="actions" class="pane" hidden>
-      <button type="button" id="act-explode" class="btn btn-lg" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v4M10 14v4M2 10h4M14 10h4M7.5 7.5h5v5h-5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Explosionar</span></button>
+    <p id="hint" class="glass"><span class="hint-desk">Arrastra para girar · rueda para acercar · clic derecho para desplazar · <b>clic en un mueble</b> para ver su ficha</span><span class="hint-touch">Arrastra para girar · pellizca para acercar · <b>toca un mueble</b> para ver su ficha</span></p>
+    <div id="actions" class="pane capsule" hidden>
+      <button type="button" id="act-explode" class="btn btn-lg" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v4M10 14v4M2 10h4M14 10h4M7.5 7.5h5v5h-5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Explosionar</span></button>
       <button type="button" id="act-play" class="btn btn-lg btn-led"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4.5v11l9-5.5z" fill="currentColor"/></svg><span>Ver armado</span></button>
-      <button type="button" id="act-spin" class="btn btn-lg" aria-pressed="false" title="Girar alrededor del mueble"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10a6 6 0 1 1-2-4.5M14.5 2.5v3.3h-3.3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Girar</span></button>
+      <button type="button" id="act-spin" class="btn btn-lg" aria-pressed="false" title="Girar alrededor del mueble"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10a6 6 0 1 1-2-4.5M14.5 2.5v3.3h-3.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Girar</span></button>
     </div>
     <div id="stepper" class="pane" hidden>
       <div class="st-cap"><span class="st-n" id="st-n"></span><span class="st-t" id="st-t"></span><span class="st-src" id="st-src"></span></div>
@@ -82,16 +84,25 @@
     </div>
   </div>
 
-  <div id="zoom" class="pane" role="group" aria-label="Acercar y alejar">
-    <button type="button" id="z-in" class="ibtn" aria-label="Acercar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-    <button type="button" id="z-out" class="ibtn" aria-label="Alejar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  <div id="zoom" class="pane capsule capsule-v" role="group" aria-label="Acercar y alejar">
+    <button type="button" id="z-in" class="ibtn" aria-label="Acercar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.5v11M4.5 10h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    <i class="cap-sep" aria-hidden="true"></i>
+    <button type="button" id="z-out" class="ibtn" aria-label="Alejar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
   </div>
 
   <div id="tip" hidden></div>
 
   <div id="modal" hidden>
-    <div class="modal-card pane" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <header class="modal-head"><h2 id="modal-title"></h2><button type="button" class="ibtn" id="modal-close" aria-label="Cerrar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></header>
+    <div class="modal-card window" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header class="modal-head">
+        <div class="traffic">
+          <button type="button" class="tl tl-close" id="modal-close" aria-label="Cerrar"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.6 3.6l4.8 4.8M8.4 3.6 3.6 8.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+          <button type="button" class="tl tl-min" id="modal-min" aria-label="Minimizar"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.2 6h5.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+          <button type="button" class="tl tl-zoom" id="modal-zoom" aria-label="Ampliar ventana"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.4 7.8V3.4h4.4zM8.6 4.2v4.4H4.2z" fill="currentColor"/></svg></button>
+        </div>
+        <h2 id="modal-title"></h2>
+        <span class="traffic-spacer" aria-hidden="true"></span>
+      </header>
       <div class="modal-body" id="modal-body"></div>
     </div>
   </div>
@@ -102,6 +113,20 @@
     <button type="button" class="ibtn lb-next" id="lb-next" aria-label="Render siguiente"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <button type="button" class="ibtn lb-close" id="lb-close" aria-label="Cerrar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5 5 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   </div>
+
+  <div id="spot" hidden>
+    <div class="spot-card" role="dialog" aria-modal="true" aria-label="Buscar">
+      <div class="spot-field">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.6" cy="8.6" r="5.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m12.6 12.6 4.4 4.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="text" id="spot-q" placeholder="Buscar muebles, vistas y acciones" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="spot-list" aria-autocomplete="list">
+        <kbd>esc</kbd>
+      </div>
+      <ul id="spot-list" role="listbox" aria-label="Resultados"></ul>
+      <div class="spot-foot"><span><kbd>↑</kbd><kbd>↓</kbd> elegir</span><span><kbd>↵</kbd> abrir</span><span><kbd>esc</kbd> cerrar</span></div>
+    </div>
+  </div>
+
+  <div id="toasts" aria-live="polite"></div>
 
   <template id="tpl-renders">
     <p class="lead">El mismo modelo de esta página, renderizado por trazado de rutas en Blender Cycles: la luz rebota de verdad entre muros y muebles, el vidrio refracta, cada LED ilumina y la cámara trabaja como en fotografía de arquitectura. Toca una imagen para verla completa.</p>
@@ -126,6 +151,7 @@
     <svg class="intro-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4 34 12v16L20 36 6 28V12z M20 20 34 12 M20 20 6 12 M20 20v16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
     <p class="intro-name">IMPRESIÓN <b>3D</b></p>
     <p class="intro-sub">Diseña · Imprime · Crea</p>
+    <div class="intro-bar" aria-hidden="true"><span></span></div>
     <p class="intro-msg" id="intro-msg">Preparando el local…</p>
   </div>
 </div>
@@ -137,6 +163,7 @@
 <script src="js/room.js"></script>
 <script src="js/furniture.js"></script>
 <script src="js/export.js"></script>
+<script src="js/ui.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
