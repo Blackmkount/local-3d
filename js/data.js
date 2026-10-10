@@ -683,7 +683,7 @@
       total: 1790800,
       resumen: 'Televisor de 55" en vertical sobre el pilar izquierdo, hacia el pasillo del centro comercial. Reproduce en bucle el mismo video que la pantalla del pilar derecho: invita a entrar a BlackForge y a conocer la impresión 3D.',
       mats: [
-        { key: 'producto', m: 'Televisor Hisense 55" QLED 4K 55Q6QV', uso: '121.1 × 69.3 × 7.2 cm', cant: '1', pu: '$1.699.900 por unidad', costo: 1699900, prov: 'Homecenter', nota: 'En oferta (normal $2.469.900); precio consultado el 10 de octubre de 2026' },
+        { key: 'producto', m: 'Televisor Hisense 55" QLED 4K 55Q6QV', uso: '121.1 × 69.3 × 7.2 cm', cant: '1', pu: '$1.699.900 por unidad', costo: 1699900, prov: 'Homecenter', nota: 'En oferta (normal $2.469.900); precio confirmado el 10 de octubre de 2026' },
         { key: 'soporte', m: 'Soporte fijo de TV de 32" a 75", Power', uso: 'Carga máxima 70 kg; se fija girado 90°', cant: '1', pu: '$90.900 por unidad', costo: 90900, prov: 'Homecenter', nota: 'Sin stock en línea' }
       ],
       fab: [],
@@ -713,7 +713,7 @@
       total: 1790800,
       resumen: 'Televisor de 55" en vertical sobre el pilar derecho, hacia el pasillo del centro comercial. Reproduce en bucle el mismo video que la pantalla del pilar izquierdo: invita a entrar a BlackForge y a conocer la impresión 3D.',
       mats: [
-        { key: 'producto', m: 'Televisor Hisense 55" QLED 4K 55Q6QV', uso: '121.1 × 69.3 × 7.2 cm', cant: '1', pu: '$1.699.900 por unidad', costo: 1699900, prov: 'Homecenter', nota: 'En oferta (normal $2.469.900); precio consultado el 10 de octubre de 2026' },
+        { key: 'producto', m: 'Televisor Hisense 55" QLED 4K 55Q6QV', uso: '121.1 × 69.3 × 7.2 cm', cant: '1', pu: '$1.699.900 por unidad', costo: 1699900, prov: 'Homecenter', nota: 'En oferta (normal $2.469.900); precio confirmado el 10 de octubre de 2026' },
         { key: 'soporte', m: 'Soporte fijo de TV de 32" a 75", Power', uso: 'Carga máxima 70 kg; se fija girado 90°', cant: '1', pu: '$90.900 por unidad', costo: 90900, prov: 'Homecenter', nota: 'Sin stock en línea' }
       ],
       fab: [],
@@ -857,7 +857,7 @@
       grupo: 'Muebles y equipos que se compran hechos', filas: [
         { m: 'Impresora 3D Bambu Lab P1S Combo AMS', pres: '389 × 389 × 458 mm, 12.95 kg', precio: '$4.199.000 por unidad', prov: 'makeR, distribuidor autorizado en Colombia', nota: 'IVA incluido; antes $5.199.000', u: 'https://somosmaker.com/producto/bambu-lab-p1s-combo-ams/' },
         { m: 'Televisor Hisense 75" QLED 4K 75Q6QV', pres: '166.9 × 95.2 × 7.9 cm', precio: '$2.899.900 por unidad', prov: 'Homecenter', nota: 'En oferta (normal $4.579.900); sin stock en línea', u: HC + '3029093/televisor-hisense-75-pulgadas-qled-uhd-4k-smart-tv-75q6qv/3029093/' },
-        { m: 'Televisor Hisense 55" QLED 4K 55Q6QV', pres: '121.1 × 69.3 × 7.2 cm', precio: '$1.699.900 por unidad', prov: 'Homecenter', nota: 'En oferta (normal $2.469.900); consultado el 10 de octubre de 2026', u: HC + '3029106/televisor-hisense-55-pulgadas-qled-uhd-4k-smart-tv-55q6qv/3029106/' },
+        { m: 'Televisor Hisense 55" QLED 4K 55Q6QV', pres: '121.1 × 69.3 × 7.2 cm', precio: '$1.699.900 por unidad', prov: 'Homecenter', nota: 'En oferta (normal $2.469.900); precio confirmado el 10 de octubre de 2026', u: HC + '3029106/televisor-hisense-55-pulgadas-qled-uhd-4k-smart-tv-55q6qv/3029106/' },
         { m: 'Soporte fijo de TV de 32" a 75", Power', pres: 'Carga máxima 70 kg', precio: '$90.900 por unidad', prov: 'Homecenter', nota: 'Sin stock en línea', u: HC + '573029/soporte-fijo-de-tv-soporte-pantallas-32-a-75/573029/' },
         { m: 'Silla para bar Palermo negra', pres: 'Asiento a 78 cm; 48 × 52 × 108 cm', precio: '$249.900 por unidad', prov: 'Madecentro', nota: 'Polipropileno; antes $299.900', u: MC + 'silla-para-bar-palermo-negro-con-reposa-pies-doble-proposito' },
         { m: 'Matera plástica Urbi Beton color cemento, Tumatera', pres: '40 × 40 × 75 cm', precio: '$339.900 por unidad', prov: 'Homecenter', nota: 'No incluye la planta', u: HC + '500578/matera-plastica-rectangular-urbi-beton-40x75x40cm-cemento/500578/' },
@@ -902,7 +902,7 @@
     ],
     corteNota: 'Se compran 27 láminas. El conteo sale de acomodar las 270 piezas del despiece en cada formato, con 4 mm de sierra y 10 mm de saneo por borde. El Rovere y el fondo rinden poco porque las piezas de 2.40 m de las estanterías ocupan casi todo el largo de la lámina. El Plomo rinde menos: sus piezas no caben en una sola lámina, así que se compran dos y el sobrante queda para reposiciones.',
     supuestos: [
-      'Los precios son los publicados en línea el 9 de octubre de 2026; varios están en oferta y cinco productos figuraban sin stock ese día. El televisor de 55" se consultó el 10 de octubre de 2026.',
+      'Los precios son los publicados en línea el 9 de octubre de 2026; varios están en oferta y cinco productos figuraban sin stock ese día. El precio del televisor de 55" ($1.699.900) se confirmó el 10 de octubre de 2026.',
       'Las medidas vienen del plano, que se estimó desde la imagen: hay que verificarlas en sitio antes de pedir el corte.',
       'El total no incluye mano de obra, transporte, instalación eléctrica, plantas ni el canal perimetral de la mampara.',
       'Los precios y los procesos industriales tienen su fuente enlazada. El despiece, las cantidades y los métodos de fabricación y ensamble son diseño propio del documento del proyecto.'
@@ -910,7 +910,7 @@
     pendientes: [
       'Verificar en sitio las medidas del local y de cada muro; las del plano son estimadas desde la imagen.',
       'Definir las tomas eléctricas: una de piso bajo la isla principal, una detrás de cada pantalla, cuatro en el mesón con circuito propio y una por cada fuente LED.',
-      'Confirmar existencias de los cinco productos que figuraban sin stock en línea: laca, lámina perforada, ganchos, el televisor de 75" y el soporte (se necesitan tres). Confirmar también el precio de los dos televisores de 55".',
+      'Confirmar existencias de los cinco productos que figuraban sin stock en línea: laca, lámina perforada, ganchos, el televisor de 75" y el soporte (se necesitan tres).',
       'Pedir a Madecentro la unidad exacta de cobro del enchape y del engruese, que la página no indica.',
       'Cotizar con la vidriería el canal perimetral negro y la instalación de la mampara.'
     ]
