@@ -20,32 +20,19 @@
     return m;
   }
 
-  function signTexture() {
-    const c = document.createElement('canvas'); c.width = 2048; c.height = 256;
-    const draw = () => {
-      const g = c.getContext('2d'); g.clearRect(0, 0, 2048, 256);
-      g.fillStyle = '#fff'; g.strokeStyle = '#fff'; g.lineJoin = 'round';
-      // logo: cubo en línea
-      const cx = 250, cy = 128, s = 62;
-      g.lineWidth = 9;
-      const p = (a, r) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
-      g.beginPath(); for (let i = 0; i < 6; i++) { const q = p(-Math.PI / 2 + i * Math.PI / 3, s); if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); } g.closePath(); g.stroke();
-      g.beginPath(); [1, 3, 5].forEach((i) => { const q = p(-Math.PI / 2 + i * Math.PI / 3, s); g.moveTo(cx, cy); g.lineTo(q[0], q[1]); }); g.stroke();
-      const F = '"Jost","Century Gothic","Futura","Avenir Next",system-ui,sans-serif';
-      g.textBaseline = 'middle';
-      g.font = '300 124px ' + F;
-      let x = 370; const txt = 'IMPRESIÓN';
-      for (const ch of txt) { g.fillText(ch, x, 134); x += g.measureText(ch).width + 20; }
-      x += 34; g.font = '600 132px ' + F;
-      for (const ch of '3D') { g.fillText(ch, x, 134); x += g.measureText(ch).width + 12; }
-      x += 56; g.fillRect(x, 58, 4, 140); x += 62;
-      g.font = '400 36px ' + F;
-      ['DISEÑA', 'IMPRIME', 'CREA'].forEach((w, i) => { let xx = x; for (const ch of w) { g.fillText(ch, xx, 84 + i * 46); xx += g.measureText(ch).width + 11; } });
-      c._w = x + 260;
-    };
-    draw();
-    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8;
-    t.userData.redraw = () => { draw(); t.needsUpdate = true; };
+  /* halo del letrero: el logotipo difuminado, como la luz que sale por detrás de letras separadas del muro */
+  function haloTexture(bb, fill, aspect) {
+    const B = L.brand, w = 1024, h = Math.round(w / aspect), c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'), k = (w * fill) / (bb.max.x - bb.min.x), cx = (bb.min.x + bb.max.x) / 2, cy = -(bb.min.y + bb.max.y) / 2;
+    const paths = B.paths.map((d) => new Path2D(d));
+    // la forma se dibuja fuera del lienzo y solo cae su sombra desenfocada
+    [[26, 0.55], [9, 0.9]].forEach((p) => {
+      g.save(); g.shadowColor = 'rgba(255,255,255,' + p[1] + ')'; g.shadowBlur = p[0]; g.shadowOffsetX = w * 3;
+      g.translate(w / 2 - w * 3, h / 2); g.scale(k, k); g.translate(-cx, -cy); g.fillStyle = '#fff';
+      paths.forEach((pa) => g.fill(pa));
+      g.restore();
+    });
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
     return t;
   }
 
@@ -89,27 +76,59 @@
     /* ----------------------------------------------------------------- fachada */
     // pilares: sostienen el tótem y la pantalla; solo se apartan si tapan lo que se está mirando
     const pilL = new T.Group(), pilR = new T.Group(); pilL.name = 'Pilar izquierdo'; pilR.name = 'Pilar derecho'; root.add(pilL, pilR);
-    pilL.add(box(M.carbon, -TH, 0, -PD, 0.6 + TH, HS, PD, { cast: true }));
-    pilR.add(box(M.carbon, 5.4, 0, -PD, 0.6 + TH, HS, PD, { cast: true }));
+    pilL.add(box(M.fachada, -TH, 0, -PD, 0.6 + TH, HS, PD, { cast: true, bev: 0.004 }));
+    pilR.add(box(M.fachada, 5.4, 0, -PD, 0.6 + TH, HS, PD, { cast: true, bev: 0.004 }));
     const fac = new T.Group(); fac.name = 'Fachada y pasillo'; root.add(fac);
-    fac.add(box(M.carbon, -TH, HS, -PD - 0.06, W + TH * 2, HF - HS, PD + 0.06));
+    fac.add(box(M.fachada, -TH, HS, -PD - 0.06, W + TH * 2, HF - HS, PD + 0.06, { bev: 0.004 }));
     const mall = M.muro.clone(); mall.color.set(0xe6e1d8); mall.name = 'muroPasillo';
     fac.add(box(mall, -TH - 14, 0, -0.14, 14, HF + 2.6, 0.14));
     fac.add(box(mall, W + TH, 0, -0.14, 14, HF + 2.6, 0.14));
     fac.add(box(mall, -TH, HF, -0.14, W + TH * 2, 2.6, 0.14));
-    const sTex = signTexture(); R.signTex = sTex;
-    const signM = new T.MeshBasicMaterial({ map: sTex, transparent: true, toneMapped: false, depthWrite: false }); signM.name = 'letrero';
-    const sign = new T.Mesh(new T.PlaneGeometry(5.36, 0.67), signM);
-    sign.position.set(0.28, HS + (HF - HS) / 2, wz(-PD - 0.06) + 0.004); fac.add(sign);
-    const halo = new T.Mesh(new T.PlaneGeometry(4.6, 1.0), E.glowMaterial(E.softDot(), 0xffffff, 0.16));
-    halo.material.userData.glow = true; halo.position.set(0.1, HS + (HF - HS) / 2, wz(-PD - 0.06) + 0.002); fac.add(halo);
+    const zF = wz(-PD - 0.06), zP = wz(-PD), yL = HS + (HF - HS) / 2;   // cara de la fascia (3.86), de los pilares (3.80), eje del letrero
+    const part = (grp, mat, x, y, z, sx, sy, sz, bev) => { const m = new T.Mesh(G.box(sx, sy, sz, null, bev || 0), mat); m.position.set(x, y, z); m.receiveShadow = true; grp.add(m); return m; };
+
+    // juntas de los paneles de la fascia, alineadas con el canto interior de cada pilar
+    const junta = new T.MeshStandardMaterial({ color: 0x030304, roughness: 0.9 }); junta.name = 'junta';
+    [-2.4, 2.4].forEach((x) => part(fac, junta, x, yL, zF + 0.0008, 0.008, HF - HS - 0.01, 0.0016));
+    // marco del vano en bronce cepillado: forro de las caras interiores de los pilares, del cielo del vano y nariz de la fascia
+    part(pilL, M.bronce, wx(0.6) + 0.003, HS / 2, (wz(0) + zP) / 2, 0.006, HS, PD, 0.0015);
+    part(pilR, M.bronce, wx(5.4) - 0.003, HS / 2, (wz(0) + zP) / 2, 0.006, HS, PD, 0.0015);
+    part(fac, M.bronce, 0, HS - 0.003, (wz(0) + zF) / 2, 4.8, 0.006, zF - wz(0), 0.0015);
+    part(fac, M.bronce, 0, HS + 0.0125, zF + 0.004, W + TH * 2, 0.025, 0.008, 0.002);
+    // umbral de acero inoxidable en la línea de fachada
+    part(always, M.inox, 0, 0.002, wz(0) + 0.01, 4.8, 0.004, 0.08, 0.001);
+
+    // logotipo en letras corpóreas: frente de acrílico opal iluminado, cantos negros, separado 2 cm de la fascia
+    const shapes = G.svgShapes(L.brand.paths);
+    const logoGeo = new T.ExtrudeGeometry(shapes, { depth: 6, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.4, bevelSegments: 2, curveSegments: 5 });
+    logoGeo.computeBoundingBox();
+    const bb = logoGeo.boundingBox.clone(), LW = 3.15, sc = LW / (bb.max.x - bb.min.x);
+    logoGeo.translate(-(bb.min.x + bb.max.x) / 2, -(bb.min.y + bb.max.y) / 2, -bb.min.z);
+    logoGeo.scale(sc, sc, sc);
+    const faceM = new T.MeshStandardMaterial({ color: 0xffffff, roughness: 0.42, emissive: 0xfff1df, emissiveIntensity: 1.3 });
+    faceM.name = 'letreroFrente'; faceM.userData.ei = 1.3; E.emissiveMats.push(faceM);
+    const sideM = new T.MeshStandardMaterial({ color: 0x151517, roughness: 0.3, metalness: 0.7 }); sideM.name = 'letreroCanto';
+    G.splitGroups(logoGeo).forEach((g, k) => {
+      const m = new T.Mesh(g, k ? sideM : faceM); m.position.set(0, yL - 0.015, zF + 0.02); m.castShadow = true; m.receiveShadow = true; m.name = 'Letrero BlackForge';
+      fac.add(m);
+    });
+    // halo: la luz que escapa por detrás de las letras ilumina la fascia
+    const halo = new T.Mesh(new T.PlaneGeometry(LW / 0.78, HF - HS), E.glowMaterial(haloTexture(bb, 0.78, (LW / 0.78) / (HF - HS)), 0xffd9a8, 0.6));
+    halo.material.userData.glow = true; halo.position.set(0, yL - 0.015, zF + 0.003); halo.raycast = function () {}; fac.add(halo);
+    // alero: luminarias empotradas bajo la fascia que iluminan la entrada
+    const ringM = M.carbonMate;
+    [-1.6, 0, 1.6].forEach((x) => {
+      const ring = new T.Mesh(new T.CylinderGeometry(0.048, 0.048, 0.004, 24), ringM); ring.position.set(x, HS - 0.008, (wz(0) + zF) / 2); fac.add(ring);
+      const lens = new T.Mesh(new T.CircleGeometry(0.032, 24), M.ledBlanco); lens.rotation.x = Math.PI / 2; lens.position.set(x, HS - 0.0105, (wz(0) + zF) / 2); fac.add(lens);
+    });
+    [-1.6, 1.6].forEach((x) => E.spot(new T.Vector3(x, HS - 0.02, (wz(0) + zF) / 2), new T.Vector3(x * 0.9, 0, zF + 0.5), 3.2, 0.62, 0.85, false, 0xfff0dc));
     /* los cortes se registran más abajo, cuando cada grupo ya tiene sus tiras de luz */
-    // línea de luz que enmarca el vano
+    // línea de luz que enmarca el vano, sobre el forro de bronce
     const led = M.led;
     const strip = (grp, X0, y0, D0, sx, sy, sd) => { const m = new T.Mesh(new T.BoxGeometry(sx, sy, sd), led); m.position.set(wx(X0) + sx / 2, y0 + sy / 2, wz(D0) - sd / 2); grp.add(m); };
-    strip(pilL, 0.6, 0.02, -0.05, 0.012, HS - 0.02, 0.03);
-    strip(pilR, 5.388, 0.02, -0.05, 0.012, HS - 0.02, 0.03);
-    const topLed = new T.Mesh(new T.BoxGeometry(4.8, 0.012, 0.03), led); topLed.position.set(0, HS - 0.006, wz(-0.05) - 0.015); fac.add(topLed);
+    strip(pilL, 0.606, 0.02, -0.05, 0.012, HS - 0.04, 0.03);
+    strip(pilR, 5.382, 0.02, -0.05, 0.012, HS - 0.04, 0.03);
+    const topLed = new T.Mesh(new T.BoxGeometry(4.78, 0.012, 0.03), led); topLed.position.set(0, HS - 0.012, wz(-0.05) - 0.015); fac.add(topLed);
     const tgt = new T.Vector3();
     const blocks = (c, st, x0, x1, y0, y1, z0, z1) => {       // ¿el segmento cámara → objetivo cruza la caja?
       tgt.set(st.tx, st.ty, st.tz);

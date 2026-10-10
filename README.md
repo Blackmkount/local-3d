@@ -1,4 +1,4 @@
-# Local Impresión 3D · visualizador interactivo
+# BlackForge · local de impresión 3D · visualizador interactivo
 
 Página web con el modelo 3D del local de exhibición y taller de impresión 3D (6.00 × 7.00 m).
 Se recorre con el ratón o con los dedos y, al elegir un mueble, muestra sus materiales,
@@ -15,79 +15,56 @@ costos, fabricación, ensamble y la razón de cada material.
 - **Presupuesto**: total, costo por mueble, por tipo de insumo, por tienda y plan de corte de tableros.
 - **Materiales**: catálogo de precios con enlace a cada tienda y el proceso industrial de cada material.
 - **Planta**: vista superior con los números del plano y las cotas generales.
-- **Renders**: galería de imágenes fotorrealistas del local hechas con Blender Cycles, y el botón para descargar el modelo completo en `.glb` y abrirlo en Unreal Engine, Blender, Twinmotion o D5.
+- **Descargar el modelo 3D**: desde la búsqueda (<kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>), *Descargar modelo 3D (.glb)*, para abrirlo en Unreal Engine, Blender, Twinmotion o D5.
 
 Un enlace que termina en `#m7` abre directamente la ficha del elemento 7 (sirve con cualquier número del 1 al 20);
 el botón de compartir de cada ficha copia ese enlace.
 
+## Fachada
+
+Fascia y pilares en panel de aluminio compuesto negro satinado, con juntas alineadas a los pilares. El logotipo de
+BlackForge va en **letras corpóreas** de 3 cm: frente de acrílico opal iluminado, cantos negros y separación de 2 cm de la
+fascia, de modo que la luz que escapa por detrás dibuja un halo sobre el panel. El vano lleva un marco de bronce
+cepillado (forro de pilares, cielo del vano y nariz de la fascia) con una línea de luz LED, tres luminarias empotradas en
+el alero que iluminan la entrada y un umbral de acero inoxidable en la línea de fachada.
+
+Las letras se generan a partir del archivo `assets/blackforge-logo.svg` (sus trazos están en `js/brand.js`): si cambia
+el logotipo, basta con reemplazar los trazos y la fachada, la barra superior y la pantalla de inicio se actualizan.
+
 ## Interfaz
 
-Diseñada con el lenguaje de macOS: los controles flotan sobre el modelo como vidrio esmerilado (fondo translúcido con
-desenfoque y saturación, borde de media línea y sombras suaves), con la tipografía del sistema (SF en equipos Apple,
-Inter en los demás) y un solo acento, el ámbar de la luz LED del local.
+Diseñada con el lenguaje de macOS: los controles flotan sobre el modelo como vidrio esmerilado oscuro (fondo
+translúcido con desenfoque y saturación, borde de media línea y sombras suaves), con texto claro para leer cómodo sobre
+cualquier parte del modelo, la tipografía del sistema (SF en equipos Apple, Inter en los demás) y un solo acento, el
+ámbar de la luz LED del local. El logotipo de BlackForge encabeza la barra superior y lleva de vuelta a la fachada.
 
 - **Barra de herramientas en cápsula** y **controles segmentados** con un indicador que se desliza bajo la opción elegida
   (vistas, filtro del mobiliario y pestañas de la ficha).
 - **Paneles y ventanas animados**: el mobiliario y la ficha entran y salen deslizándose con curva de resorte; las
-  ventanas (Presupuesto, Materiales, Renders) crecen desde el botón que las abrió, se arrastran por la barra de título y
+  ventanas (Presupuesto y Materiales) crecen desde el botón que las abrió, se arrastran por la barra de título y
   tienen el semáforo de macOS: rojo cierra, amarillo minimiza hacia el botón de origen y verde amplía (también con doble
   clic en la barra).
 - **Búsqueda tipo Spotlight** con <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> o <kbd>/</kbd>: muebles, vistas y acciones en un solo
   lugar, sin tildes ni mayúsculas, con flechas y <kbd>Enter</kbd>.
 - **Buscador en el mobiliario**, filas con selección en color de acento y entrada escalonada.
-- **Renders a pantalla completa** con zoom desde la miniatura; un render que aún no se generó aparece como pendiente.
 - **Notificaciones** al copiar un enlace o exportar el modelo.
 - **En el teléfono** la ficha es una hoja inferior: se arrastra hacia arriba para ampliarla y hacia abajo para cerrarla.
-- **Modo claro y oscuro** según el sistema; respeta *reducir movimiento* y *reducir transparencia*.
+- Respeta las preferencias del sistema *reducir movimiento* y *reducir transparencia*.
 
-## Renders fotorrealistas
+## Llevar el modelo a Unreal Engine 5 u otro programa
 
-![Sala de ventas](renders/render-sala.jpg)
-
-| | |
-|---|---|
-| ![Fachada](renders/render-fachada.jpg) | ![Detalle de la isla](renders/render-isla.jpg) |
-| ![Mesón de impresoras](renders/render-taller.jpg) | ![Estantería retroiluminada](renders/render-estanteria.jpg) |
-
-![Vista aérea](renders/render-aerea.jpg)
-
-Son el mismo modelo de la página, renderizado por trazado de rutas en **Blender Cycles 4.5** (1920 × 1080, 128 muestras
-adaptativas y denoiser OpenImageDenoise). Lo que cambia frente al visor:
-
-- **Luz física**: la luz rebota entre muros y muebles (iluminación global), las gargantas bañan el cielo, cada uno de los
-  diez proyectores de riel apunta a la exhibición de su muro, los colgantes iluminan la isla y el pasillo del centro
-  comercial tiene sus propios paneles de luz.
-- **Materiales físicos**: vidrio templado y acrílico que refractan y dejan pasar la luz, laca con barniz, porcelanato
-  pulido con su esmalte, melamina Rovere con veta y poro, LED que emiten luz real, y las piezas en PLA con el relieve de
-  sus capas de impresión de 0.2 mm (se ve en el detalle de la isla).
-- **Cámara de arquitectura**: verticales rectas (cámara nivelada con desplazamiento de lente), profundidad de campo en el
-  detalle y revelado AgX.
-
-### Cómo se regeneran
-
-1. En la página, **Renders → Descargar modelo 3D (.glb)**.
-2. Con Blender 4.2 o posterior: `blender -b -P tools/blender/render_local.py -- --glb local-impresion-3d.glb --out renders`
-   (o, sin instalar Blender, `pip install bpy` en Python 3.11 y `python tools/blender/render_local.py -- …` con las mismas opciones).
-3. `--preview` hace pruebas rápidas de encuadre; `--shots sala,isla` elige vistas; `--blend escena.blend` guarda la escena
-   lista para abrir y seguir trabajando en Blender.
-
-En un procesador de 4 núcleos cada imagen tarda unos 15 minutos; con una GPU (Cycles con CUDA, OptiX, HIP o Metal) baja a
-segundos.
-
-### Llevarlo a Unreal Engine 5 u otro programa
-
-El `.glb` trae los muros, los 20 elementos pieza por pieza (con el nombre de cada pieza del despiece), los materiales PBR con
+En la búsqueda (<kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>), *Descargar modelo 3D (.glb)*. El archivo trae los muros, los 20 elementos pieza por pieza (con el nombre de cada pieza del despiece), los materiales PBR con
 sus texturas de color, relieve y rugosidad, las luces del local y las vistas de la página como cámaras.
 
 - **Unreal Engine 5**: arrastrar el `.glb` al Content Browser (importador Interchange). Con Lumen activo la iluminación
   global sale en tiempo real; para imágenes finales, el Path Tracer de la Movie Render Queue. Conviene subir la intensidad
   de las luces importadas y cambiar los vidrios por un material translúcido de Unreal.
-- **Blender**: *Archivo → Importar → glTF 2.0*, o el script de arriba, que ya deja la escena montada.
+- **Blender**: *Archivo → Importar → glTF 2.0*.
 - **Twinmotion, D5 Render, Enscape o SketchUp**: importan `.glb` directamente.
 
 ## Calidad de imagen del visor
 
-El visor en tiempo real también se rehízo para acercarse a esos renders, sin archivos de textura ni dependencias nuevas:
+Sin archivos de textura ni dependencias nuevas:
 
 - **Texturas PBR procedurales**: cada material se genera al cargar la página con su color, su relieve (normal map) y su
   rugosidad: veta y poro de la melamina Rovere y de los listones, porcelanato de 0.60 con junta, borde redondeado y una
@@ -114,21 +91,24 @@ El visor en tiempo real también se rehízo para acercarse a esos renders, sin a
 Todo el contenido vive en **`js/data.js`**: nombres, medidas, materiales, precios, pasos y textos.
 Para cambiar un precio o un paso se edita ese archivo y se recarga la página; el modelo 3D no se toca.
 
+Al publicar cambios, conviene subir el número `?v=` que acompaña a `css/styles.css` y a cada `js/…` en `index.html`:
+así los navegadores descargan la versión nueva en lugar de usar la guardada en caché.
+
 | Archivo | Qué contiene |
 |---|---|
 | `index.html` | Estructura de la página |
-| `css/styles.css` | Apariencia de la interfaz (materiales de vidrio, modo claro y oscuro) |
+| `css/styles.css` | Apariencia de la interfaz (vidrio oscuro, animaciones) |
+| `assets/blackforge-logo.svg` | Logotipo de BlackForge (original) |
+| `js/brand.js` | Trazos del logotipo, para la barra superior, la pantalla de inicio y las letras de la fachada |
 | `js/data.js` | **Datos del proyecto**: 20 elementos, catálogo de precios, presupuesto, montaje |
 | `js/furniture.js` | Los muebles modelados pieza por pieza: medidas, material y paso de armado de cada una |
 | `js/room.js` | Muros, fachada, cielo, luces y cotas |
 | `js/engine.js` | Motor: texturas PBR procedurales, materiales, luces, postproceso HDR, refinamiento progresivo, cámara, reflejo del piso y animaciones |
-| `js/geo.js` | Utilidades de geometría (tableros con canto redondeado) |
+| `js/geo.js` | Utilidades de geometría (tableros con canto redondeado, trazos SVG a formas 3D) |
 | `js/export.js` | Exporta el local completo a `.glb` |
-| `js/ui.js` | Comportamiento de la interfaz: paneles animados, segmentados, ventanas, notificaciones y zoom de imágenes |
-| `js/app.js` | Interacción: selección, explosionado, armado, fichas, presupuesto y galería de renders |
-| `renders/` | Renders fotorrealistas de Blender Cycles |
-| `tools/blender/render_local.py` | Monta la escena en Blender (materiales físicos, luminarias, cámaras) y renderiza |
-| `tools/build-artifact.py` | Empaqueta todo en un solo archivo HTML para compartirlo (renders incluidos) |
+| `js/ui.js` | Comportamiento de la interfaz: paneles animados, segmentados, ventanas y notificaciones |
+| `js/app.js` | Interacción: selección, explosionado, armado, fichas, presupuesto y búsqueda |
+| `tools/build-artifact.py` | Empaqueta todo en un solo archivo HTML para compartirlo |
 
 ## De dónde salen los datos
 
@@ -147,10 +127,11 @@ verificarse en sitio antes de pedir el corte.
 - Son interpretación del modelo: la altura del cielo (3.00 m), el diseño de la fachada y de las luces de techo, las figuras de exhibición y la forma exacta de los productos comprados. Se dibujaron para parecerse a las imágenes de referencia.
 - El panel perforado se muestra blanco, como en la imagen; la lámina cotizada viene en negro.
 - Los taburetes se muestran sin espaldar, como en la imagen; el producto cotizado (silla para bar Palermo) lo tiene.
-- En el visor y en los renders, las texturas de los materiales, la potencia y orientación de cada luminaria y el pasillo del centro comercial son interpretación: sirven para juzgar el ambiente, no reemplazan un estudio de iluminación.
+- El diseño de la fachada (panel negro, marco de bronce, letras corpóreas, luminarias del alero y umbral) es una propuesta del modelo; no viene de los documentos ni tiene costo en el presupuesto.
+- Las texturas de los materiales, la potencia y orientación de cada luminaria y el pasillo del centro comercial son interpretación: sirven para juzgar el ambiente, no reemplazan un estudio de iluminación.
 
 ## Tecnología
 
 HTML, CSS y JavaScript sin pasos de compilación. El 3D usa [three.js](https://threejs.org) r160, cargado desde jsDelivr;
 el postproceso (oclusión ambiental, bloom, acumulación temporal y tone mapping) es código propio en `js/engine.js` y
-necesita WebGL 2. Los renders se hacen con [Blender](https://www.blender.org) 4.5 y su motor Cycles.
+necesita WebGL 2.

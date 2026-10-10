@@ -262,13 +262,14 @@
 
   /* ------------------------------------------------------------ materiales */
   const LED_RGB = [3.4, 2.5, 1.5];
-  E.ledMats = []; E.glowMats = []; E.ledLights = [];
+  E.ledMats = []; E.glowMats = []; E.ledLights = []; E.emissiveMats = [];
   E.ledLevel = 1;
   E.setLed = function (k) {
     E.ledLevel = k;
     E.ledMats.forEach((m) => m.color.setRGB(lerp(0.16, m.userData.rgb[0], k), lerp(0.15, m.userData.rgb[1], k), lerp(0.14, m.userData.rgb[2], k)));
     E.glowMats.forEach((m) => { m.opacity = m.userData.op * k; });
     E.ledLights.forEach((l) => { l.intensity = l.userData.i * k; });
+    E.emissiveMats.forEach((m) => { m.emissiveIntensity = m.userData.ei * k; });
     if (L.mats) L.mats.fondoLit.emissiveIntensity = 0.62 * k;
     E.invalidate();
   };
@@ -300,6 +301,9 @@
       cielo: S(set(pl, 0.65, 0.325, 0.4, { color: 0xf0ece5 })),
       carbon: S(set(powder, 1.3 / 0.4, 0.65 / 0.4, 0.22, { color: 0x232325, metalness: 0.15, map: null, roughness: 1.05 })),
       carbonMate: S(set(powder, 1.3 / 0.4, 0.65 / 0.4, 0.3, { color: 0x2c2c2e, map: null, roughness: 1.5 })),
+      // fachada: panel de aluminio compuesto negro, satinado y con barniz; marco del vano en bronce cepillado
+      fachada: Ph({ color: 0x0f0f11, roughness: 0.36, metalness: 0.25, clearcoat: 0.8, clearcoatRoughness: 0.08, normalMap: rep(smooth.normalMap, 1.3 / 0.6, 0.65 / 0.6), normalScale: ns(0.04) }),
+      bronce: S(set(brushed, 1.3 / 0.5, 0.65 / 0.5, 0.12, { color: 0xb4915e, metalness: 1, map: null, roughness: 1.05 })),
       melBlanca: st(0xf2f0eb, 0.44),
       melRovere: S(set(wood, 1, 1, 0.42, { color: 0xffffff })),
       melPlomo: st(0x4c4a47, 0.48),
@@ -691,6 +695,7 @@
       o.material = o.material.clone(); o.material.userData.op = o.material.opacity; o.material.userData.tr = o.material.transparent; mats.push(o.material);
       if (o.material.userData.glow) E.glowMats.push(o.material);
       if (o.material.userData.rgb) E.ledMats.push(o.material);
+      if (o.material.userData.ei !== undefined) E.emissiveMats.push(o.material);
     });
     const s = { obj, test, a: 1, mats }; E.shells.push(s); return s;
   };
