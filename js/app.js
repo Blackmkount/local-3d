@@ -1358,7 +1358,8 @@
   async function boot() {
     const sub = $('#intro-sub') || $('.intro-sub');
     if (sub && DATA.meta.lema) sub.textContent = DATA.meta.lema.join(' · ');
-    if (/texto/.test(location.search) && L.textMode) { L.textMode.show('pedido'); return; }   // la información sin 3D
+    // ?texto: la información sin 3D (js/textmode.js); el modelo ni siquiera se arranca
+    if (/texto/.test(location.search) && L.textMode) { $('#intro').hidden = true; L.textMode.show('pedido'); return; }
     if (!T || !E || !F || !R) { fail('engine'); return; }
     Y = new T.Vector3(0, 1, 0); ray = new T.Raycaster(); ndc = new T.Vector2(); pv = new T.Vector3();
     /* avance de la carga: js/boot-guard.js lo dibuja si está; si no, se escribe aquí y la barra deja de
