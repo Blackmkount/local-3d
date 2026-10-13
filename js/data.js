@@ -13,7 +13,7 @@
      fab     pasos de fabricación        ens     pasos de ensamble
      seq     secuencia de la animación de armado (src = paso del que sale)
      why     razón de cada material
-     total   suma exacta de los costo de sus filas (una fila con costo 0 no suma)
+     total   suma exacta del costo de sus filas (una fila con costo 0 no suma)
 
    La interfaz no escribe cifras a mano: los conteos (20 elementos, 12 que se
    fabrican, 8 que se compran, materiales, frentes y pasos) y los porcentajes
