@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Página no encontrada · BlackForge</title>
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#1c1c1e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231c1c1e'/%3E%3Cpath fill='%23f5f5f7' transform='translate(-8.346 5.370) scale(0.42303)' d='M51.3,20.4h32.2c14,0,23.5,8.9,23.5,20.6s-5.8,14.6-10.6,16.9c7.9,2.3,16.1,9,16.1,22.2s-10.3,25.4-29.6,25.4h-31.6s0-85.1,0-85.1ZM79.8,52.8c6.1,0,9-3.4,9-8s-3.2-7.8-9.4-7.8h-9.1v15.8h9.5ZM81.7,89.1c8.3,0,12-4.2,12-10.8s-3.7-10.8-12.2-10.8h-11.2v21.6s11.4,0,11.4,0Z'/%3E%3Ccircle cx='46.04' cy='45.40' r='4.60' fill='%23ff9f0a'/%3E%3C/svg%3E">
+<script>
+/* ============================================================================
+   ENLACES CORTOS — GitHub Pages (y http-server) muestran esta página para
+   cualquier dirección que no existe. Si la dirección es un enlace corto, se
+   abre la parte del local que nombra, sin pasar por el error:
+     …/local-3d/7  o  …/local-3d/m7   →  …/local-3d/#m7   (ficha del mueble 7)
+     …/local-3d/presupuesto           →  …/local-3d/#presupuesto
+   (también materiales, montaje, historia y recorrido). Así caben en los
+   códigos QR de las etiquetas (tools/qr/). Va en <head> para saltar antes de
+   dibujar nada.
+   ========================================================================== */
+(function () {
+  'use strict';
+  var p = location.pathname;
+  var m = /^(.*\/)m?([1-9][0-9]?)\/?$/i.exec(p);
+  var r = /^(.*\/)(presupuesto|materiales|montaje|historia|recorrido)\/?$/i.exec(p);
+  var base = null, ruta = null;
+  if (m) { base = m[1]; ruta = 'm' + m[2]; }
+  else if (r) { base = r[1]; ruta = r[2].toLowerCase(); }
+  if (ruta) location.replace(base + location.search + '#' + ruta);
+})();
+</script>
+<style>
+  :root {
+    --bg-1: #1b1b1d;
+    --bg-2: #0b0b0c;
+    --ink: #f5f5f7;
+    --ink-2: rgba(245, 245, 247, 0.62);
+    --accent-fill: #c96500;
+    --accent-fill-hi: #db7409;
+    --accent-ink: #ffb340;
+    --focus: #ffb340;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; min-height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    padding: 24px 16px; text-align: center;
+    background: radial-gradient(120% 80% at 50% 40%, var(--bg-1) 0%, var(--bg-2) 70%) fixed, var(--bg-2);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .logo { display: block; width: min(300px, 70vw); height: auto; margin-bottom: 26px; color: var(--ink); }
+  .code { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--ink-2); }
+  h1 { margin: 4px 0 0; font-size: clamp(24px, 6vw, 34px); font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; }
+  p.lead { margin: 6px 0 0; max-width: 42ch; color: var(--ink-2); }
+  .home {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 22px; padding: 0 22px;
+    border-radius: 999px; background: var(--accent-fill); color: #fff; font-weight: 600; text-decoration: none;
+    box-shadow: 0 1px 2px rgba(120, 60, 0, 0.25), inset 0 0.5px 0 rgba(255, 255, 255, 0.3);
+    transition: background 0.2s ease;
+  }
+  .home:hover { background: var(--accent-fill-hi); }
+  .home:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .home svg { width: 16px; height: 16px; }
+  .tip { margin-top: 26px; font-size: 13px; color: var(--ink-2); max-width: 46ch; }
+  .tip code { font: 600 0.95em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--accent-ink); }
+</style>
+</head>
+<body>
+<svg class="logo" viewBox="0 0 761 142" role="img" aria-label="BlackForge"><path fill="currentColor" d="M51.3,20.4h32.2c14,0,23.5,8.9,23.5,20.6s-5.8,14.6-10.6,16.9c7.9,2.3,16.1,9,16.1,22.2s-10.3,25.4-29.6,25.4h-31.6s0-85.1,0-85.1ZM79.8,52.8c6.1,0,9-3.4,9-8s-3.2-7.8-9.4-7.8h-9.1v15.8h9.5ZM81.7,89.1c8.3,0,12-4.2,12-10.8s-3.7-10.8-12.2-10.8h-11.2v21.6s11.4,0,11.4,0Z"/><path fill="currentColor" d="M121.4,20.4h18.6v85.2h-18.6V20.4Z"/><path fill="currentColor" d="M148.3,74.4c0-21.7,15.6-32.4,29.8-32.4s17.5,6,18.5,8.3h.4v-7.1h18.6v62.4h-18.6v-7.1h-.4c-1,2.3-7.4,8.3-18.5,8.3s-29.8-10.7-29.8-32.4ZM181.9,90.3c8.2,0,15.5-5.6,15.5-15.8s-7.3-15.8-15.5-15.8-15.2,5.8-15.2,15.8,7.3,15.8,15.2,15.8Z"/><path fill="currentColor" d="M223.8,74.3c0-21.1,16.6-32.3,33.2-32.3s20.8,5,26.9,15.4l-13.4,8.8c-3-4.1-7.4-7.3-13.4-7.3s-14.9,6-14.9,15.5,6.8,15.7,14.9,15.7,10.4-3.2,13.4-7.3l13.4,8.8c-6.1,10.1-15.8,15.4-26.9,15.4-16.7,0-33.2-11.2-33.2-32.5v-.2Z"/><path fill="currentColor" d="M293.6,20.4h18.6v46.4l20.6-23.6h22.2l-24.5,27.1,27,35.3h-20.5l-18-22.7-6.8,7.7v15h-18.6V20.4h0Z"/><path fill="currentColor" d="M367.3,20.4h48.7v17.3h-29.8v17h28.2v16.2h-28.2v34.7h-19V20.4h0Z"/><path fill="currentColor" d="M418.9,74.4c0-21.2,16.8-32.4,33.1-32.4s33.1,11.2,33.1,32.4-16.8,32.4-33.1,32.4-33.1-11.2-33.1-32.4ZM452,90c8,0,14.8-6,14.8-15.6s-6.7-15.6-14.8-15.6-14.8,6-14.8,15.6,6.7,15.6,14.8,15.6Z"/><path fill="currentColor" d="M493,43.2h18.6v16.9c2-10.1,8-18.1,19.3-18.1s2.9,0,4.4.6v17.6c-1.4-.2-2.8-.4-4.3-.4-12.4,0-19.4,8.3-19.4,20v25.7h-18.6v-62.4h0Z"/><path fill="currentColor" d="M556,126.9v-14.9c2.9,1.9,9.1,3.1,14.6,3.1,11.8,0,18.2-5.5,18.2-13.2v-3.4h-.7c-1,2.3-7.2,8.3-18,8.3s-29.9-10.7-29.9-32.4,15.7-32.4,29.9-32.4,17,6,18,8.3h.7v-7.1h18.6v57.1c0,24.7-19.4,30.2-33.4,30.2s-14.2-1.1-18.1-3.7h.1ZM574,90.3c8.2,0,15.4-5.6,15.4-15.8s-7.2-15.8-15.4-15.8-15.4,5.8-15.4,15.8,7.3,15.8,15.4,15.8Z"/><path fill="currentColor" d="M615.8,74.5c0-21.1,15.7-32.5,31.8-32.5s34.4,11,30.5,39.6h-44.4c2.5,6.7,8.8,10.1,17,10.1s10.4-1.3,15-4.8l8.4,8.8c-5.2,6.5-14,11.2-25.4,11.2-17.3,0-32.9-11.8-32.9-32.3h0ZM661.8,68.3c-1.3-7.2-7.7-10.7-13.9-10.7s-12.5,3.2-14.5,10.7h28.4Z"/><path fill="currentColor" d="M711.6,10.5c-12.2,0-22,9.9-22,22s9.9,22,22,22,22-9.9,22-22-9.9-22-22-22ZM711.6,50.1c-9.7,0-17.6-7.9-17.6-17.6s7.9-17.6,17.6-17.6,17.6,7.9,17.6,17.6-7.9,17.6-17.6,17.6Z"/><path fill="currentColor" d="M718.9,35.7s-1.6-2.8-3.5-2.9h0s4.2-.9,4.4-5.5v-1.1c0-3.2-2-5.7-9-5.7h-8.8v23h5.9v-8.7h1.8c1.5,0,2.8.8,3.5,2.1l3.3,6.6h6.4l-3.9-7.8h-.1ZM713.9,28.1c0,1.4-1.2,2.6-2.6,2.6h-3.4v-6h3.3c1.5,0,2.7,1.2,2.7,2.7,0,0,0,.7,0,.7Z"/></svg>
+<p class="code">Error 404</p>
+<h1>Esta página no existe</h1>
+<p class="lead">Puede que el enlace esté incompleto o que la página se haya movido. La tienda sigue en su sitio.</p>
+<a class="home" id="home" href="https://blackmkount.github.io/local-3d/"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16.2V9l6-5 6 5v7.2M8 16.2v-4h4v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>Volver a la tienda</a>
+<p class="tip">¿Buscabas un mueble? Escribe su número al final de la dirección, por ejemplo <code>…/local-3d/7</code>, y se abre su ficha.</p>
+<script>
+/* «Volver a la tienda»: en GitHub Pages el sitio vive en la primera carpeta (/local-3d/); en un servidor
+   local, en la raíz. Sin JavaScript el botón lleva a la dirección publicada. */
+(function () {
+  'use strict';
+  var seg = location.pathname.split('/').filter(Boolean);
+  var base = /\.github\.io$/i.test(location.hostname) && seg.length ? '/' + seg[0] + '/' : '/';
+  document.getElementById('home').href = base;
+})();
+</script>
+</body>
+</html>

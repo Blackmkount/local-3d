@@ -4,6 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BlackForge · Local de impresión 3D</title>
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://blackmkount.github.io/local-3d/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_CO">
+<meta property="og:site_name" content="BlackForge">
+<meta property="og:title" content="BlackForge · Local de impresión 3D en 3D">
+<meta property="og:description" content="Recorre en 3D la tienda-taller BlackForge: toca un mueble y descubre de qué está hecho, cómo se arma y cuánto cuesta.">
+<meta property="og:url" content="https://blackmkount.github.io/local-3d/">
+<meta property="og:image" content="https://blackmkount.github.io/local-3d/assets/og/blackforge-og.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="La entrada del local BlackForge en 3D: fachada negra con el letrero iluminado y una pantalla vertical en cada pilar.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="description" content="BlackForge · recorrido 3D interactivo del local de exhibición y taller de impresión 3D: mobiliario, materiales, costos, fabricación y armado paso a paso.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -116,7 +134,8 @@
 
 
   <div id="intro">
-    <span class="intro-logo" data-logo="BlackForge"></span>
+    <span class="intro-logo" data-logo="BlackForge"><svg class="logo" viewBox="0 0 761 142" role="img" aria-label="BlackForge"><path fill="currentColor" d="M51.3,20.4h32.2c14,0,23.5,8.9,23.5,20.6s-5.8,14.6-10.6,16.9c7.9,2.3,16.1,9,16.1,22.2s-10.3,25.4-29.6,25.4h-31.6s0-85.1,0-85.1ZM79.8,52.8c6.1,0,9-3.4,9-8s-3.2-7.8-9.4-7.8h-9.1v15.8h9.5ZM81.7,89.1c8.3,0,12-4.2,12-10.8s-3.7-10.8-12.2-10.8h-11.2v21.6s11.4,0,11.4,0Z"/><path fill="currentColor" d="M121.4,20.4h18.6v85.2h-18.6V20.4Z"/><path fill="currentColor" d="M148.3,74.4c0-21.7,15.6-32.4,29.8-32.4s17.5,6,18.5,8.3h.4v-7.1h18.6v62.4h-18.6v-7.1h-.4c-1,2.3-7.4,8.3-18.5,8.3s-29.8-10.7-29.8-32.4ZM181.9,90.3c8.2,0,15.5-5.6,15.5-15.8s-7.3-15.8-15.5-15.8-15.2,5.8-15.2,15.8,7.3,15.8,15.2,15.8Z"/><path fill="currentColor" d="M223.8,74.3c0-21.1,16.6-32.3,33.2-32.3s20.8,5,26.9,15.4l-13.4,8.8c-3-4.1-7.4-7.3-13.4-7.3s-14.9,6-14.9,15.5,6.8,15.7,14.9,15.7,10.4-3.2,13.4-7.3l13.4,8.8c-6.1,10.1-15.8,15.4-26.9,15.4-16.7,0-33.2-11.2-33.2-32.5v-.2Z"/><path fill="currentColor" d="M293.6,20.4h18.6v46.4l20.6-23.6h22.2l-24.5,27.1,27,35.3h-20.5l-18-22.7-6.8,7.7v15h-18.6V20.4h0Z"/><path fill="currentColor" d="M367.3,20.4h48.7v17.3h-29.8v17h28.2v16.2h-28.2v34.7h-19V20.4h0Z"/><path fill="currentColor" d="M418.9,74.4c0-21.2,16.8-32.4,33.1-32.4s33.1,11.2,33.1,32.4-16.8,32.4-33.1,32.4-33.1-11.2-33.1-32.4ZM452,90c8,0,14.8-6,14.8-15.6s-6.7-15.6-14.8-15.6-14.8,6-14.8,15.6,6.7,15.6,14.8,15.6Z"/><path fill="currentColor" d="M493,43.2h18.6v16.9c2-10.1,8-18.1,19.3-18.1s2.9,0,4.4.6v17.6c-1.4-.2-2.8-.4-4.3-.4-12.4,0-19.4,8.3-19.4,20v25.7h-18.6v-62.4h0Z"/><path fill="currentColor" d="M556,126.9v-14.9c2.9,1.9,9.1,3.1,14.6,3.1,11.8,0,18.2-5.5,18.2-13.2v-3.4h-.7c-1,2.3-7.2,8.3-18,8.3s-29.9-10.7-29.9-32.4,15.7-32.4,29.9-32.4,17,6,18,8.3h.7v-7.1h18.6v57.1c0,24.7-19.4,30.2-33.4,30.2s-14.2-1.1-18.1-3.7h.1ZM574,90.3c8.2,0,15.4-5.6,15.4-15.8s-7.2-15.8-15.4-15.8-15.4,5.8-15.4,15.8,7.3,15.8,15.4,15.8Z"/><path fill="currentColor" d="M615.8,74.5c0-21.1,15.7-32.5,31.8-32.5s34.4,11,30.5,39.6h-44.4c2.5,6.7,8.8,10.1,17,10.1s10.4-1.3,15-4.8l8.4,8.8c-5.2,6.5-14,11.2-25.4,11.2-17.3,0-32.9-11.8-32.9-32.3h0ZM661.8,68.3c-1.3-7.2-7.7-10.7-13.9-10.7s-12.5,3.2-14.5,10.7h28.4Z"/><path fill="currentColor" d="M711.6,10.5c-12.2,0-22,9.9-22,22s9.9,22,22,22,22-9.9,22-22-9.9-22-22-22ZM711.6,50.1c-9.7,0-17.6-7.9-17.6-17.6s7.9-17.6,17.6-17.6,17.6,7.9,17.6,17.6-7.9,17.6-17.6,17.6Z"/><path fill="currentColor" d="M718.9,35.7s-1.6-2.8-3.5-2.9h0s4.2-.9,4.4-5.5v-1.1c0-3.2-2-5.7-9-5.7h-8.8v23h5.9v-8.7h1.8c1.5,0,2.8.8,3.5,2.1l3.3,6.6h6.4l-3.9-7.8h-.1ZM713.9,28.1c0,1.4-1.2,2.6-2.6,2.6h-3.4v-6h3.3c1.5,0,2.7,1.2,2.7,2.7,0,0,0,.7,0,.7Z"/></svg></span>
+    <noscript><style>.intro-bar,#intro-msg{display:none}#intro noscript{order:9}#intro .noscript{max-width:44ch;margin:22px 0 0;font-size:14px;line-height:1.5;opacity:.8}</style><p class="noscript">Este recorrido 3D necesita JavaScript y un navegador reciente con WebGL 2 (Chrome, Edge, Firefox o Safari). Incluye 20 muebles, sus materiales y un presupuesto total de $38.788.078.</p></noscript>
     <p class="intro-sub">Impresión 3D · Diseña · Imprime · Crea</p>
     <div class="intro-bar" aria-hidden="true"><span></span></div>
     <p class="intro-msg" id="intro-msg">Preparando el local…</p>
