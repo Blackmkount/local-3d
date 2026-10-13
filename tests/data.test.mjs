@@ -193,11 +193,11 @@ test('README.md cita el total del presupuesto', () => {
 });
 
 /* ---------------------------------------------------------------- logotipo */
-test('el logotipo es el mismo en assets/, js/brand.js, index.html y 404.html', () => {
+test('el logotipo es el mismo en assets/, js/brand.js, index.html, 404.html y el README', () => {
   const B = load('js/brand.js', { document: { readyState: 'complete', querySelectorAll: () => [] } }).brand;
   const de = (s) => [...s.matchAll(/ d="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(de(read('assets/blackforge-logo.svg')), B.paths, 'los trazos de assets/blackforge-logo.svg y js/brand.js no coinciden');
-  for (const f of ['index.html', '404.html']) {
+  for (const f of ['index.html', '404.html', 'docs/img/logo-oscuro.svg']) {
     if (!existsSync(ROOT + f)) continue;
     const svg = /<svg[^>]*viewBox="0 0 761 142"[\s\S]*?<\/svg>/.exec(read(f));
     assert.ok(svg, f + ' no trae el logotipo en línea');

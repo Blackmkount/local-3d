@@ -1,246 +1,171 @@
-# BlackForge · local de impresión 3D · visualizador interactivo
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/blackforge-logo.svg">
+    <img src="docs/img/logo-oscuro.svg" alt="BlackForge" width="360">
+  </picture>
+</h1>
 
-Página web con el modelo 3D del local de exhibición y taller de impresión 3D (6.00 × 7.00 m).
-Se recorre con el ratón o con los dedos y, al elegir un mueble, muestra sus materiales,
-costos, fabricación, ensamble y la razón de cada material.
+<p align="center"><b>Una maqueta 3D de la tienda BlackForge: gírala con el dedo, toca un mueble y te cuenta de qué está hecho, cómo se arma y cuánto cuesta.</b></p>
 
-## Qué se puede hacer en la página
+<p align="center">
+  <a href="https://blackmkount.github.io/local-3d/"><img alt="Ver en vivo" src="https://img.shields.io/badge/ver_en_vivo-blackmkount.github.io%2Flocal--3d-ff9f0a?style=flat-square"></a>
+  <a href="https://github.com/Blackmkount/local-3d/actions/workflows/ci.yml"><img alt="Pruebas" src="https://github.com/Blackmkount/local-3d/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="three.js r160" src="https://img.shields.io/badge/three.js-r160-1c1c1e?style=flat-square">
+  <img alt="Sin compilación" src="https://img.shields.io/badge/sin_compilaci%C3%B3n-HTML_%2B_CSS_%2B_JS-1c1c1e?style=flat-square">
+</p>
 
-- **Recorrer el local**: arrastrar gira, la rueda acerca, el clic derecho desplaza. Hay cinco vistas listas: Fachada, Interior, Taller, Aérea y Planta.
-- **Elegir un mueble**: la cámara se acerca y se abre su ficha con cinco pestañas: Resumen, Materiales y costos, Fabricación, Ensamble y Por qué.
-- **Explosionar**: separa el mueble en sus piezas, tal como salen del despiece.
-- **Ver armado**: reproduce el ensamble paso a paso; cada paso cita el punto del documento del que sale.
-- **Ver un material en el modelo**: al pasar el cursor por una fila de la tabla de materiales se resaltan las piezas hechas con él.
-- **Montaje**: muestra cómo se arma el local completo, del fondo hacia la fachada, en seis pasos.
-- **Presupuesto**: total, costo por mueble, por tipo de insumo, por tienda y plan de corte de tableros.
-- **Materiales**: catálogo de precios con enlace a cada tienda y el proceso industrial de cada material.
-- **Planta**: vista superior con los números del plano y las cotas generales.
-- **Descargar el modelo 3D**: desde la búsqueda (<kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>), *Descargar modelo 3D (.glb)*, para abrirlo en Unreal Engine, Blender, Twinmotion o D5.
+[![La entrada de la tienda BlackForge en 3D: fachada negra con el letrero iluminado y una pantalla en cada pilar](assets/og/blackforge-og.jpg)](https://blackmkount.github.io/local-3d/)
 
-Un enlace que termina en `#m7` abre directamente la ficha del elemento 7 (sirve con cualquier número del 1 al 20);
-el botón de compartir de cada ficha copia ese enlace.
+## ¿Qué es esto?
 
-## Fachada
+BlackForge es una tienda-taller de impresión 3D de 6 × 7 metros, donde unas máquinas fabrican juguetes y objetos capa
+por capa; todavía no existe, y esta página permite recorrerla en 3D antes de construirla. Cada uno de sus 20 muebles
+se puede abrir para ver de qué está hecho, cómo se fabrica, cómo se arma y cuánto cuesta. Montar la tienda completa
+cuesta **$38.788.078** en materiales y equipos, y la página muestra a dónde va cada peso.
 
-Fascia y pilares en panel de aluminio compuesto negro satinado, con juntas alineadas a los pilares. El logotipo de
-BlackForge va en **letras corpóreas** de 3 cm: frente de acrílico opal iluminado, cantos negros y separación de 2 cm de la
-fascia, de modo que la luz que escapa por detrás dibuja un halo sobre el panel. El vano lleva un marco de bronce
-cepillado (forro de pilares, cielo del vano y nariz de la fascia) con una línea de luz LED, tres luminarias empotradas en
-el alero que iluminan la entrada y un umbral de acero inoxidable en la línea de fachada.
+## Ábrelo en 30 segundos
 
-En cada pilar, hacia el pasillo del centro comercial, va una **pantalla de 55" en vertical** (Hisense QLED 55Q6QV,
-centrada en el pilar de 0.75 m y con la base a 0.90 m del piso). Las dos reproducen el mismo video, sincronizado, que
-invita a entrar (ver más abajo). Reemplazan al tótem de categorías y a la pantalla de 43" del plano original. Frente a
-la fachada no hay matera: los tres maceteros del local quedan adentro.
+| Dónde | Cómo | Bueno saber |
+|---|---|---|
+| **En línea** | Abre **[blackmkount.github.io/local-3d](https://blackmkount.github.io/local-3d/)** | Funciona en el computador, la tableta y el teléfono. |
+| **En tu computador, con un servidor** | `npm ci` la primera vez, luego `npm start` (o `python3 -m http.server 8000`) y abre <http://localhost:8000> | Igual que en línea, también sin internet. |
+| **Con doble clic** | Descarga el repositorio y abre `index.html` | Funciona sin internet; las pantallas de video del local se ven como imagen fija. |
 
-Las letras se generan a partir del archivo `assets/blackforge-logo.svg` (sus trazos están en `js/brand.js`): si cambia
-el logotipo, basta con reemplazar los trazos y la fachada, la barra superior y la pantalla de inicio se actualizan.
+Necesita un navegador reciente con WebGL 2: Chrome, Edge, Firefox o Safari. Si un equipo antiguo va lento, añade
+`?lite` al final de la dirección.
 
-## Piso
+## Qué puedes hacer
 
-Dentro del local, **piso de madera**: tablas de roble tostado de 20 cm de ancho y 1.20, 1.60 o 2.40 m de largo,
-colocadas a lo largo del local (de la fachada hacia el fondo) con las juntas de punta trabadas, microbisel en los cuatro
-cantos y laca satinada que refleja el mobiliario de forma suave. Cada tabla tiene su tono y su corte: veta en catedral
-o recta, poro abierto del roble y algún nudo pequeño. Es más oscuro que la madera clara de cubiertas y listones, para
-que los muebles se separen del piso. Llega hasta el umbral de acero de la fachada; afuera, el pasillo conserva su
-porcelanato de 0.60. Los colores y las medidas de las tablas están en `PLANK`, dentro de `js/engine.js`.
+<!-- CAPTURAS PENDIENTES: las imágenes de docs/img/ se toman con la interfaz final (npm run og). Al tomarlas, borra esta línea. -->
 
-## Video de la pantalla de 75"
+| | |
+|---|---|
+| <img src="docs/img/ficha.png" width="320" alt="Ficha del mesón de impresoras"> | **Toca un mueble** y se abre su ficha: qué es, de qué materiales está hecho, cómo se hace, cómo se arma y por qué se eligió cada material. Al pasar por un material, sus piezas brillan en el modelo. |
+| <img src="docs/img/separar.png" width="320" alt="Mueble con las piezas separadas"> | **Separar piezas**: el mueble se abre en todas sus piezas, como un LEGO desarmado. |
+| <img src="docs/img/armar.png" width="320" alt="Animación de armado paso a paso"> | **Ver cómo se arma**: las piezas vuelven a su sitio paso a paso, cada una con su explicación. |
+| <img src="docs/img/explorador.png" width="320" alt="Ficha en modo explorador con «¿Qué es?» y una pregunta"> | **Modo explorador o experto**: el explorador explica con palabras sencillas (¿Qué es? ¿Para qué sirve? ¿Sabías que…?) y trae preguntas; el experto muestra todo el detalle técnico. Lo técnico nunca queda a más de un toque, en «Para expertos». |
+| <img src="docs/img/historia.png" width="320" alt="«¿Cómo nace una pieza?» con el video y seis pasos"> | **¿Cómo nace una pieza?**: el video del local, con seis pasos tipo cómic que se encienden al ritmo del video; al final vuelas hasta una impresora que está imprimiendo ahora mismo. |
+| <img src="docs/img/glosario.png" width="320" alt="Definición de una palabra del taller"> | **Palabras del taller**: más de 50 palabras (melamina, canto, chazo, MDF, RH…) llevan un subrayado punteado; tócala y te dice qué significa. |
+| <img src="docs/img/presupuesto.png" width="320" alt="Ventana del presupuesto"> | **Costos**: el total, de cada 100 pesos cuántos van a cada cosa, cuánto cuesta cada mueble, cada tipo de material y cada tienda, y el plan de corte de los tableros. |
+| <img src="docs/img/montaje.png" width="320" alt="Montaje de la tienda completa"> | **Armar local**: la tienda completa se arma sola, del fondo hacia la entrada, en seis pasos. |
+| <img src="docs/img/movil.png" width="160" alt="La página en un teléfono"> | **En el teléfono** la ficha es una hoja que se arrastra hacia arriba para leer más. |
 
-La pantalla vertical del muro izquierdo reproduce un video en bucle, sin sonido: `assets/video/pantalla-75.mp4`
-(y `pantalla-75.webm` para los navegadores que no traen H.264). El que viene explica en 36 segundos cómo nace una
-pieza impresa en 3D, en cuatro pasos y con animación 3D:
+Y además:
 
-1. **Modelado**: la pieza (un jarrón facetado y torcido) se dibuja en líneas, toma volumen y aparecen sus medidas.
-2. **Laminado**: un plano la corta en capas, las capas se separan y una de ellas muestra el recorrido de la boquilla
-   (perímetros y relleno), como en el software de laminado.
-3. **Impresión**: primer plano de la boquilla depositando el hilo fundido sobre la cama y luego un time-lapse de la
-   pieza creciendo capa sobre capa, con temperatura y avance en pantalla.
-4. **Acabado**: la pieza terminada gira sola, con su material, peso y tiempo de impresión.
+- **Recorrido con Forge**: el robot de la tienda te guía en 2 minutos desde la entrada hasta el presupuesto.
+- **Pasaporte BlackForge**: cada mueble que abres pone un sello; junta los 20.
+- **¿Qué tan grande es?**: una silueta de un niño de 1,40 m al lado del mueble, para comparar.
+- **Cinco vistas**: Entrada, Adentro, Taller, Arriba y Plano (con los números del plano).
+- **Búsqueda** con <kbd>Ctrl K</kbd> / <kbd>⌘K</kbd> o <kbd>/</kbd>: muebles, vistas, palabras y acciones.
+- **Descargar el modelo 3D (.glb)** desde la búsqueda, para abrirlo en Blender, Unreal Engine, Twinmotion o D5
+  ([cómo](docs/diseno.md#llevar-el-modelo-a-unreal-engine-5-u-otro-programa)).
+- **Enlaces directos**: `…/local-3d/#m7` abre la ficha del mueble 7 y `#m7/materiales` su pestaña de materiales;
+  también `#presupuesto`, `#materiales`, `#montaje`, `#historia` y `#recorrido`. El botón Atrás cierra lo último que
+  abriste.
+- **Etiquetas QR** para pegar en los muebles de verdad: `tools/qr/` arma una hoja A4 con 20 códigos; cada uno abre
+  la ficha de su mueble con un enlace corto como `…/local-3d/7`.
 
-Cierra con el logotipo de BlackForge y empieza y termina en negro, así el bucle no tiene saltos. Mientras el video
-carga, o si no se puede reproducir, la pantalla muestra su portada.
+## Si tienes 10 años
 
-El video está hecho con código, en `tools/video-pantalla/` (three.js para la escena y un lienzo 2D para textos e
-indicadores), así que se puede corregir un texto, un color o un tiempo y volver a generarlo:
+1. Abre la página. Verás la tienda desde afuera, como si pasaras caminando.
+2. Arrastra con el dedo (o con el ratón) para girarla; pellizca para acercarte.
+3. Toca cualquier mueble: te cuenta qué es, para qué sirve y algo curioso. Responde la pregunta y gana una estrella.
+4. Toca **Separar piezas** para ver el mueble desarmado y **Ver cómo se arma** para armarlo otra vez.
+5. Las palabras con rayitas debajo son palabras del taller: tócalas y te explican qué significan.
+6. Abre todos los muebles para llenar tu **Pasaporte**: son 20 sellos.
+7. Mira **¿Cómo nace una pieza?** para ver una impresora 3D trabajando.
 
-1. Con un servidor local en la raíz del repositorio (`python3 -m http.server 8000`), abrir
-   `http://localhost:8000/tools/video-pantalla/` para verlo en vivo (`?t=12.5` congela ese instante).
-2. Los textos y los tiempos de cada paso están al comienzo de `tools/video-pantalla/video.js` (`STEPS`).
-3. Renderizar los 1080 cuadros con `node tools/video-pantalla/render.js` (usa Playwright) y armar los archivos con
-   `ffmpeg -framerate 30 -i tools/video-pantalla/frames/f%04d.png -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 20 -movflags +faststart assets/video/pantalla-75.mp4`
-   y `ffmpeg -framerate 30 -i tools/video-pantalla/frames/f%04d.png -c:v libvpx-vp9 -pix_fmt yuv420p -b:v 0 -crf 33 assets/video/pantalla-75.webm`.
+## Cambia un precio en 3 pasos
 
-Para poner otro video basta con reemplazar el archivo, con el mismo nombre:
+1. **Edita `js/data.js`.** Busca el material (<kbd>Ctrl F</kbd>) y cambia su `costo`: un número entero en pesos,
+   sin puntos ni comillas (`costo: 592833`).
+2. **Corre `npm test`.** Te dice en español qué totales dejaron de cuadrar y por cuánto (el total del mueble, el del
+   presupuesto, su rubro y su tienda). Corrígelos y repite hasta que todo pase. Si cambia el total general, cámbialo
+   también en este README.
+3. **Corre `npm run version`** y publica el cambio (commit y pull request). Al llegar a `main`, la página se
+   actualiza sola.
 
-- **Formato**: MP4 con video H.264, vertical 9:16 (1080 × 1920 o 720 × 1280). El sonido no se usa.
-- **Peso**: mientras más liviano, antes empieza; unos 5 a 15 MB para 15 a 30 segundos está bien.
-- El `.webm` es opcional: si no se reemplaza, los navegadores que lo usan seguirán mostrando el video anterior, así que
-  conviene borrarlo o generarlo también, por ejemplo con
-  `ffmpeg -i pantalla-75.mp4 -c:v libvpx-vp9 -b:v 0 -crf 33 -an pantalla-75.webm`.
-- Después de cambiarlo, subir el número `?v=` de `index.html`: el video se pide con ese mismo número, así los
-  navegadores no muestran el anterior.
+Más detalles sobre los datos, de dónde salen y qué revisan las pruebas: [docs/datos.md](docs/datos.md).
 
-El video solo corre mientras la pantalla está a la vista, para no gastar batería. Se ve en la página publicada (GitHub
-Pages) o servida desde un servidor local; al abrir `index.html` con doble clic el navegador no deja usar el video dentro
-del 3D y la pantalla muestra la imagen fija. Tampoco se reproduce si el sistema tiene activado *reducir movimiento*.
-
-## Video de las pantallas exteriores
-
-Las dos pantallas de los pilares reproducen en bucle, sin sonido, `assets/video/pantalla-exterior.mp4` (y
-`pantalla-exterior.webm`). Es un video vertical de 24 segundos pensado para quien pasa caminando por el pasillo: pocos
-textos, grandes, y una pieza en movimiento que llama la atención. Cuenta en cinco momentos por qué entrar a BlackForge:
-
-1. **¿Lo imaginas?** Un robot de juguete aparece dibujado en líneas ámbar, como en el programa de diseño.
-   «Si lo puedes imaginar, lo imprimimos.»
-2. **Lo hacemos realidad.** La boquilla lo levanta capa por capa; la franja recién depositada brilla de calor y en
-   pantalla corren la capa, el avance, la temperatura de la boquilla y el material.
-3. **Piezas únicas.** El robot terminado se suma a una vitrina giratoria que va dejando al frente cada categoría de la
-   tienda: Figuras (el robot), Decoración (un jarrón facetado), Regalos (un corazón), Personalizados (un llavero con
-   «TU NOMBRE») y Prototipos (un engranaje).
-4. **El mundo de la impresión 3D.** Tres razones para entrar: mirar las impresoras trabajando en vivo, traer una idea
-   para diseñarla juntos y llevarse la pieza hecha en el taller.
-5. **Entra y crea.** El logotipo de BlackForge, «Te esperamos aquí mismo» y una flecha que invita a pasar.
-
-Empieza y termina en negro para que el bucle no tenga saltos. Las dos pantallas comparten un solo video en la página,
-así que siempre muestran el mismo cuadro; mientras carga, o si no se puede reproducir, muestran la portada (el cierre
-«Entra y crea»). En el local real basta con cargar el mismo archivo en una memoria USB en cada televisor.
-
-Se genera igual que el de la pantalla de 75", con el código de `tools/video-exterior/` (textos y tiempos al comienzo de
-`video.js`):
-
-1. Con el servidor local, abrir `http://localhost:8000/tools/video-exterior/` para verlo en vivo (`?t=12.5` congela ese instante).
-2. Renderizar los 720 cuadros con `node tools/video-exterior/render.js`.
-3. Armar los archivos con
-   `ffmpeg -framerate 30 -i tools/video-exterior/frames/f%04d.png -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 20 -movflags +faststart assets/video/pantalla-exterior.mp4`
-   y `ffmpeg -framerate 30 -i tools/video-exterior/frames/f%04d.png -c:v libvpx-vp9 -pix_fmt yuv420p -b:v 0 -crf 33 assets/video/pantalla-exterior.webm`.
-
-## Impresoras trabajando
-
-Las cuatro P1S del mesón están modeladas por dentro y se ven a través de la puerta y la tapa de vidrio: cama de PEI
-texturizado sobre dos husillos, guías y barra de carbono del CoreXY, cabezal con su boquilla y la luz de la cámara.
-Cada una imprime en bucle una pieza distinta (un jarrón torcido blanco, un jarrón facetado naranja, un peón azul y un
-florero estrella verde): la pieza crece capa por capa, la cama baja una capa cada vez, como en la impresora real, y el
-cabezal recorre el contorno de la capa que está imprimiendo. La pantalla de cada impresora muestra el estado y el
-avance. Al terminar, el cabezal se aparta, la pieza se retira y la cama vacía sube para empezar otra vez. Cada
-impresora va a su propio ritmo (de 70 a 102 segundos por pieza) y con un desfase, así nunca están sincronizadas.
-
-La animación corre unas 30 veces por segundo y solo mientras alguna impresora está a la vista; no se reproduce si el
-sistema tiene activado *reducir movimiento*. Las piezas, sus medidas y sus tiempos están en `PIEZAS`, dentro de
-`js/furniture.js`.
-
-## Interfaz
-
-Diseñada con el lenguaje de macOS: los controles flotan sobre el modelo como vidrio esmerilado oscuro (fondo
-translúcido con desenfoque y saturación, borde de media línea y sombras suaves), con texto claro para leer cómodo sobre
-cualquier parte del modelo, la tipografía del sistema (SF en equipos Apple, Inter en los demás) y un solo acento, el
-ámbar de la luz LED del local. El logotipo de BlackForge encabeza la barra superior y lleva de vuelta a la fachada.
-
-- **Barra de herramientas en cápsula** y **controles segmentados** con un indicador que se desliza bajo la opción elegida
-  (vistas, filtro del mobiliario y pestañas de la ficha).
-- **Paneles y ventanas animados**: el mobiliario y la ficha entran y salen deslizándose con curva de resorte; las
-  ventanas (Presupuesto y Materiales) crecen desde el botón que las abrió, se arrastran por la barra de título y
-  tienen el semáforo de macOS: rojo cierra, amarillo minimiza hacia el botón de origen y verde amplía (también con doble
-  clic en la barra).
-- **Búsqueda tipo Spotlight** con <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> o <kbd>/</kbd>: muebles, vistas y acciones en un solo
-  lugar, sin tildes ni mayúsculas, con flechas y <kbd>Enter</kbd>.
-- **Buscador en el mobiliario**, filas con selección en color de acento y entrada escalonada.
-- **Notificaciones** al copiar un enlace o exportar el modelo.
-- **En el teléfono** la ficha es una hoja inferior: se arrastra hacia arriba para ampliarla y hacia abajo para cerrarla.
-- Respeta las preferencias del sistema *reducir movimiento* y *reducir transparencia*.
-
-## Llevar el modelo a Unreal Engine 5 u otro programa
-
-En la búsqueda (<kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>), *Descargar modelo 3D (.glb)*. El archivo trae los muros, los 20 elementos pieza por pieza (con el nombre de cada pieza del despiece), los materiales PBR con
-sus texturas de color, relieve y rugosidad, las luces del local y las vistas de la página como cámaras.
-
-- **Unreal Engine 5**: arrastrar el `.glb` al Content Browser (importador Interchange). Con Lumen activo la iluminación
-  global sale en tiempo real; para imágenes finales, el Path Tracer de la Movie Render Queue. Conviene subir la intensidad
-  de las luces importadas y cambiar los vidrios por un material translúcido de Unreal.
-- **Blender**: *Archivo → Importar → glTF 2.0*.
-- **Twinmotion, D5 Render, Enscape o SketchUp**: importan `.glb` directamente.
-
-## Calidad de imagen del visor
-
-Sin archivos de textura ni dependencias nuevas:
-
-- **Texturas PBR procedurales**: cada material se genera al cargar la página con su color, su relieve (normal map) y su
-  rugosidad: veta y poro de la melamina Rovere y de los listones, tablas de roble del piso (veta en catedral, poro
-  abierto, nudos y microbisel que quiebra los reflejos), porcelanato de 0.60 del pasillo con junta, borde redondeado y
-  una mínima diferencia de plano entre baldosas, estuco de muros y cielo, concreto con poros en las materas, metal
-  cepillado y pintura electrostática. La melamina blanca y los fondos llevan la piel «soft» del papel decorativo y una
-  nube de tono casi imperceptible; el Plomo, además, su trama textil. La laca de las islas tiene la «piel de naranja»
-  de la laca catalizada (en el color y en el barniz), los taburetes y televisores el grano del polipropileno, y las
-  piezas impresas sus líneas de capa de 0.4 mm, que aparecen al acercarse y se apagan a distancia para no hacer muaré.
-- **Cantos redondeados**: todos los tableros llevan el redondeo de 2 mm del canto PVC, que atrapa un hilo de luz en cada borde.
-- **Materiales físicos**: laca y piezas impresas con barniz (clearcoat), vidrio y acrílico con índice de refracción.
-- **Luz**: el ambiente y los reflejos salen de una captura del propio local con dos rebotes de luz; focos reales en los
-  proyectores de riel, en los colgantes (con sombras) y en la lámpara lineal.
-- **Postproceso HDR propio**: antialias MSAA, oclusión ambiental (SAO) con desenfoque bilateral, bloom en los LED, tone
-  mapping ACES con balance de blancos y dither.
-- **Refinamiento progresivo**: con la cámara quieta se suman hasta 32 cuadros con desplazamiento subpíxel y la luz
-  principal tratada como luz de área. Resultado: bordes limpios y sombras de penumbra suave, como en un render.
-- La resolución se adapta sola si el equipo no alcanza la fluidez. Si un equipo antiguo no muestra bien el modelo, añadir
-  `?lite` a la dirección desactiva el postproceso.
-
-## Cómo verla
-
-- **En el computador**: abrir `index.html` con doble clic. Necesita conexión a internet la primera vez, para cargar el motor 3D y las fuentes.
-- **En línea con GitHub Pages**: en el repositorio, *Settings → Pages → Deploy from a branch*, elegir la rama `main` y la carpeta `/ (root)`. En el plan gratuito de GitHub el repositorio debe ser público para usar Pages.
-
-## Cómo actualizar el contenido
-
-Todo el contenido vive en **`js/data.js`**: nombres, medidas, materiales, precios, pasos y textos.
-Para cambiar un precio o un paso se edita ese archivo y se recarga la página; el modelo 3D no se toca.
-
-Al publicar cambios, conviene subir el número `?v=` que acompaña a `css/styles.css` y a cada `js/…` en `index.html`:
-así los navegadores descargan la versión nueva en lugar de usar la guardada en caché.
+## Mapa del proyecto
 
 | Archivo | Qué contiene |
 |---|---|
-| `index.html` | Estructura de la página |
-| `css/styles.css` | Apariencia de la interfaz (vidrio oscuro, animaciones) |
-| `assets/blackforge-logo.svg` | Logotipo de BlackForge (original) |
-| `assets/video/` | Videos en bucle de la pantalla de 75" y de las dos pantallas exteriores (MP4 y WebM) |
-| `js/brand.js` | Trazos del logotipo, para la barra superior, la pantalla de inicio y las letras de la fachada |
-| `js/data.js` | **Datos del proyecto**: 20 elementos, catálogo de precios, presupuesto, montaje |
-| `js/furniture.js` | Los muebles modelados pieza por pieza: medidas, material y paso de armado de cada una |
+| `index.html` | La página: estructura, textos fijos y el orden de carga de los scripts |
+| `404.html` | Página «no existe»; convierte los enlaces cortos (`…/7`, `…/presupuesto`) en su ficha o ventana |
+| `manifest.webmanifest` | Nombre, colores e íconos para instalar la página en el teléfono |
+| `css/boot.css` | Letra Inter local y pantalla de inicio (avance y tarjeta de error) |
+| `css/styles.css` | Apariencia de la interfaz: vidrio oscuro, animaciones, teléfono, impresión |
+| `css/explorer.css` | Bienvenida, recorrido con Forge, ayuda y menú «Más» |
+| `css/kids.css` | Bloques para niños, glosario, pasaporte, historia y silueta |
+| `js/boot-guard.js` | Vigila el arranque: si algo falla, explica qué pasó y qué hacer |
+| `js/brand.js` | Trazos del logotipo (barra superior, pantalla de inicio y letras de la fachada) |
+| `js/hooks.js` | Contrato entre módulos: eventos (`L3D.bus`), memoria, preferencias y puntos de extensión |
+| `js/data.js` | **Datos del proyecto**: 20 elementos, catálogo de precios, presupuesto y montaje |
+| `js/kids-data.js` | Textos para niños, glosario, historia de la pieza y frases del montaje |
+| `js/engine.js` | Motor: texturas PBR procedurales, luces, postproceso HDR, refinamiento, cámara y reposo |
+| `js/geo.js` | Geometría: tableros con canto redondeado, trazos SVG a formas 3D |
 | `js/room.js` | Muros, fachada, cielo, luces y cotas |
-| `js/engine.js` | Motor: texturas PBR procedurales, materiales, luces, postproceso HDR, refinamiento progresivo, cámara, reflejo del piso y animaciones |
-| `js/geo.js` | Utilidades de geometría (tableros con canto redondeado, trazos SVG a formas 3D) |
-| `js/export.js` | Exporta el local completo a `.glb` |
-| `js/ui.js` | Comportamiento de la interfaz: paneles animados, segmentados, ventanas y notificaciones |
-| `js/app.js` | Interacción: selección, explosionado, armado, fichas, presupuesto y búsqueda |
-| `tools/build-artifact.py` | Empaqueta todo en un solo archivo HTML para compartirlo |
-| `tools/video-pantalla/` | Generador del video de la pantalla de 75" (escena, textos y render cuadro a cuadro) |
-| `tools/video-exterior/` | Generador del video de las pantallas exteriores |
+| `js/furniture.js` | Los muebles pieza por pieza, las impresoras imprimiendo y las pantallas de video |
+| `js/export.js` | Exporta el local a `.glb` |
+| `js/ui.js` | Paneles, ventanas, segmentados, avisos y trampa de foco |
+| `js/textmode.js` | Modo lista: toda la información sin 3D (`?texto`) |
+| `js/app.js` | Interacción: selección, separar y armar, fichas, presupuesto, búsqueda, rutas y montaje |
+| `js/a11y.js` | Teclado, lector de pantalla y botones de giro |
+| `js/glossary.js` · `js/explorer.js` | Palabras del taller y bloques «¿Qué es?» del modo explorador |
+| `js/passport.js` · `js/story.js` · `js/sizeme.js` | Pasaporte, «¿Cómo nace una pieza?» y silueta de tamaño |
+| `js/onboarding.js` · `js/tour.js` | Bienvenida, ayuda y recorrido con Forge |
+| `js/stats.js` | Medidor de cuadros por segundo (`?stats`) |
+| `vendor/` | three.js r160 y su exportador glTF, copiados de npm (`npm run vendor`) |
+| `assets/` | Logotipo, Forge, letra Inter, íconos, imagen para redes y videos |
+| `tests/` | Pruebas de datos (`*.test.mjs`) y del navegador (`e2e/`) |
+| `tools/` | Íconos, capturas, versiones, archivo único, etiquetas QR y generadores de video |
+| `docs/` | Diseño, videos, datos y las capturas de este README |
+| `.github/` | Pruebas automáticas (CI), publicación en Pages y formularios |
 
-## De dónde salen los datos
+## Calidad y pruebas
 
-- **Planta de distribución y mobiliario**: posición y medidas de los 20 elementos.
-- **Taller Impresión 3D — Mobiliario, materiales y fabricación** (9 de octubre de 2026): despiece, costos, fabricación, ensamble y razones de cada material.
+| Comando | Qué hace |
+|---|---|
+| `npm run lint` | ESLint: errores de JavaScript (variables sin usar, nombres mal escritos…) |
+| `npm test` | Cuentas del presupuesto, contenido para niños y archivos publicados, sin navegador (unos segundos) |
+| `npm run test:e2e` | La página en Chromium de verdad, en escritorio y teléfono: recorrido, accesibilidad (axe) y fallos. La primera vez: `npx playwright install chromium` |
+| `npm run check` | `lint` y `test` juntos, lo mismo que se revisa antes de publicar |
 
-Los precios son los publicados en línea el 9 de octubre de 2026 (el del televisor de 55", el 10 de octubre), en pesos
-colombianos. El total ($38.788.078) no incluye mano de obra, transporte, instalación eléctrica, plantas ni el canal
-perimetral de la mampara. Las medidas del plano se estimaron desde la imagen del local y deben
-verificarse en sitio antes de pedir el corte.
+Para revisar a mano, añade a la dirección:
 
-## Qué es fiel al documento y qué es interpretación del modelo
+| Al final de la dirección | Qué hace |
+|---|---|
+| `?lite` | Versión ligera, sin postproceso, para equipos lentos |
+| `?texto` | Modo lista: toda la información sin 3D |
+| `?clean` | Sin interfaz ni diálogos, para capturas y pantallas de exhibición |
+| `?stats` | Muestra los cuadros por segundo |
+| `?modo=experto` o `?modo=explorador` | Elige el modo solo en esa visita |
 
-- Medidas, ubicación, despiece, materiales, costos y textos vienen de los dos documentos.
-- El orden de la animación de armado sigue los pasos de fabricación y ensamble de cada ficha.
-- Son interpretación del modelo: la altura del cielo (3.00 m), el diseño de la fachada y de las luces de techo, las figuras de exhibición y la forma exacta de los productos comprados. Se dibujaron para parecerse a las imágenes de referencia.
-- El panel perforado se muestra blanco, como en la imagen; la lámina cotizada viene en negro.
-- Los taburetes se muestran sin espaldar, como en la imagen; el producto cotizado (silla para bar Palermo) lo tiene.
-- Las dos pantallas de 55" de los pilares reemplazan al tótem de categorías y a la pantalla de 43" del plano, y el
-  macetero que estaba fuera del pilar derecho se quitó: el local tiene tres maceteros, todos adentro. Sin el tótem, las
-  dos láminas Plomo siguen siendo necesarias (las puertas no caben en una), así que su costo se reparte entre el mesón y
-  la estantería retroiluminada.
-- El diseño de la fachada (panel negro, marco de bronce, letras corpóreas, luminarias del alero y umbral) es una propuesta del modelo; no viene de los documentos ni tiene costo en el presupuesto.
-- Las texturas de los materiales, la potencia y orientación de cada luminaria y el pasillo del centro comercial son interpretación: sirven para juzgar el ambiente, no reemplazan un estudio de iluminación.
+Cada cambio que llega a GitHub corre las mismas pruebas (`.github/workflows/ci.yml`).
 
-## Tecnología
+## Publicar
 
-HTML, CSS y JavaScript sin pasos de compilación. El 3D usa [three.js](https://threejs.org) r160, cargado desde jsDelivr;
-el postproceso (oclusión ambiental, bloom, acumulación temporal y tone mapping) es código propio en `js/engine.js` y
-necesita WebGL 2.
+- La página se publica sola en GitHub Pages con cada cambio en `main` (`.github/workflows/pages.yml`). Solo se suben
+  los archivos del sitio: `index.html`, `404.html`, `manifest.webmanifest`, `css/`, `js/`, `assets/` y `vendor/`.
+- Antes de publicar, `npm run version` pone a cada `css/` y `js/` su número de versión según su contenido, para que
+  los navegadores no muestren la versión vieja guardada. `npm test` avisa si se olvidó.
+- Anota el cambio en `CHANGELOG.md`; `npm run version` sugiere el nombre de la versión (`AAAA.MM.DD-n`).
+- `npm run build:single` arma `dist/local-impresion-3d.html`, la página en un solo archivo para compartirla.
+- `npm run og` vuelve a tomar la imagen para redes y las capturas de este README (con `npm start` corriendo).
+
+Cómo contribuir, regenerar un video o agregar una palabra al glosario: [CONTRIBUTING.md](CONTRIBUTING.md).
+El diseño del local y del visor está en [docs/diseno.md](docs/diseno.md) y los videos, en [docs/videos.md](docs/videos.md).
+
+## Licencia y créditos
+
+**Todos los derechos reservados.** El dueño del proyecto todavía no ha elegido una licencia; mientras tanto, el
+código, los textos, los datos, las imágenes y los videos no se pueden reutilizar sin su permiso.
+
+- **BlackForge** y su logotipo son marcas de su dueño.
+- [three.js](https://threejs.org) (licencia MIT), copiado en `vendor/` con su licencia.
+- [Inter](https://rsms.me/inter/), de Rasmus Andersson (SIL Open Font License 1.1), en `assets/fonts/`.
+- [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator), de Kazuhiko Arase (licencia MIT), en
+  `tools/qr/`. «QR Code» es una marca registrada de DENSO WAVE INCORPORATED.
+- Los nombres de tiendas y productos (Homecenter, Madecentro, makeR, El Ruso Shop, Asia Colombia, Hisense, Bambu Lab
+  y otros) pertenecen a sus dueños y se citan solo para referenciar precios.
