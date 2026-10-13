@@ -358,7 +358,7 @@
     S.moving = k; refreshEdges();
     updateStepper();
     E.shadowDirty = true; E.invalidate();
-    emit('asm-step', { n: it.n, k, count: seq.length, text: seq[k].t, done: false });
+    emit('asm-step', { n: it.n, k, count: seq.length, text: dec(seq[k].t), done: false });
     if (!anim) return;
     track(after(Math.max(0.5, total) + 0.05, () => { if (gen !== S.gen) return; S.moving = -1; refreshEdges(); }));
     if (S.playing) {
@@ -971,7 +971,7 @@
     if (p.led) { track(E.tween(1.8, (e) => E.setLed(E.lerp(0.1, 1, e)), { delay: total, ease: E.ease.inOut })); total += 1.8; }
     markMont(k); setMontPlay(true);
     E.shadowDirty = true;
-    emit('montaje-step', { k, count: N, title: p.t });
+    emit('montaje-step', { k, count: N, title: dec(p.t) });
     track(after(total + 1.3, () => {
       if (gen !== S.gen || !S.mont || !S.mont.playing) return;
       p.items.forEach(land);                            // en un equipo lento el reloj puede adelantarse al último cuadro
