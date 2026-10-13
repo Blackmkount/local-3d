@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>BlackForge · Local de impresión 3D</title>
 <meta name="description" content="BlackForge · recorrido 3D interactivo del local de exhibición y taller de impresión 3D: mobiliario, materiales, costos, fabricación y armado paso a paso.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Jost:wght@300;400;600&display=swap">
+<link rel="preload" href="assets/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/inter-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
 <meta name="theme-color" content="#1c1c1e">
+<link rel="stylesheet" href="css/boot.css?v=20261013-1">
 <link rel="stylesheet" href="css/styles.css?v=20261013-1">
 </head>
 <body>
 <div id="app" class="is-loading">
 
   <div id="stage">
-    <canvas id="gl" aria-label="Modelo 3D del local. Arrastra para girar, usa la rueda para acercar y haz clic en un mueble para ver su ficha."></canvas>
+    <canvas id="gl" tabindex="0" role="application" aria-roledescription="modelo 3D" aria-label="Modelo 3D del local. Arrastra o usa las flechas para girar, + y − para acercar, toca un mueble para ver su ficha."></canvas>
     <div id="labels" aria-hidden="true"></div>
   </div>
 
@@ -119,12 +119,13 @@
     <span class="intro-logo" data-logo="BlackForge"></span>
     <p class="intro-sub">Impresión 3D · Diseña · Imprime · Crea</p>
     <div class="intro-bar" aria-hidden="true"><span></span></div>
-    <p class="intro-msg" id="intro-msg">Preparando el local…</p>
+    <p class="intro-msg" id="intro-msg" role="status">Preparando el local…</p>
   </div>
 </div>
 
+<script src="js/boot-guard.js?v=20261013-1"></script>
 <script src="js/brand.js?v=20261013-1"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="vendor/three-0.160.0.min.js"></script>
 <script src="js/hooks.js?v=20261013-1"></script>
 <script src="js/data.js?v=20261013-1"></script>
 <script src="js/engine.js?v=20261013-1"></script>
@@ -134,5 +135,6 @@
 <script src="js/export.js?v=20261013-1"></script>
 <script src="js/ui.js?v=20261013-1"></script>
 <script src="js/app.js?v=20261013-1"></script>
+<script src="js/stats.js?v=20261013-1"></script>
 </body>
 </html>
