@@ -4,7 +4,8 @@
 (function () {
   'use strict';
   const L = (window.L3D = window.L3D || {});
-  const T = THREE;
+  const T = window.THREE;
+  if (!T) return;                                  // sin three.js: boot-guard.js avisa
   const G = (L.geo = {});
   const TL = 1.3, TW = 0.65;          // metros que cubre la textura de madera (largo de veta × ancho)
   let seed = 1;

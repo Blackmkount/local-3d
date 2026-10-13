@@ -1,11 +1,29 @@
 /* ============================================================================
    MOTOR 3D — render, luces, materiales, cámara, reflejo del piso y animación.
    Depende de THREE (global). No contiene datos del proyecto.
+
+   Lo que ofrece a los demás módulos (L3D.engine = E):
+     E.init(canvas) · E.initAsync(canvas, progress)   arranque (el segundo cede el
+                                  paso entre texturas y avisa progress(0–0.55, texto))
+     E.captureEnv() · E.captureEnvAsync()   luz del propio local (el segundo compila
+                                  antes los sombreadores sin bloquear, si se puede)
+     E.tween(seg, fn, opt) · E.after(seg, fn) · E.cancel(h)   animaciones y esperas
+     E.flyTo(vista, seg, opt) · E.orbit(dθ, dφ) · E.pan(dx, dy) · E.zoomBy(k)
+     E.onResetView                tecla 0 / Inicio sobre el modelo (lo define app.js)
+     E.invalidate(n, 'content')   pedir cuadros; 'content' = solo cambió un video o
+                                  una impresora (no despierta al visitante)
+     E.isSeen(centro, radio, dist)   ¿está a la vista en este cuadro?
+     E.reduced                    el sistema pide reducir movimiento (se actualiza solo)
+     E.calm                       reduced o el visitante apagó las animaciones (L3D.prefs motion)
+     E.still                      calm o el modelo está en reposo: videos e impresoras quietos
+     E.idleMs() · E.lastInput     tiempo sin tocar nada; a los 20 s entra el reposo
+     E.lite                       ?lite o un equipo con 2 GB de memoria o menos
    ========================================================================== */
 (function () {
   'use strict';
   const L = (window.L3D = window.L3D || {});
-  const T = THREE;
+  const T = window.THREE;
+  if (!T) return;                                  // sin three.js no hay motor: boot-guard.js muestra el aviso
   const E = (L.engine = {});
 
   const BG = 0xdcd7cf;
@@ -14,28 +32,85 @@
   E.clamp = clamp; E.lerp = lerp;
 
   E.ease = {
-    lin: (k) => k,
     inOut: (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2),
     out: (k) => 1 - Math.pow(1 - k, 3),
-    in: (k) => k * k * k,
     outBack: (k) => { const c = 1.4; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); },
     outQuint: (k) => 1 - Math.pow(1 - k, 5)
   };
+
+  /* -------------------------------------------- movimiento: sistema, visitante y reposo
+     E.reduced sigue en vivo a «reducir movimiento» del sistema; el visitante también puede
+     apagar las animaciones (L3D.prefs motion = false). Con cualquiera de los dos, las
+     animaciones terminan de una vez y la cámara salta. El reposo (20 s sin tocar nada)
+     solo detiene videos e impresoras, para que la imagen termine de refinarse y la GPU descanse. */
+  const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  E.reduced = !!(mq && mq.matches);
+  let motionOff = false, resting = false, lastMove = performance.now();
+  const readMotion = () => { motionOff = !!(L.prefs && L.prefs.get('motion') === false); };
+  readMotion();
+  Object.defineProperty(E, 'calm', { get: () => E.reduced || motionOff });
+  Object.defineProperty(E, 'still', { get: () => E.reduced || motionOff || resting });
+  E.REST_MS = 20000;
+  E.lastInput = performance.now();
+  E.idleMs = () => performance.now() - E.lastInput;
+  /* algo se movió (cámara, animación, un recorrido guiado): sale del reposo */
+  function stir() {
+    lastMove = performance.now();
+    if (resting) { resting = false; runHooks(0); E.invalidate(2); }
+  }
+  /* actividad sin un gesto del visitante (p. ej. una cámara en vivo que se quiere mantener despierta) */
+  E.poke = function () { E.lastInput = performance.now(); stir(); };
+  E.lite = /[?&]lite\b/.test(location.search) || (navigator.deviceMemory > 0 && navigator.deviceMemory <= 2);
 
   /* ---------------------------------------------------------------- tweens */
   const tweens = [];
   E.tween = function (dur, fn, opt) {
     opt = opt || {};
-    const tw = { t0: performance.now() + (opt.delay || 0) * 1000, dur: Math.max(1, dur * 1000), fn, ease: opt.ease || E.ease.inOut, done: opt.done, dead: false };
+    const delay = Math.max(0, opt.delay || 0);
+    if (E.calm && !opt.force) {
+      // sin animación: el estado final de una vez; done llega a su hora, así las secuencias siguen en orden
+      fn(1, 1);
+      E.shadowDirty = true; E.invalidate();
+      return E.after(delay, opt.done);
+    }
+    const tw = { t0: performance.now() + delay * 1000, dur: Math.max(1, dur * 1000), fn, ease: opt.ease || E.ease.inOut, done: opt.done, dead: false, on: false, force: !!opt.force };
     tweens.push(tw);
-    E.invalidate();
+    if (!delay) E.invalidate();                    // una espera no pide cuadros hasta que empieza
     return tw;
   };
-  E.cancel = function (tw) { if (tw) tw.dead = true; };
-  E.reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  /* espera pura (sin cuadros): devuelve un manejador que E.cancel detiene */
+  E.after = function (sec, fn) {
+    const h = { dead: false, id: 0 };
+    h.id = setTimeout(() => { if (h.dead) return; h.dead = true; if (fn) fn(); }, Math.max(0, sec || 0) * 1000);
+    return h;
+  };
+  E.cancel = function (tw) { if (!tw) return; tw.dead = true; if (tw.id) clearTimeout(tw.id); };
+  /* al pasar a «sin animaciones» en plena animación, todo salta a su final */
+  function calmChanged() {
+    if (E.calm) {
+      const now = performance.now();
+      tweens.forEach((tw) => {
+        if (tw.dead || tw.force) return;
+        tw.dead = true; tw.fn(1, 1);
+        if (tw.done) E.after(Math.max(0, tw.t0 - now) / 1000, tw.done);
+      });
+      if (fly) { const f = fly; fly = null; Object.assign(cur, f.to); Object.assign(goal, f.to); if (f.done) f.done(); }
+      E.shadowDirty = true;
+    }
+    runHooks(0);
+    E.invalidate(2);
+  }
+  const onMq = () => { E.reduced = !!mq.matches; calmChanged(); };
+  if (mq) { if (mq.addEventListener) mq.addEventListener('change', onMq); else if (mq.addListener) mq.addListener(onMq); }
+  if (L.bus) L.bus.on('prefs', (d) => { if (d.key === 'motion') { readMotion(); calmChanged(); } });
 
-  let dirty = 2;
-  E.invalidate = function (n) { dirty = Math.max(dirty, n || 2); };
+  /* cuadros pendientes: dirty para cambios de escena o cámara; cdirty para contenido animado
+     (videos, impresoras), que se redibuja sin rehacer el reflejo ni la oclusión */
+  let dirty = 2, cdirty = 0;
+  E.invalidate = function (n, kind) {
+    if (kind === 'content') cdirty = Math.max(cdirty, n || 1);
+    else dirty = Math.max(dirty, n || 2);
+  };
 
   /* ------------------------------------------------- texturas PBR procedurales
      Ningún material usa archivos: color, relieve (normal map) y rugosidad salen
@@ -44,7 +119,6 @@
      costura (ruido periódico). */
   function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
   function rnd(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
-  E.rnd = rnd;
   const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
   const hash2 = (a, b) => { let h = Math.imul(a, 374761393) ^ Math.imul(b, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
@@ -76,8 +150,12 @@
     return t;
   }
   /* sample(u, v, o) con u, v ∈ [0, 1) escribe o.r, o.g, o.b (color sRGB 0–1),
-     o.h (altura, en píxeles de la textura), o.ro (rugosidad) y o.m (máscara de brillo) */
+     o.h (altura, en píxeles de la textura), o.ro (rugosidad) y o.m (máscara de brillo).
+     En teléfonos y en el modo ligero se hornea a media resolución (bakeK = 0.5): unas 3.5 veces
+     más rápido y unos 60 MB menos de memoria de video; el relieve se escala para conservar su pendiente. */
+  let bakeK = 1;
   function bakePBR(w, h, bump, sample, withColor) {
+    w = Math.max(16, Math.round(w * bakeK)); h = Math.max(16, Math.round(h * bakeK)); bump *= bakeK;
     const H = new Float32Array(w * h), col = withColor ? new ImageData(w, h) : null, rgh = new ImageData(w, h), nrm = new ImageData(w, h);
     const o = { r: 1, g: 1, b: 1, h: 0, ro: 0.5, m: 1 };
     for (let y = 0; y < h; y++) {
@@ -305,16 +383,6 @@
     E.noReflect.push(m);
     return m;
   };
-  let _softDot = null;
-  E.softDot = function () {
-    if (_softDot) return _softDot;
-    const c = canvas(128, 128), g = c.getContext('2d');
-    const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-    _softDot = new T.CanvasTexture(c); _softDot.colorSpace = T.SRGBColorSpace;
-    return _softDot;
-  };
   let _softLine = null;
   E.softLine = function () {
     if (_softLine) return _softLine;
@@ -371,20 +439,35 @@
     return m;
   }
 
-  function makeMaterials() {
+  /* el horneado de texturas, paso a paso: [clave, mensaje para la pantalla de inicio, peso (ms medidos en un Xeon de 2.1 GHz), función].
+     E.initAsync cede el paso al navegador entre uno y otro para que la página no se congele. */
+  const BAKES = [
+    ['wood', 'Cortando la madera…', 260, () => woodMaps(7, 0xe8d0ab, 0xc9a47a, 0x8f6a45)],
+    ['slat', 'Cortando la madera…', 60, () => woodMaps(21, 0xdcbd94, 0xbf966a, 0x7a5637, 512)],
+    ['plank', 'Puliendo el piso de madera…', 480, plankMaps],
+    ['tile', 'Colocando el porcelanato del pasillo…', 440, tileMaps],
+    ['plaster', 'Pintando los muros…', 54, plasterMaps],
+    ['concrete', 'Mezclando el concreto de las materas…', 64, concreteMaps],
+    ['mel', 'Enchapando los tableros…', 63, () => melamineMaps(17, 0)],
+    ['melTex', 'Enchapando los tableros…', 63, () => melamineMaps(23, 1)],
+    ['peel', 'Lacando las islas…', 39, peelMaps],
+    ['smooth', 'Lijando y pintando el metal…', 5, () => stippleMaps(5, 0.35, 0.42, 0.1)],
+    ['powder', 'Lijando y pintando el metal…', 5, () => stippleMaps(13, 0.7, 0.55, 0.14)],
+    ['fiber', 'Lijando y pintando el metal…', 5, () => stippleMaps(31, 1.1, 0.82, 0.12)],
+    ['grain', 'Lijando y pintando el metal…', 5, () => stippleMaps(71, 1.0, 0.6, 0.18)],
+    ['brushed', 'Cepillando el aluminio y el bronce…', 6, () => brushedMaps(0.3)],
+    ['satin', 'Cepillando el aluminio y el bronce…', 6, () => brushedMaps(0.16)],
+    ['peg', 'Perforando el panel…', 3, pegMaps]
+  ];
+  function makeMaterials(B) {
     const S = (o) => new T.MeshStandardMaterial(o), Ph = (o) => new T.MeshPhysicalMaterial(o);
     const rep = (t, x, y) => { const c = t.clone(); c.repeat.set(x, y); return c; };
     const ns = (k) => new T.Vector2(k, k);
     // 1 unidad de UV en G.box = 1.30 m a lo largo y 0.65 m a lo ancho
     const set = (maps, mx, my, k, o) => Object.assign({ map: maps.map ? rep(maps.map, mx, my) : null, normalMap: rep(maps.normalMap, mx, my), normalScale: ns(k), roughnessMap: rep(maps.roughnessMap, mx, my), roughness: 1 }, o);
-    const wood = woodMaps(7, 0xe8d0ab, 0xc9a47a, 0x8f6a45);
-    const slat = woodMaps(21, 0xdcbd94, 0xbf966a, 0x7a5637, 512);
-    const pl = plasterMaps(), cc = concreteMaps(), peg = pegMaps();
-    const smooth = stippleMaps(5, 0.35, 0.42, 0.1), powder = stippleMaps(13, 0.7, 0.55, 0.14), fiber = stippleMaps(31, 1.1, 0.82, 0.12);
-    const brushed = brushedMaps(0.3), satin = brushedMaps(0.16);
-    const mel = melamineMaps(17, 0), melTex = melamineMaps(23, 1), peel = peelMaps(), grain = stippleMaps(71, 1.0, 0.6, 0.18);
-    E.tile = tileMaps();
-    E.plank = plankMaps();
+    const { wood, slat, peg, smooth, powder, fiber, brushed, satin, mel, melTex, peel, grain } = B, pl = B.plaster, cc = B.concrete;
+    E.tile = B.tile;
+    E.plank = B.plank;
     const st = (c, rough, o) => S(set(smooth, 1.3 / 0.3, 0.65 / 0.3, 0.16, Object.assign({ color: c, roughness: rough / 0.42, map: null }, o)));
     // melamina con su piel y su nube de tono (el color del mapa ronda 0.985: se compensa en el del material)
     const mm = (maps, c, rough, k, o) => { const m = S(set(maps, 1.3 / 0.5, 0.65 / 0.5, k, Object.assign({ roughness: rough / 0.5 }, o))); m.color.set(c).multiplyScalar(1 / 0.985); return m; };
@@ -447,7 +530,7 @@
   // balance de blancos de «cámara»: compensa la dominante de 3000 K de los LED, como haría un fotógrafo
   const P = (E.post = { on: false, ao: true, bloom: true, n: 0, max: 32, jit: false, exposure: 0.92, wb: [0.95, 0.99, 1.07] });
   function canPost() {
-    if (/[?&]lite\b/.test(location.search)) return false;
+    if (E.lite) return false;
     try {
       const c = document.createElement('canvas'), gl = c.getContext('webgl2');
       if (!gl) return false;
@@ -469,12 +552,48 @@
     return new T.Color().setRGB(x[0], x[1], x[2]);
   }
 
+  /* Arranque en tres partes: setup (renderer, escena y cámara), el horneado de texturas y finish
+     (materiales, luces, piso, postproceso y controles). E.init lo hace todo de una vez; E.initAsync
+     cede el paso al navegador entre textura y textura y avisa el avance (0 a 0.55) para la
+     pantalla de inicio. */
   E.init = function (canvasEl) {
+    setup(canvasEl);
+    const B = {};
+    BAKES.forEach((b) => { B[b[0]] = b[3](); });
+    finish(canvasEl, B);
+    return E;
+  };
+  E.initAsync = async function (canvasEl, progress) {
+    const say = (p, msg) => { try { if (progress) progress(p, msg); } catch (err) { /* el aviso nunca detiene la carga */ } };
+    const breathe = () => new Promise((r) => setTimeout(r, 0));
+    setup(canvasEl);
+    const B = {}, total = BAKES.reduce((a, b) => a + b[2], 0);
+    let done = 0;
+    for (const b of BAKES) {
+      say(0.55 * done / total, b[1]);
+      await breathe();
+      B[b[0]] = b[3]();
+      done += b[2];
+    }
+    say(0.55, 'Armando el local…');
+    await breathe();
+    finish(canvasEl, B);
+    return E;
+  };
+  function setup(canvasEl) {
     const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     E.mobile = coarse || Math.min(window.innerWidth, window.innerHeight) < 620;
+    bakeK = E.mobile || E.lite ? 0.5 : 1;
     P.on = canPost();
     if (E.mobile) P.max = 12;
-    const renderer = new T.WebGLRenderer({ canvas: canvasEl, antialias: !P.on, powerPreference: 'high-performance' });
+    let renderer;
+    try {
+      renderer = new T.WebGLRenderer({ canvas: canvasEl, antialias: !P.on, powerPreference: 'high-performance' });
+    } catch (err) {
+      // sin WebGL: la pantalla de inicio explica qué hacer (boot-guard.js); app.js recibe el error igual
+      if (L.bootFail) L.bootFail('webgl', err);
+      throw err;
+    }
     E.renderer = renderer;
     maxAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy());
     E.dprMax = Math.min(window.devicePixelRatio || 1, E.mobile ? 1.6 : 2);
@@ -494,9 +613,10 @@
     scene.background = bg;
     scene.fog = new T.Fog(bg.clone(), 17, 46);
 
-    const camera = (E.camera = new T.PerspectiveCamera(36, 1, 0.08, 140));
-
-    makeMaterials();
+    E.camera = new T.PerspectiveCamera(36, 1, 0.08, 140);
+  }
+  function finish(canvasEl, B) {
+    makeMaterials(B);
     buildEnvironment();
     buildLights();
     buildFloor();
@@ -506,9 +626,44 @@
     window.addEventListener('resize', () => E.resize());
     if (window.ResizeObserver) new ResizeObserver(() => E.resize()).observe(canvasEl.parentElement);
     bindControls(canvasEl);
+    bindContext(canvasEl);
+    bindActivity();
     requestAnimationFrame(frame);
-    return E;
-  };
+  }
+
+  /* Si el sistema le quita la GPU a la página (teléfono en segundo plano, poca memoria, driver
+     reiniciado), three.js recupera el contexto solo, pero el entorno capturado, las sombras y
+     los lienzos quedan vacíos: se rehacen aquí y el visitante ve un aviso mientras tanto. */
+  E.lost = false;
+  function bindContext(canvasEl) {
+    canvasEl.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      E.lost = true;
+      if (L.ui && L.ui.toast) L.ui.toast('Recuperando el modelo 3D…', '', 'cube');
+    });
+    canvasEl.addEventListener('webglcontextrestored', () => {
+      E.lost = false;
+      try {
+        // la captura parte de lo mismo que al cargar: el sol en su sitio, sus sombras y el entorno provisional
+        if (P.jit) unjitter();
+        shadowsAll();
+        buildEnvironment();
+        E.captureEnv();
+      } catch (err) { console.error(err); }
+      shadowsAll(); E.shadowDirty = true; P.n = 0; aoOk = false;
+      E.resize(true);
+      (L.redraws || []).forEach((f) => { try { f(); } catch (err) { console.error(err); } });
+      E.invalidate(3);
+    });
+  }
+
+  /* reposo: la última vez que el visitante tocó algo. Cualquier gesto o tecla lo despierta */
+  function bindActivity() {
+    const poke = () => E.poke();
+    ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, poke, { capture: true, passive: true }));
+    // con la pestaña oculta no se dibuja nada; al volver, un cuadro nuevo revisa videos e impresoras
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) E.invalidate(2); });
+  }
 
   /* entorno provisional (un cuarto genérico); E.captureEnv lo cambia por el propio local */
   function buildEnvironment() {
@@ -525,8 +680,15 @@
     pane(8, 3, 0, 4, 9.8, 0, Math.PI, 4, false);
     pane(6, 2.4, -9.8, 3.5, 0, 0, Math.PI / 2, 2.6, true);
     pane(6, 2.4, 9.8, 3.5, 0, 0, -Math.PI / 2, 2.6, true);
-    E.scene.environment = pm.fromScene(s, 0.035).texture;
+    setEnv(pm.fromScene(s, 0.035));
     pm.dispose();
+    s.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+  }
+  /* el entorno vigente; el anterior se libera de la memoria de video */
+  let envRT = null;
+  function setEnv(rt) {
+    if (envRT && envRT !== rt) envRT.dispose();
+    envRT = rt; E.scene.environment = rt.texture;
   }
 
   /* Reflejos e iluminación indirecta del propio local: una cámara cúbica en el
@@ -538,24 +700,55 @@
     const crt = new T.WebGLCubeRenderTarget(E.mobile ? 128 : 256, { type: T.HalfFloatType });
     const cc = new T.CubeCamera(0.05, 60, crt);
     cc.position.set(0.15, 1.45, 0.4);
-    const k = E.reflect.uni.uReflK.value, fog = sc.fog;
+    const k = E.reflect.uni.uReflK.value, fog = sc.fog, envK = E.envK;
+    // los rebotes se capturan con el entorno a plena intensidad, igual que la primera vez; después se atenúa (E.envK)
+    E.setEnvK(1);
     E.reflect.uni.uReflK.value = 0; sc.fog = null;
+    // los muros que la cámara corta para ver adentro entran completos: la luz no depende de la vista
+    // (así una captura repetida, p. ej. al recuperar el contexto, da el mismo ambiente que al cargar)
+    const shells = E.shells.map((s) => {
+      const keep = { s, vis: s.obj.visible, m: s.mats.map((m) => [m.opacity, m.transparent, m.depthWrite]) };
+      s.obj.visible = true;
+      s.mats.forEach((m) => {
+        m.opacity = m.userData.glow ? m.userData.op * E.ledLevel : m.userData.op;
+        if (m.transparent !== m.userData.tr) { m.transparent = m.userData.tr; m.needsUpdate = true; }
+        if (!m.userData.tr) m.depthWrite = true;
+      });
+      return keep;
+    });
     // los halos dibujados (resplandores aditivos) no son luz real: no entran a la captura
     const hid = [];
     sc.traverse((o) => { if (o.visible && o.material && (o.material.blending === T.AdditiveBlending || (o.material.transparent && o.material.depthWrite === false && o.material.isMeshBasicMaterial))) { o.visible = false; hid.push(o); } });
     const pm = new T.PMREMGenerator(r);
-    let env = null;
     for (let b = 0; b < 2; b++) {
       cc.update(r, sc);
-      const next = pm.fromCubemap(crt.texture);
-      if (env) env.dispose();
-      env = next; sc.environment = env.texture;
+      setEnv(pm.fromCubemap(crt.texture));
     }
     sc.fog = fog; E.reflect.uni.uReflK.value = k;
     hid.forEach((o) => { o.visible = true; });
+    shells.forEach((x) => {
+      x.s.obj.visible = x.vis;
+      x.s.mats.forEach((m, i) => { const v = x.m[i]; m.opacity = v[0]; if (m.transparent !== v[1]) { m.transparent = v[1]; m.needsUpdate = true; } m.depthWrite = v[2]; });
+    });
     pm.dispose(); crt.dispose();
-    E.setEnvK(E.envK);
+    E.setEnvK(envK);
     E.invalidate(3);
+  };
+  /* Lo mismo, pero antes compila todos los sombreadores sin bloquear la página (compileAsync,
+     three.js r158+): con la extensión KHR_parallel_shader_compile la GPU los prepara en paralelo
+     mientras la pantalla de inicio sigue viva. Se compilan también las variantes sin niebla, que
+     son las que usa la captura. Sin compileAsync, o si falla, es igual que E.captureEnv(). */
+  E.captureEnvAsync = async function () {
+    const r = E.renderer, sc = E.scene;
+    if (r.compileAsync) {
+      try {
+        const fog = sc.fog;
+        sc.fog = null;
+        try { r.compile(sc, E.camera); } finally { sc.fog = fog; }
+        await r.compileAsync(sc, E.camera);
+      } catch (err) { /* se compilan al dibujar, como siempre */ }
+    }
+    E.captureEnv();
   };
 
   function buildLights() {
@@ -565,7 +758,8 @@
     key.position.set(2.6, 10.5, 5.4); key.target.position.set(0, 0, -0.2);
     E.keyBase = key.position.clone();
     key.castShadow = true;
-    const sh = key.shadow; sh.mapSize.set(E.mobile ? 1536 : 3072, E.mobile ? 1536 : 3072);
+    // 2048² basta: el refinamiento en reposo suaviza la penumbra (y ahorra unos 40 MB de memoria de video)
+    const sh = key.shadow, ks = E.mobile ? 1536 : 2048; sh.mapSize.set(ks, ks);
     sh.camera.left = -6.5; sh.camera.right = 6.5; sh.camera.top = 7.5; sh.camera.bottom = -7; sh.camera.near = 2; sh.camera.far = 22;
     sh.bias = -0.0004; sh.normalBias = 0.02; sh.radius = 5; sh.blurSamples = 12;
     sc.add(key, key.target);
@@ -583,10 +777,18 @@
     if (shadow && !E.mobile) {
       s.castShadow = true; s.shadow.mapSize.set(1024, 1024); s.shadow.bias = -0.0002; s.shadow.normalBias = 0.015;
       s.shadow.camera.near = 0.2; s.shadow.camera.far = 6;
+      // los focos no se mueven: su sombra se rehace solo cuando algo cambia en la escena, no en cada cuadro de refinamiento
+      s.shadow.autoUpdate = false; s.shadow.needsUpdate = true; spotShadows.push(s);
     }
     E.scene.add(s, s.target); E.ledLights.push(s);
     return s;
   };
+  const spotShadows = [];
+  /* todas las sombras de nuevo (algo se movió); la del sol se rehace sola cada vez que se pide */
+  function shadowsAll() {
+    E.renderer.shadowMap.needsUpdate = true;
+    spotShadows.forEach((s) => { s.shadow.needsUpdate = true; });
+  }
 
   /* ------------------------------------------- pisos con reflejo en espejo
      Dentro del local, tablas de madera a lo largo del fondo; afuera, el porcelanato del pasillo.
@@ -640,11 +842,12 @@
     return mat;
   }
   function buildFloor() {
-    E.reflect = { on: true, scale: E.mobile ? 0.4 : 0.55, k: 0.62 };
+    // en el modo ligero no hay pasada de reflejo: el piso queda con su brillo propio
+    E.reflect = { on: !E.lite, scale: E.mobile ? 0.4 : 0.55, k: 0.62 };
     const rt = (E.reflect.rt = P.on
       ? new T.WebGLRenderTarget(4, 4, { type: T.HalfFloatType, minFilter: T.LinearFilter, magFilter: T.LinearFilter })
       : new T.WebGLRenderTarget(4, 4, { type: T.UnsignedByteType, colorSpace: T.SRGBColorSpace, minFilter: T.LinearFilter, magFilter: T.LinearFilter }));
-    E.reflect.uni = { tRefl: { value: rt.texture }, uRes: { value: new T.Vector2(1, 1) }, uReflK: { value: E.reflect.k } };
+    E.reflect.uni = { tRefl: { value: rt.texture }, uRes: { value: new T.Vector2(1, 1) }, uReflK: { value: E.reflect.on ? E.reflect.k : 0 } };
     const fr = E.floorRect, H = 45;
     // las tablas y la trama de 0.60 arrancan en la cara interior del muro izquierdo y en la fachada
     E.floorMats = {
@@ -659,6 +862,13 @@
     E.vcam.matrixAutoUpdate = false; E.vcam.matrixWorldAutoUpdate = false;
     E.noReflect = [inside, corridor];
   }
+  /* encender o apagar el reflejo del piso (lo usan la calidad adaptable y ?stats) */
+  E.setReflect = function (on, scale) {
+    E.reflect.on = !!on;
+    E.reflect.uni.uReflK.value = on ? E.reflect.k : 0;
+    if (scale) E.reflect.scale = scale;
+    E.resize(true);
+  };
   const _mirror = new T.Matrix4().makeScale(1, -1, 1);
   const _flipY = new T.Matrix4().makeScale(1, -1, 1);
   function renderReflection() {
@@ -707,7 +917,6 @@
     if (Math.abs(off.x) > 0.5 || Math.abs(off.y) > 0.5 || jit.x || jit.y) c.setViewOffset(w, h, off.x + jit.x, off.y + jit.y, w, h); else c.clearViewOffset();
     c.updateProjectionMatrix();
   }
-  E.usable = function () { return { w: E.size.w - Math.abs(off.gx) * 2, h: E.size.h - Math.abs(off.gy) * 2 }; };
 
   /* ---------------------------------------------------------------- cámara */
   const cur = { tx: 0, ty: 1, tz: 0, th: 0.6, ph: 0.9, r: 30 };
@@ -718,12 +927,16 @@
   E.autoRotate = false;
   function normAngle(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
 
+  /* v.target puede ser un THREE.Vector3 o [x, y, z]. Sin animaciones (E.calm) el vuelo es un salto;
+     el reposo no lo cambia */
   E.flyTo = function (v, dur, opt) {
     opt = opt || {};
-    const to = { tx: v.target ? v.target.x : goal.tx, ty: v.target ? v.target.y : goal.ty, tz: v.target ? v.target.z : goal.tz, th: v.theta != null ? v.theta : goal.th, ph: v.phi != null ? v.phi : goal.ph, r: v.radius != null ? v.radius : goal.r };
+    const tg = v.target ? (Array.isArray(v.target) ? { x: v.target[0], y: v.target[1], z: v.target[2] } : v.target) : null;
+    const to = { tx: tg ? tg.x : goal.tx, ty: tg ? tg.y : goal.ty, tz: tg ? tg.z : goal.tz, th: v.theta != null ? v.theta : goal.th, ph: v.phi != null ? v.phi : goal.ph, r: v.radius != null ? v.radius : goal.r };
     to.ph = clamp(to.ph, LIM.phMin, LIM.phMax);
     to.th = cur.th + normAngle(to.th - cur.th);
-    if (E.reduced || dur === 0) { Object.assign(cur, to); Object.assign(goal, to); fly = null; E.invalidate(3); if (opt.done) opt.done(); return; }
+    stir();
+    if (E.calm || dur === 0) { Object.assign(cur, to); Object.assign(goal, to); fly = null; E.invalidate(3); if (opt.done) opt.done(); return; }
     fly = { from: Object.assign({}, cur), to, t0: performance.now() + (opt.delay || 0) * 1000, dur: (dur || 1.4) * 1000, ease: opt.ease || E.ease.inOut, done: opt.done };
     Object.assign(goal, to);
     E.invalidate();
@@ -759,12 +972,37 @@
     return moving;
   }
 
-  /* controles: arrastrar gira, rueda o pellizco acerca, botón derecho o dos dedos desplaza */
+  /* controles: arrastrar gira, rueda o pellizco acerca, botón derecho o dos dedos desplaza.
+     Con el modelo enfocado (Tab), el teclado mueve la cámara: flechas giran alrededor
+     (← → a los lados, ↑ ↓ más arriba o más abajo), Mayús + flechas desplazan, + y − acercan
+     y alejan, 0 o Inicio vuelven a la vista (E.onResetView, que pone app.js). */
+  E.onResetView = null;
   function bindControls(el) {
     const pts = new Map();
     let mode = null, lastX = 0, lastY = 0, pinch = 0, moved = 0, downT = 0;
     el.style.touchAction = 'none';
     const userStart = () => { E.stopFly(); if (E.onUserMove) E.onUserMove(); };
+    E.orbit = function (dTheta, dPhi) {
+      userStart();
+      goal.th += dTheta || 0; goal.ph = clamp(goal.ph + (dPhi || 0), LIM.phMin, LIM.phMax);
+      E.invalidate();
+    };
+    E.pan = function (dx, dy) { userStart(); pan(dx || 0, dy || 0); E.invalidate(); };
+    el.addEventListener('keydown', (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const k = e.key, A = 0.12, D = 40;
+      let ok = true;
+      if (k === 'ArrowLeft') { if (e.shiftKey) E.pan(D, 0); else E.orbit(-A, 0); }
+      else if (k === 'ArrowRight') { if (e.shiftKey) E.pan(-D, 0); else E.orbit(A, 0); }
+      else if (k === 'ArrowUp') { if (e.shiftKey) E.pan(0, D); else E.orbit(0, -A); }
+      else if (k === 'ArrowDown') { if (e.shiftKey) E.pan(0, -D); else E.orbit(0, A); }
+      else if (k === '+' || k === '=') E.zoomBy(0.85);
+      else if (k === '-' || k === '_') E.zoomBy(1.18);
+      else if ((k === '0' || k === 'Home') && E.onResetView) E.onResetView();
+      else ok = false;
+      // la tecla ya movió la cámara: no hace scroll ni llega a los atajos de la página (← → cambian de mueble)
+      if (ok) { e.preventDefault(); e.stopPropagation(); }
+    });
     el.addEventListener('contextmenu', (e) => e.preventDefault());
     el.addEventListener('pointerdown', (e) => {
       try { el.setPointerCapture(e.pointerId); } catch (err) { /* sin captura */ }
@@ -830,7 +1068,7 @@
     for (const s of E.shells) {
       const g = s.test(E.camPos, cur) ? 1 : 0;
       if (s.a === g) continue;
-      s.a = Math.abs(g - s.a) < 0.02 || E.reduced ? g : s.a + (g - s.a) * (1 - Math.exp(-dt * 10));
+      s.a = Math.abs(g - s.a) < 0.02 || E.calm ? g : s.a + (g - s.a) * (1 - Math.exp(-dt * 10));
       const full = s.a >= 0.999;
       for (const m of s.mats) {
         const base = m.userData.glow ? m.userData.op * E.ledLevel : m.userData.op;
@@ -993,6 +1231,9 @@
     P.mOut = shader(SH.out, { tSrc: { value: null }, uExposure: { value: P.exposure }, uFrame: { value: 0 }, uWB: { value: new T.Vector3().fromArray(P.wb) } });
   }
   function resizePost(pw, ph, w, h) {
+    // MSAA 2× en teléfonos y en imágenes de más de 2.5 Mpx: el refinamiento en reposo ya suaviza los bordes
+    const ms = E.mobile || pw * ph > 2.5e6 ? 2 : 4;
+    if (P.rtMain.samples !== ms) { P.rtMain.samples = ms; P.rtMain.dispose(); }
     P.rtMain.setSize(pw, ph);
     // la oclusión se calcula a la resolución de la página (1 px CSS), sin el factor de pantalla retina
     const aw = Math.max(2, Math.round(E.mobile ? w * 0.6 : w)), ah = Math.max(2, Math.round(E.mobile ? h * 0.6 : h));
@@ -1001,15 +1242,18 @@
     P.rtAO.setSize(aw, ah); P.rtAO2.setSize(aw, ah);
     P.mips.forEach((m, i) => m.setSize(Math.max(2, pw >> (i + 1)), Math.max(2, ph >> (i + 1))));
     P.acc.forEach((a) => a.setSize(pw, ph));
-    P.n = 0;
+    P.n = 0; aoOk = false;
   }
   const _hide = [];
-  function renderPost() {
+  let aoOk = false;                                // rtAO trae la oclusión de esta misma vista
+  function renderPost(keepAO) {
     const r = E.renderer, sc = E.scene, cam = E.camera;
     // 1 · escena en HDR
     r.setRenderTarget(P.rtMain); r.clear(); r.render(sc, cam);
-    // 2 · oclusión ambiental: solo superficies opacas
-    if (P.ao) {
+    // 2 · oclusión ambiental: solo superficies opacas (si solo cambió un video o una impresora, sirve la anterior)
+    if (!P.ao) aoOk = false;
+    if (P.ao && !(keepAO && aoOk)) {
+      aoOk = true;
       sc.traverseVisible((o) => { if ((o.isMesh && (o.material.transparent || o.userData.noAO)) || o.isLine || o.isPoints || o.isSprite) _hide.push(o); });
       _hide.forEach((o) => { o.visible = false; });
       const bg = sc.background; sc.background = null; sc.overrideMaterial = P.normMat;
@@ -1090,43 +1334,82 @@
   };
 
   /* ------------------------------------------------------------------ ciclo */
-  let last = performance.now(), slow = 0;
-  E.onFrame = null;
+  let last = performance.now(), slow = 0, saver = false, frameN = 0;
   E.hooks = [];                                    // funciones que revisan algo en cada cuadro con cambios (p. ej. si un video está a la vista)
+  E.ticks = [];                                    // relojes propios (dt, now) que corren en cada cuadro aunque nada cambie: las impresoras
+  E.noRest = false;                                // true mientras algo deba seguir vivo sin que nadie toque (p. ej. una cámara en vivo)
+  E.stats = { frames: 0, changed: 0, content: 0, calls: 0, triangles: 0 };
+  function runHooks(dt) { for (let i = 0; i < E.hooks.length; i++) { try { E.hooks[i](dt); } catch (err) { console.error(err); } } }
+
+  /* ¿la esfera (centro, radio) cae dentro de la vista y a menos de maxDist metros? El frustum se calcula
+     una sola vez por cuadro, lo comparten los videos y las impresoras */
+  const _fr = new T.Frustum(), _frM = new T.Matrix4(), _frS = new T.Sphere();
+  let frFor = -1;
+  E.isSeen = function (center, radius, maxDist) {
+    if (frFor !== frameN) { const c = E.camera; _frM.multiplyMatrices(c.projectionMatrix, c.matrixWorldInverse); _fr.setFromProjectionMatrix(_frM); frFor = frameN; }
+    _frS.center.copy(center); _frS.radius = radius;
+    return _fr.intersectsSphere(_frS) && (!maxDist || E.camera.position.distanceTo(center) < maxDist);
+  };
+
+  /* calidad adaptable: si moverse cuesta más de ~22 cuadros por segundo, se baja un peldaño cada vez:
+     resolución → oclusión ambiental → bloom → reflejo más liviano → y un aviso, una sola vez */
+  function adapt(dt) {
+    slow = slow * 0.96 + (dt > 0.045 ? 0.04 : 0);
+    if (slow <= 0.75) return;
+    slow = 0;
+    if (E.dprMax > 1) { E.dprMax = Math.max(1, E.dprMax * 0.75); E.resize(true); return; }
+    if (P.on && P.ao) { P.ao = false; return; }
+    if (P.on && P.bloom) { P.bloom = false; return; }
+    if (E.reflect.on && E.reflect.scale > 0.35) { E.setReflect(true, 0.35); return; }
+    if (!saver) {
+      saver = true;
+      if (L.ui && L.ui.toast) L.ui.toast('Tu equipo va un poco lento', 'Activamos el modo ahorro para que se mueva suave.', 'cube', 6000);
+    }
+  }
+
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(0.12, (now - last) / 1000); last = now;
+    if (E.lost) return;                            // sin contexto no se dibuja; al recuperarlo se rehace todo
+    frameN++;
     let active = false;
     for (let i = tweens.length - 1; i >= 0; i--) {
       const tw = tweens[i];
       if (tw.dead) { tweens.splice(i, 1); continue; }
+      if (now < tw.t0) continue;                   // una espera que aún no empieza no pide cuadros ni sombras
       active = true;
-      if (now < tw.t0) continue;
+      if (!tw.on) { tw.on = true; E.invalidate(); }
       const k = clamp((now - tw.t0) / tw.dur, 0, 1);
       tw.fn(tw.ease(k), k);
       if (k >= 1) { tweens.splice(i, 1); if (tw.done) tw.done(); }
     }
     const moving = updateCamera(dt, now);
     const sh = updateShells(dt);
-    const changed = active || moving || sh || dirty > 0;
+    // reposo: 20 s sin gestos ni movimiento → videos e impresoras se detienen y la imagen termina de refinarse
+    if (active || moving) stir();
+    else if (!resting && !E.noRest && now - Math.max(E.lastInput, lastMove) > E.REST_MS) { resting = true; runHooks(dt); }
+    for (let i = 0; i < E.ticks.length; i++) E.ticks[i](dt, now);
+    const real = active || moving || sh || dirty > 0;
+    const changed = real || cdirty > 0;
     const refine = !changed && P.on && P.n > 0 && P.n < P.max && !E.reduced;
     if (!changed && !refine) return;
+    const r = E.renderer;
+    if (!r.info.autoReset) r.info.reset();         // ?stats cuenta las llamadas de todo el cuadro
     if (changed) {
       if (dirty > 0) dirty--;
+      if (cdirty > 0) cdirty--;
       if (P.jit) unjitter();
-      if (E.shadowDirty || active) { E.renderer.shadowMap.needsUpdate = true; E.shadowDirty = false; }
-      if (E.onFrame) E.onFrame(dt, now);
-      for (let i = 0; i < E.hooks.length; i++) E.hooks[i](dt);
+      if (E.shadowDirty || active) { shadowsAll(); E.shadowDirty = false; }
+      runHooks(dt);
       P.n = 0;
-      // calidad adaptable: si moverse cuesta más de ~22 cuadros por segundo, baja la resolución una vez
-      if (P.on && moving) {
-        slow = slow * 0.96 + (dt > 0.045 ? 0.04 : 0);
-        if (slow > 0.75 && E.dprMax > 1) { E.dprMax = Math.max(1, E.dprMax * 0.75); slow = 0; E.resize(true); }
-      }
+      E.stats.changed++; if (!real) E.stats.content++;
+      if (moving) adapt(dt);
     } else jitterFrame(P.n);
-    if (E.reflect.on) renderReflection();
-    if (P.on) renderPost(); else E.renderer.render(E.scene, E.camera);
+    // el reflejo no cambia mientras la cámara está quieta: ni al refinar ni cuando solo avanza un video o una impresora
+    if (E.reflect.on && real) renderReflection();
+    if (P.on) renderPost(changed && !real); else r.render(E.scene, E.camera);
     P.n++;
+    E.stats.frames++; E.stats.calls = r.info.render.calls; E.stats.triangles = r.info.render.triangles;
     if (changed && E.afterRender) E.afterRender(moving || active || sh);
   }
 })();
