@@ -44,7 +44,7 @@
   /* objetos de exhibición: no son parte del mueble y se ocultan al explosionar */
   function D(o, list, mat) {
     if (!list.length) return null;
-    const m = new T.Mesh(G.merge(list), L.mats[mat || 'decor']);
+    const m = new T.Mesh(G.merge(list), L.mats[mat || 'impreso']);
     m.castShadow = true; m.receiveShadow = true;
     reg(o, m, { decor: true }); o.decor.push(m);
     return m;
@@ -129,18 +129,6 @@
     g.beginPath(); g.moveTo(w / 2 - 26 * s, Y(905)); g.lineTo(w / 2, Y(929)); g.lineTo(w / 2 + 26 * s, Y(905)); g.stroke();
     txt('IMPRESIÓN 3D · DISEÑO · REGALOS', 1150, 22, 600, '#ffa31a');
   }
-  function printerWindow(color) {
-    return canvasTex(256, 256, (g, w, h) => {
-      const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#a9d4ff'); bg.addColorStop(0.16, '#3c6ea8'); bg.addColorStop(0.7, '#16283f'); bg.addColorStop(1, '#0b1320');
-      g.fillStyle = bg; g.fillRect(0, 0, w, h);
-      g.fillStyle = 'rgba(235,245,255,0.95)'; g.fillRect(18, 10, w - 36, 7);              // tira LED de la cámara
-      g.fillStyle = '#20242b'; g.fillRect(8, 62, w - 16, 9); g.fillRect(104, 52, 46, 30); // eje X y cabezal
-      g.fillStyle = '#3d444e'; g.fillRect(22, 204, w - 44, 10);                           // cama
-      g.fillStyle = color; g.beginPath(); g.moveTo(92, 204); g.lineTo(100, 150); g.quadraticCurveTo(128, 118, 156, 150); g.lineTo(164, 204); g.closePath(); g.fill();
-      g.fillStyle = 'rgba(255,255,255,0.22)'; g.beginPath(); g.moveTo(104, 200); g.lineTo(110, 154); g.quadraticCurveTo(120, 138, 128, 136); g.lineTo(120, 200); g.closePath(); g.fill();
-      g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 3; g.strokeRect(2, 2, w - 4, h - 4);
-    });
-  }
   const screenMat = (tex) => { const m = new T.MeshBasicMaterial({ map: tex, toneMapped: false }); m.name = 'pantalla'; return m; };
 
   /* Video en bucle sobre una o varias pantallas, sin sonido. Mientras carga, si el archivo no está, si el navegador
@@ -192,6 +180,137 @@
       E.hooks.push(check); check(); E.invalidate(2);
     }, { once: true });
     v.src = src + (VER ? '?v=' + VER : '');
+  }
+
+  /* ----------------------------------------------- impresoras: piezas y animación
+     Cada impresora fabrica en bucle una pieza distinta. La pieza es un sólido de revolución armado por filas
+     (una fila = una capa de 2.5 mm), así basta con dibujar las primeras filas para mostrarla a medio imprimir;
+     la tapa de arriba se recoloca en cada capa. La cama baja una capa cada vez, como en la P1S real, y el
+     cabezal recorre el contorno de la capa que está imprimiendo. */
+  const impresoras = [];
+  const PIEZAS = [
+    { name: 'Jarrón torcido', color: 0xf2f0eb, H: 0.16, seg: 8, twist: 1.1, r: (u) => 0.044 + 0.024 * Math.sin(PI * u * 1.1 + 0.2) - 0.014 * u * u, ciclo: 96, fase: 0.62 },
+    { name: 'Jarrón facetado', color: 0xff8a2b, H: 0.14, seg: 6, twist: 0.5, r: (u) => 0.05 - 0.02 * Math.sin(3 * u) + 0.012 * u, ciclo: 84, fase: 0.18 },
+    { name: 'Peón de ajedrez', color: 0x3b82f6, H: 0.11, seg: 28, twist: 0, r: (u) => {
+      if (u < 0.1) return 0.04 - 0.04 * u;                                        // base
+      if (u < 0.16) return 0.03;                                                   // moldura
+      if (u < 0.6) return 0.026 - 0.014 * Math.pow((u - 0.16) / 0.44, 0.8);        // cuerpo
+      if (u < 0.66) return 0.021;                                                  // cuello
+      const d = (u - 0.83) / 0.17; return Math.max(0.0015, 0.019 * Math.sqrt(Math.max(0, 1 - d * d)));   // cabeza
+    }, ciclo: 70, fase: 0.4 },
+    { name: 'Florero estrella', color: 0x22c55e, H: 0.15, seg: 16, star: 0.8, twist: 1.6, r: (u) => 0.04 + 0.012 * Math.sin(PI * u), ciclo: 102, fase: 0.85 }
+  ];
+  const ROW = 0.0025;
+  function anillo(pr, i, rows) {
+    const u = i / rows, y = u * pr.H, r = pr.r(u), out = [];
+    for (let k = 0; k < pr.seg; k++) {
+      const a = (k / pr.seg) * PI * 2 + pr.twist * u, rr = r * (pr.star && k % 2 ? pr.star : 1);
+      out.push([rr * Math.cos(a), y, rr * Math.sin(a)]);
+    }
+    return out;
+  }
+  function solidoPorCapas(pr) {
+    const rows = Math.round(pr.H / ROW), pos = [], c = new T.Color(pr.color);
+    let prev = anillo(pr, 0, rows);
+    for (let i = 1; i <= rows; i++) {
+      const cur = anillo(pr, i, rows);
+      for (let k = 0; k < pr.seg; k++) {
+        const k1 = (k + 1) % pr.seg, a = prev[k], b = prev[k1], d = cur[k], e = cur[k1];
+        pos.push(...a, ...d, ...b, ...b, ...d, ...e);
+      }
+      prev = cur;
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new T.Float32BufferAttribute(new Array(pos.length).fill(0).map((_, i) => [c.r, c.g, c.b][i % 3]), 3));
+    geo.computeVertexNormals();
+    // tapa: abanico que se recoloca a la altura de la capa actual
+    const cap = new T.BufferGeometry(), cp = new Float32Array((pr.seg + 1) * 3), idx = [];
+    for (let k = 0; k < pr.seg; k++) idx.push(0, 1 + ((k + 1) % pr.seg), 1 + k);
+    cap.setAttribute('position', new T.BufferAttribute(cp, 3));
+    cap.setAttribute('normal', new T.Float32BufferAttribute(new Array(cp.length).fill(0).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
+    cap.setAttribute('color', new T.Float32BufferAttribute(new Array(cp.length).fill(0).map((_, i) => [c.r, c.g, c.b][i % 3]), 3));
+    cap.setIndex(idx);
+    return { geo, cap, rows, per: pr.seg * 6 };
+  }
+  /* muestra la pieza hasta la fila i y deja la cama a la altura que le corresponde */
+  function ponerCapa(p, i, bedUp) {
+    const { part, pr } = p;
+    i = Math.max(0, Math.min(part.rows, i));
+    if (p.row !== i) {
+      p.row = i;
+      part.geo.setDrawRange(0, i * part.per);
+      const ring = anillo(pr, i, part.rows), cp = part.cap.attributes.position;
+      cp.setXYZ(0, 0, (i / part.rows) * pr.H, 0);
+      ring.forEach((q, k) => cp.setXYZ(k + 1, q[0], q[1], q[2]));
+      cp.needsUpdate = true; part.cap.computeBoundingSphere();
+      p.piece.visible = p.cap.visible = i > 0;
+    }
+    p.bed.position.y = p.top - (i / part.rows) * pr.H + (bedUp || 0);
+  }
+  /* pantalla de la impresora: estado, porcentaje y barra de avance */
+  function LCD(k) {
+    const c = document.createElement('canvas'); c.width = 160; c.height = 82;
+    const g = c.getContext('2d'), tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace;
+    let last = '';
+    this.tex = tex;
+    this.set = (state, pct) => {
+      const key = state + pct; if (key === last) return; last = key;
+      const ok = state === 'Terminada', acc = ok ? '#30d158' : '#ffa31a';
+      g.fillStyle = '#0d1117'; g.fillRect(0, 0, 160, 82);
+      g.fillStyle = '#7d8590'; g.font = '500 11px ' + INTER; g.fillText('P1S · 0' + (k + 1), 10, 16);
+      g.fillStyle = '#e8eaed'; g.font = '600 14px ' + INTER; g.fillText(state, 10, 34);
+      g.fillStyle = acc; g.font = '700 22px ' + INTER; g.fillText(pct + ' %', 10, 60);
+      g.fillStyle = 'rgba(255,255,255,0.16)'; g.fillRect(10, 68, 140, 5);
+      g.fillStyle = acc; g.fillRect(10, 68, 140 * pct / 100, 5);
+      tex.needsUpdate = true;
+    };
+    this.set('Imprimiendo', 0);
+  }
+  /* un ciclo: imprime (88 %), espera con la pieza terminada y el cabezal atrás (6 %), retira la pieza y sube la cama (6 %) */
+  function animarImpresora(p, t) {
+    const pr = p.pr, C = pr.ciclo, f = ((t / C + pr.fase) % 1 + 1) % 1, P1 = 0.88, P2 = 0.94;
+    let row, hx, hz, state, pct;
+    if (f < P1) {
+      const u = f / P1, rowsF = u * p.part.rows; row = Math.floor(rowsF) + 1;
+      // contorno de la capa actual: dos vueltas por capa, la segunda por dentro (perímetro interior)
+      const lu = rowsF - Math.floor(rowsF), a = lu * PI * 4 + pr.twist * (row / p.part.rows), r = pr.r(Math.min(1, row / p.part.rows)) * (lu < 0.5 ? 1 : 0.86);
+      const star = pr.star ? (Math.cos(a * pr.seg / 2) * 0.5 + 0.5) * (1 - pr.star) : 0;
+      hx = (r * (1 - star)) * Math.cos(a); hz = (r * (1 - star)) * Math.sin(a);
+      state = 'Imprimiendo'; pct = Math.min(99, Math.floor(u * 100));
+    } else if (f < P2) {
+      row = p.part.rows; const u = (f - P1) / (P2 - P1), e = Math.min(1, u * 4);
+      hx = 0.13 * e; hz = -0.15 * e; state = 'Terminada'; pct = 100;
+    } else {
+      // pieza retirada: la cama vacía sube despacio hasta la boquilla
+      const u = (f - P2) / (1 - P2), k = Math.min(1, u * 1.25), e = k * k * (3 - 2 * k);
+      ponerCapa(p, 0, -(1 - e) * pr.H);
+      hx = 0.13 * (1 - u); hz = -0.15 * (1 - u); state = 'Preparando'; pct = 0;
+    }
+    if (f < P2) ponerCapa(p, row, 0);
+    p.head.position.x = hx; p.head.position.z = hz; p.xbar.position.z = hz;
+    p.lcd.set(state, pct);
+  }
+  /* ciclo de animación propio: unas 30 veces por segundo y solo mientras alguna impresora está a la vista */
+  function animarImpresoras() {
+    if (!impresoras.length || E.reduced) return;
+    let lastT = 0;
+    const seen = (o) => {
+      for (let x = o.group; x; x = x.parent) if (!x.visible) return false;
+      const cam = E.camera;
+      _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); _fr.setFromProjectionMatrix(_pm);
+      _sp.set(o.center, o.radius);
+      return _fr.intersectsSphere(_sp) && cam.position.distanceTo(o.center) < 9;
+    };
+    const tick = (now) => {
+      requestAnimationFrame(tick);
+      if (now - lastT < 33 || document.hidden) return;
+      lastT = now;
+      if (!impresoras.some((p) => seen(p.o))) return;
+      impresoras.forEach((p) => animarImpresora(p, now / 1000));
+      E.invalidate(1);
+    };
+    requestAnimationFrame(tick);
   }
 
   /* ================================================================ modelos */
@@ -368,24 +487,61 @@
       add(7, [o], { th: 0.45, ph: 1.05, asm: { off: [0, 0, 0.75], step: 3, first: true } });
     }
 
-    /* ---- 8 · Impresoras 3D con AMS (4) -------------------------------------------- */
+    /* ---- 8 · Impresoras 3D con AMS (4) --------------------------------------------
+       Cada una con su cámara a la vista tras la puerta de vidrio: cama, guías, cabezal y la pieza que crece.
+       La animación de impresión vive en animarImpresoras(), más abajo. */
     {
-      const cols = ['#f2f2f0', '#ff8a2b', '#3b82f6', '#22c55e'], sp = [0xf2c230, 0xd9412e, 0x2f6fd0, 0x232326, 0x3f9b57, 0xf4f2ee, 0xf08a24, 0x8f9094];
+      const sp = [0xf2c230, 0xd9412e, 0x2f6fd0, 0x232326, 0x3f9b57, 0xf4f2ee, 0xf08a24, 0x8f9094];
       const mk = (X, k) => {
-        const o = inst(8, X, 0.9, 5.2, 0), w = 0.389, h = 0.458;
-        const body = P(o, 'Impresora P1S', 'equipo', -w / 2, 0, -w / 2, w, h, w, 0, [0, 0, 0], { mk: 'producto' });
-        const win = new T.Mesh(new T.PlaneGeometry(0.3, 0.31), screenMat(printerWindow(cols[k])));
-        win.position.set(0, -0.025, w / 2 + 0.001); body.add(win); win.userData = { n: 8, inst: o, child: true };
-        const top = new T.Mesh(new T.PlaneGeometry(0.33, 0.33), M.vidrioOscuro); top.rotation.x = -PI / 2; top.position.y = h / 2 + 0.001; body.add(top); top.userData = { n: 8, inst: o, child: true };
-        const lcd = new T.Mesh(new T.PlaneGeometry(0.07, 0.035), M.ledFrio); lcd.position.set(-0.11, h / 2 - 0.03, w / 2 + 0.0015); body.add(lcd); lcd.userData = { n: 8, inst: o, child: true };
+        const o = inst(8, X, 0.9, 5.2, 0), w = 0.389, h = 0.458, hw = w / 2, t = 0.022, yb = 0.075, yt = h - 0.03;
+        // carcasa: base con la pantalla, costados, fondo y marco superior; el frente es la puerta de vidrio
+        const shell = [];
+        G.pushBox(shell, -hw, 0, -hw, w, yb, w);
+        G.pushBox(shell, -hw, yb, -hw, t, h - yb, w); G.pushBox(shell, hw - t, yb, -hw, t, h - yb, w);
+        G.pushBox(shell, -hw + t, yb, -hw, w - 2 * t, h - yb, 0.02);
+        G.pushBox(shell, -hw + t, yt, -hw + 0.02, w - 2 * t, h - yt, 0.03); G.pushBox(shell, -hw + t, yt, hw - 0.03, w - 2 * t, h - yt, 0.03);
+        const body = PM(o, 'Impresora P1S', 'equipo', shell, 0, [0, 0, 0], { mk: 'producto' });
+        const kid = (m, x, y, z, opt) => { m.position.set(x, y, z); body.add(m); m.userData = Object.assign({ n: 8, inst: o, child: true }, opt); if (!opt || !opt.flat) { m.castShadow = false; m.receiveShadow = true; } return m; };
+        const box = (sx, sy, sz, mat) => new T.Mesh(new T.BoxGeometry(sx, sy, sz), mat);
+        // puerta: marco fino, vidrio y manija
+        const fr = [];
+        G.pushBox(fr, -hw + t, yb, hw - 0.012, w - 2 * t, 0.014, 0.012); G.pushBox(fr, -hw + t, yt - 0.014, hw - 0.012, w - 2 * t, 0.014, 0.012);
+        G.pushBox(fr, -hw + t, yb, hw - 0.012, 0.012, yt - yb, 0.012); G.pushBox(fr, hw - t - 0.012, yb, hw - 0.012, 0.012, yt - yb, 0.012);
+        kid(new T.Mesh(G.merge(fr), M.carbon), 0, 0, 0);
+        const door = kid(new T.Mesh(new T.PlaneGeometry(w - 2 * t - 0.02, yt - yb - 0.02), M.vidrioPuerta), 0, (yb + yt) / 2, hw - 0.006, { flat: true }); door.renderOrder = 3;
+        kid(box(0.008, 0.11, 0.012, M.inox), hw - t - 0.03, (yb + yt) / 2, hw + 0.004);
+        const lid = kid(new T.Mesh(new T.PlaneGeometry(w - 2 * t, w - 0.06), M.vidrioPuerta), 0, h - 0.004, 0, { flat: true }); lid.rotation.x = -PI / 2; lid.renderOrder = 3;
+        // pantalla táctil y luz de la cámara
+        const lcd = new LCD(k);
+        kid(new T.Mesh(new T.PlaneGeometry(0.07, 0.036), screenMat(lcd.tex)), -0.11, yb / 2 + 0.006, hw + 0.0015, { flat: true });
+        kid(box(w - 2 * t - 0.06, 0.006, 0.01, M.ledBlanco), 0, yt - 0.012, hw - 0.04, { flat: true });
+        // eje Z: dos husillos atrás y la cama que baja capa por capa
+        [-1, 1].forEach((sx) => kid(new T.Mesh(new T.CylinderGeometry(0.006, 0.006, yt - yb, 10), M.inox), sx * 0.13, (yb + yt) / 2, -hw + 0.05));
+        const bed = new T.Group(); body.add(bed);
+        const plate = kid(box(0.256, 0.008, 0.256, M.pei), 0, -0.004, 0); bed.add(plate);
+        const carrier = kid(box(0.29, 0.012, 0.25, M.carbonMate), 0, -0.016, -0.02); bed.add(carrier);
+        // ejes X/Y (CoreXY): dos guías a los lados, la barra de carbono que avanza y el cabezal que la recorre
+        const NZ = 0.372, gy = NZ + 0.05;
+        [-1, 1].forEach((sx) => kid(box(0.012, 0.012, w - 0.06, M.carbon), sx * (hw - t - 0.012), gy, 0));
+        const xbar = kid(box(w - 2 * t - 0.03, 0.01, 0.012, M.carbon), 0, gy, 0);
+        const headL = []; G.pushBox(headL, -0.027, -0.03, -0.024, 0.054, 0.06, 0.048, 0x2b2c2f); G.pushBox(headL, -0.022, -0.026, 0.024, 0.044, 0.044, 0.004, 0xe7e6e2);
+        headL.push({ g: new T.CylinderGeometry(0.0035, 0.0008, 0.012, 10), m: G.mat(0, -0.036, 0), c: 0xd8a24a });
+        const head = kid(new T.Mesh(G.merge(headL), M.cabezal), 0, gy, 0);
+        // la pieza: un sólido de revolución por filas, dibujado hasta la capa actual, con su tapa
+        const pr = PIEZAS[k], part = solidoPorCapas(pr);
+        const piece = kid(new T.Mesh(part.geo, M.impreso), 0, 0, 0); piece.castShadow = true; bed.add(piece);
+        const cap = kid(new T.Mesh(part.cap, M.impreso), 0, 0, 0); bed.add(cap);
+        // unidad AMS encima, con sus cuatro carretes bajo la tapa ahumada
         const l = [];
         G.pushBox(l, -0.184, h, -0.1415, 0.368, 0.05, 0.283, 0x2b2c2f);
         for (let i = 0; i < 4; i++) G.spool(l, -0.132 + i * 0.088, h + 0.135, 0, 0.085, 0.066, sp[(k * 3 + i) % sp.length], 'x');
         const ams = PM(o, 'Unidad AMS', 'decor', l, 1, [0, 0.34, 0], { mk: 'producto' });
         const cover = new T.Mesh(new T.BoxGeometry(0.368, 0.176, 0.283), M.vidrioOscuro); cover.position.set(0, h + 0.05 + 0.088, 0); cover.renderOrder = 3; ams.add(cover); cover.userData = { n: 8, inst: o, child: true };
+        impresoras.push({ o, k, bed, head, xbar, piece, cap, part, pr, lcd, top: NZ + 0.008 });
         return o;
       };
       add(8, [1.0, 1.8, 2.6, 3.4].map(mk), { th: 0.42, ph: 1.12 });
+      impresoras.forEach((p) => ponerCapa(p, 0, 0));
     }
 
     /* ---- 9 · Repisa de filamentos ----------------------------------------------------- */
@@ -402,7 +558,7 @@
       const dec = [], cs = [0x232326, 0x232326, 0x2f6fd0, 0x232326, 0xf4f2ee, 0x232326, 0xd9412e, 0x232326, 0x232326, 0xf08a24, 0x232326, 0x3f9b57];
       for (let i = 0; i < 12; i++) { if (i === 5) continue; G.spool(dec, 0.2 + i * 0.255, 0.13, 0.13, 0.1, 0.07, cs[i], 'z'); }
       G.fig(dec, 'jarron', 1.47, 0.03, 0.13, 0.2, 0x8f9094, 0);
-      D(o, dec);
+      D(o, dec, 'decor');
       add(9, [o], { th: 0.4, ph: 1.1, lp: [-1.35, 0] });
     }
 
@@ -616,5 +772,6 @@
       o.center = o.box.getCenter(new T.Vector3()); o.radius = o.box.getSize(new T.Vector3()).length() / 2;
       o.steps = o.parts.reduce((a, p) => Math.max(a, p.userData.step + 1), 0);
     }));
+    animarImpresoras();
   };
 })();

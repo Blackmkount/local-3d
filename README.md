@@ -115,6 +115,20 @@ Se genera igual que el de la pantalla de 75", con el código de `tools/video-ext
    `ffmpeg -framerate 30 -i tools/video-exterior/frames/f%04d.png -c:v libx264 -profile:v high -pix_fmt yuv420p -crf 20 -movflags +faststart assets/video/pantalla-exterior.mp4`
    y `ffmpeg -framerate 30 -i tools/video-exterior/frames/f%04d.png -c:v libvpx-vp9 -pix_fmt yuv420p -b:v 0 -crf 33 assets/video/pantalla-exterior.webm`.
 
+## Impresoras trabajando
+
+Las cuatro P1S del mesón están modeladas por dentro y se ven a través de la puerta y la tapa de vidrio: cama de PEI
+texturizado sobre dos husillos, guías y barra de carbono del CoreXY, cabezal con su boquilla y la luz de la cámara.
+Cada una imprime en bucle una pieza distinta (un jarrón torcido blanco, un jarrón facetado naranja, un peón azul y un
+florero estrella verde): la pieza crece capa por capa, la cama baja una capa cada vez, como en la impresora real, y el
+cabezal recorre el contorno de la capa que está imprimiendo. La pantalla de cada impresora muestra el estado y el
+avance. Al terminar, el cabezal se aparta, la pieza se retira y la cama vacía sube para empezar otra vez. Cada
+impresora va a su propio ritmo (de 70 a 102 segundos por pieza) y con un desfase, así nunca están sincronizadas.
+
+La animación corre unas 30 veces por segundo y solo mientras alguna impresora está a la vista; no se reproduce si el
+sistema tiene activado *reducir movimiento*. Las piezas, sus medidas y sus tiempos están en `PIEZAS`, dentro de
+`js/furniture.js`.
+
 ## Interfaz
 
 Diseñada con el lenguaje de macOS: los controles flotan sobre el modelo como vidrio esmerilado oscuro (fondo
@@ -154,7 +168,10 @@ Sin archivos de textura ni dependencias nuevas:
   rugosidad: veta y poro de la melamina Rovere y de los listones, tablas de roble del piso (veta en catedral, poro
   abierto, nudos y microbisel que quiebra los reflejos), porcelanato de 0.60 del pasillo con junta, borde redondeado y
   una mínima diferencia de plano entre baldosas, estuco de muros y cielo, concreto con poros en las materas, metal
-  cepillado y pintura electrostática.
+  cepillado y pintura electrostática. La melamina blanca y los fondos llevan la piel «soft» del papel decorativo y una
+  nube de tono casi imperceptible; el Plomo, además, su trama textil. La laca de las islas tiene la «piel de naranja»
+  de la laca catalizada (en el color y en el barniz), los taburetes y televisores el grano del polipropileno, y las
+  piezas impresas sus líneas de capa de 0.4 mm, que aparecen al acercarse y se apagan a distancia para no hacer muaré.
 - **Cantos redondeados**: todos los tableros llevan el redondeo de 2 mm del canto PVC, que atrapa un hilo de luz en cada borde.
 - **Materiales físicos**: laca y piezas impresas con barniz (clearcoat), vidrio y acrílico con índice de refracción.
 - **Luz**: el ambiente y los reflejos salen de una captura del propio local con dos rebotes de luz; focos reales en los

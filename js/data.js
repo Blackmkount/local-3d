@@ -317,7 +317,7 @@
       dims: '0.39 × 0.39 × 0.46 m', cant: '4',
       ubic: 'Sobre el mesón, con ejes cada 0.80 m',
       total: 16796000,
-      resumen: 'Cuatro Bambu Lab P1S Combo AMS. Son casi la mitad del costo total del local.',
+      resumen: 'Cuatro Bambu Lab P1S Combo AMS. Son más del 40 % del costo total del local.',
       mats: [
         { key: 'producto', m: 'Impresora 3D Bambu Lab P1S Combo AMS', uso: '389 × 389 × 458 mm; 12.95 kg', cant: '4', pu: '$4.199.000 por unidad', costo: 16796000, prov: 'makeR, distribuidor autorizado en Colombia', nota: 'IVA incluido; antes $5.199.000' }
       ],
