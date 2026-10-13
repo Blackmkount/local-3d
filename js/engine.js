@@ -629,7 +629,12 @@
     bindContext(canvasEl);
     bindActivity();
     requestAnimationFrame(frame);
+    // por si nadie llama a E.captureEnv: a los 30 s se dibuja igual
+    setTimeout(() => { sceneReady = true; }, 30000);
   }
+  /* Hasta la primera captura del entorno (app.js la hace al terminar de armar el local) no se dibuja:
+     con el arranque por pasos, cada cuadro intermedio compilaría y dibujaría un local a medio armar */
+  let sceneReady = false;
 
   /* Si el sistema le quita la GPU a la página (teléfono en segundo plano, poca memoria, driver
      reiniciado), three.js recupera el contexto solo, pero el entorno capturado, las sombras y
@@ -732,15 +737,17 @@
     });
     pm.dispose(); crt.dispose();
     E.setEnvK(envK);
+    sceneReady = true;
     E.invalidate(3);
   };
   /* Lo mismo, pero antes compila todos los sombreadores sin bloquear la página (compileAsync,
      three.js r158+): con la extensión KHR_parallel_shader_compile la GPU los prepara en paralelo
      mientras la pantalla de inicio sigue viva. Se compilan también las variantes sin niebla, que
-     son las que usa la captura. Sin compileAsync, o si falla, es igual que E.captureEnv(). */
+     son las que usa la captura. Sin esa extensión no se gana nada (se compilaría todo de una vez
+     igual): entonces, como si fallara, es lo mismo que E.captureEnv(). */
   E.captureEnvAsync = async function () {
     const r = E.renderer, sc = E.scene;
-    if (r.compileAsync) {
+    if (r.compileAsync && r.extensions.get('KHR_parallel_shader_compile')) {
       try {
         const fog = sc.fog;
         sc.fog = null;
@@ -1370,7 +1377,7 @@
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(0.12, (now - last) / 1000); last = now;
-    if (E.lost) return;                            // sin contexto no se dibuja; al recuperarlo se rehace todo
+    if (E.lost || !sceneReady) return;             // sin contexto, o con el local a medio armar, no se dibuja
     frameN++;
     let active = false;
     for (let i = tweens.length - 1; i >= 0; i--) {
