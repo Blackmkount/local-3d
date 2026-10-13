@@ -24,8 +24,19 @@
              routes:      { clave: (resto) => void }                 #clave/resto en la dirección
              afterRender: [fn]                                      después de cada cuadro con cambios
 
+   L.api (app.js) para los demás módulos:
+     select(n, inst?, { tab, force, via }) · deselect() · setTab(key) · setExplode(bool)
+     playAsm(k?) · asmStep(k, anim) · exitAsm() · goView(name) · focusOn({ target: [x, y, z],
+     theta, phi, radius }, seg) · openMontaje() · exitMontaje() · openBudget() · openMats()
+     openModal(título, html, { cls, kind, from }) · closeModal() · openSpot() · closeSpot()
+     setHot([n…] | null) · setLabels(bool) · route('#m7/materiales') · shareLink() → url
+     current() → { n, mode, view, montaje, modal, labels, tab, route } · downloadGLB() · toggleInv()
+     Las claves de vista son fachada | interior | taller | aerea | planta (en pantalla: Entrada,
+     Adentro, Taller, Arriba, Plano). Pestañas: resumen | mats | fab | ens | why.
+
    Eventos (L.bus) que emite app.js:
-     ready {}                       una vez, cuando el local ya se ve (o al primer gesto)
+     ready { route }                una vez, cuando el local ya se ve (o al primer gesto); route es
+                                    el enlace de entrada que se abrió ('#m7') o '' si no había
      usermove {}                    el visitante movió la cámara (una vez por gesto)
      select { n, via }              via: '3d' | 'list' | 'search' | 'route' | 'nav' | 'api'
      deselect {}
