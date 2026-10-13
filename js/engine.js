@@ -224,6 +224,31 @@
     }, true);
   }
 
+  /* melamina: la piel «soft» del papel decorativo (poro fino irregular) y una nube de tono casi imperceptible,
+     como la de un tablero real visto con luz rasante. linen > 0 suma la trama cruzada del acabado textil del Plomo.
+     La textura cubre 0.5 m; su color ronda 0.985 y multiplica el del material. */
+  function melamineMaps(seed, linen) {
+    const n = valueNoise(seed), n2 = valueNoise(seed * 3 + 1);
+    return bakePBR(512, 512, 0.9, (u, v, o) => {
+      const cloud = fbm(n, u * 3, v * 3, 3, 3, 4), fine = n2(u * 200, v * 200, 200, 200), skin = fbm(n, u * 70 + 0.3, v * 70 + 0.7, 70, 70, 2);
+      const tex = linen ? (n2(u * 420, v * 18 + 0.5, 420, 18) + n2(u * 18 + 0.5, v * 420, 18, 420)) * 0.5 : 0.5;
+      const k = 0.985 + (cloud - 0.5) * 0.035 + (fine - 0.5) * 0.012 + (tex - 0.5) * 0.03 * (linen || 0);
+      o.r = k; o.g = k; o.b = k;
+      o.h = skin * 0.9 + fine * 0.45 + tex * 1.2 * (linen || 0);
+      o.ro = clamp(0.5 + (skin - 0.5) * 0.3 + (cloud - 0.5) * 0.14 + (tex - 0.5) * 0.2 * (linen || 0), 0, 1);
+    }, true);
+  }
+
+  /* piel de naranja de la laca catalizada: ondulación suave de 2 a 4 mm y brillo que varía con ella. Cubre 0.25 m */
+  function peelMaps() {
+    const n = valueNoise(61), n2 = valueNoise(67);
+    return bakePBR(512, 512, 0.7, (u, v, o) => {
+      const peel = fbm(n, u * 70, v * 70, 70, 70, 3), cloud = fbm(n2, u * 4, v * 4, 4, 4, 3);
+      o.h = peel * 1.4;
+      o.ro = clamp(0.32 + (peel - 0.5) * 0.06 + (cloud - 0.5) * 0.1, 0, 1);
+    }, false);
+  }
+
   /* micro relieve: melamina lisa, pintura electrostática y lacas (sin color) */
   function stippleMaps(seed, amp, rough, spread) {
     const n = valueNoise(seed);
@@ -324,6 +349,28 @@
     m.userData.op = op; E.glowMats.push(m); return m;
   };
 
+  /* líneas de capa de la impresión FDM, por altura del mundo: relieve por derivadas (sin UV) y un leve cambio de
+     tono y de brillo entre capa y capa. Con la cámara lejos, fwidth crece y las líneas se apagan solas. */
+  function layerLines(m) {
+    m.onBeforeCompile = (sh) => {
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vLY;')
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvLY = (modelMatrix * vec4(transformed, 1.0)).y;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vLY;\nfloat layerH(float y){ return abs(fract(y / 0.0004) - 0.5) * 2.0; }')
+        .replace('#include <normal_fragment_maps>', [
+          '#include <normal_fragment_maps>',
+          'float lyFade = 1.0 - smoothstep(0.00016, 0.00032, fwidth(vLY));',
+          'float lyH = layerH(vLY) * lyFade;',
+          'vec3 lyDx = dFdx(-vViewPosition), lyDy = dFdy(-vViewPosition);',
+          'vec3 lyR1 = cross(lyDy, normal), lyR2 = cross(normal, lyDx);',
+          'float lyDet = dot(lyDx, lyR1);',
+          'vec3 lyG = sign(lyDet) * (dFdx(lyH) * lyR1 + dFdy(lyH) * lyR2) * 0.00012;',
+          'normal = normalize(abs(lyDet) * normal - lyG);',
+          'diffuseColor.rgb *= 1.0 - 0.06 * lyH;'
+        ].join('\n'));
+    };
+    return m;
+  }
+
   function makeMaterials() {
     const S = (o) => new T.MeshStandardMaterial(o), Ph = (o) => new T.MeshPhysicalMaterial(o);
     const rep = (t, x, y) => { const c = t.clone(); c.repeat.set(x, y); return c; };
@@ -335,9 +382,12 @@
     const pl = plasterMaps(), cc = concreteMaps(), peg = pegMaps();
     const smooth = stippleMaps(5, 0.35, 0.42, 0.1), powder = stippleMaps(13, 0.7, 0.55, 0.14), fiber = stippleMaps(31, 1.1, 0.82, 0.12);
     const brushed = brushedMaps(0.3), satin = brushedMaps(0.16);
+    const mel = melamineMaps(17, 0), melTex = melamineMaps(23, 1), peel = peelMaps(), grain = stippleMaps(71, 1.0, 0.6, 0.18);
     E.tile = tileMaps();
     E.plank = plankMaps();
     const st = (c, rough, o) => S(set(smooth, 1.3 / 0.3, 0.65 / 0.3, 0.16, Object.assign({ color: c, roughness: rough / 0.42, map: null }, o)));
+    // melamina con su piel y su nube de tono (el color del mapa ronda 0.985: se compensa en el del material)
+    const mm = (maps, c, rough, k, o) => { const m = S(set(maps, 1.3 / 0.5, 0.65 / 0.5, k, Object.assign({ roughness: rough / 0.5 }, o))); m.color.set(c).multiplyScalar(1 / 0.985); return m; };
     const M = {
       muro: S(set(pl, 0.65, 0.325, 0.55, { color: 0xece7de })),
       cielo: S(set(pl, 0.65, 0.325, 0.4, { color: 0xf0ece5 })),
@@ -346,20 +396,21 @@
       // fachada: panel de aluminio compuesto negro, satinado y con barniz; marco del vano en bronce cepillado
       fachada: Ph({ color: 0x0f0f11, roughness: 0.36, metalness: 0.25, clearcoat: 0.8, clearcoatRoughness: 0.08, normalMap: rep(smooth.normalMap, 1.3 / 0.6, 0.65 / 0.6), normalScale: ns(0.04) }),
       bronce: S(set(brushed, 1.3 / 0.5, 0.65 / 0.5, 0.12, { color: 0xb4915e, metalness: 1, map: null, roughness: 1.05 })),
-      melBlanca: st(0xf2f0eb, 0.44),
+      melBlanca: mm(mel, 0xf2f0eb, 0.44, 0.14),
       melRovere: S(set(wood, 1, 1, 0.42, { color: 0xffffff })),
-      melPlomo: st(0x4c4a47, 0.48),
-      fondo: st(0xf6f4ef, 0.6),
-      fondoLit: st(0xf8f1e4, 0.6, { emissive: 0xffc98c, emissiveIntensity: 0.62 }),
+      melPlomo: mm(melTex, 0x4c4a47, 0.5, 0.3),
+      fondo: mm(mel, 0xf6f4ef, 0.6, 0.12),
+      fondoLit: mm(mel, 0xf8f1e4, 0.6, 0.12, { emissive: 0xffc98c, emissiveIntensity: 0.62 }),
       mdf15: S(set(fiber, 1.3 / 0.25, 0.65 / 0.25, 0.35, { color: 0xb8956b, map: null })),
       mdf55: S(set(fiber, 1.3 / 0.25, 0.65 / 0.25, 0.35, { color: 0xc4a379, map: null })),
-      laca: Ph({ color: 0xf6f5f2, roughness: 0.34, clearcoat: 0.55, clearcoatRoughness: 0.12, normalMap: rep(smooth.normalMap, 1.3 / 0.3, 0.65 / 0.3), normalScale: ns(0.05) }),
+      laca: Ph({ color: 0xf6f5f2, roughness: 1.05, roughnessMap: rep(peel.roughnessMap, 1.3 / 0.25, 0.65 / 0.25), clearcoat: 0.6, clearcoatRoughness: 0.1, normalMap: rep(peel.normalMap, 1.3 / 0.25, 0.65 / 0.25), normalScale: ns(0.06), clearcoatNormalMap: rep(peel.normalMap, 1.3 / 0.25, 0.65 / 0.25), clearcoatNormalScale: ns(0.12) }),
       negro: st(0x19191b, 0.7),
       acero: S(set(powder, 1.3 / 0.25, 0.65 / 0.25, 0.3, { color: 0x1b1b1d, metalness: 0.45, map: null, roughness: 0.9 })),
       alu: S(set(brushed, 1.3 / 0.5, 0.65 / 0.5, 0.15, { color: 0xc6c8cb, metalness: 0.9, map: null, roughness: 1.15 })),
       inox: S(set(satin, 1.3 / 0.5, 0.65 / 0.5, 0.1, { color: 0xd9dbde, metalness: 1, map: null, roughness: 1.3 })),
       gris: S(set(powder, 1.3 / 0.3, 0.65 / 0.3, 0.25, { color: 0x8d9094, metalness: 0.55, map: null, roughness: 0.9 })),
-      plastico: S({ color: 0x141416, roughness: 0.62 }),
+      // polipropileno texturizado (taburetes, televisores): grano fino y brillo irregular
+      plastico: S(set(grain, 1.3 / 0.12, 0.65 / 0.12, 0.25, { color: 0x141416, map: null, roughness: 1.05 })),
       equipo: S(set(powder, 1.3 / 0.3, 0.65 / 0.3, 0.12, { color: 0x2b2c2f, metalness: 0.2, map: null, roughness: 0.75 })),
       cemento: S(set(cc, 1.6, 0.75, 0.9, { color: 0xb3b1ab })),
       perforada: S({ map: peg.map, normalMap: peg.normalMap, normalScale: ns(0.8), roughnessMap: peg.roughnessMap, roughness: 1, metalness: 0.1 }),
@@ -371,6 +422,12 @@
       listonFondo: S({ color: 0x5b4330, roughness: 0.8 }),
       decor: Ph({ vertexColors: true, roughness: 0.42, clearcoat: 0.25, clearcoatRoughness: 0.35 }),
       decorMate: S({ vertexColors: true, roughness: 0.9 }),
+      // piezas impresas en PLA: líneas de capa de 0.4 mm en altura (se desvanecen a distancia para no hacer muaré)
+      impreso: layerLines(Ph({ vertexColors: true, roughness: 0.4, clearcoat: 0.22, clearcoatRoughness: 0.4, sheen: 0.25, sheenRoughness: 0.6 })),
+      // impresoras: vidrio de la puerta y de la tapa, cama de PEI texturizado y cabezal
+      vidrioPuerta: Ph({ color: 0x5d666c, roughness: 0.03, transparent: true, opacity: 0.1, depthWrite: false, side: T.DoubleSide, envMapIntensity: 1.6, clearcoat: 1, clearcoatRoughness: 0.03 }),
+      pei: S(set(powder, 1.3 / 0.12, 0.65 / 0.12, 0.6, { color: 0x3b3328, metalness: 0.35, map: null, roughness: 1.0 })),
+      cabezal: S({ vertexColors: true, roughness: 0.5, metalness: 0.1 }),
       led: E.ledMaterial(),
       ledFrio: E.ledMaterial([1.6, 2.3, 3.4]),
       ledBlanco: E.ledMaterial([3.2, 3.0, 2.7])

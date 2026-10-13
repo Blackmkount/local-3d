@@ -201,7 +201,7 @@
   const cache = {};
   const geo = (k, f) => cache[k] || (cache[k] = f());
   const sph = () => geo('sph', () => new T.SphereGeometry(1, 14, 10));
-  const cyl = () => geo('cyl', () => new T.CylinderGeometry(1, 1, 1, 16));
+  const cyl = () => geo('cyl', () => new T.CylinderGeometry(1, 1, 1, 32));
   const cone4 = () => geo('cone4', () => new T.CylinderGeometry(0.02, 1, 1, 4));
   const ico = () => geo('ico', () => new T.IcosahedronGeometry(1, 0));
   const knot = () => geo('knot', () => new T.TorusKnotGeometry(1, 0.32, 56, 8, 2, 3));
