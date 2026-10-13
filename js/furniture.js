@@ -369,7 +369,8 @@
   }
   /* las cuatro impresoras con su estado en vivo: name, row, rows, pct, state (y sus piezas 3D) */
   F.printers = impresoras;
-  /* cámara para mirar de cerca la impresora i (0–3): la cama, 6 cm más arriba, de frente a la puerta.
+  /* cámara para mirar de cerca la impresora i (0–3): la cama, 6 cm más arriba, de frente a la puerta y casi a
+     su altura (phi 1.42): desde más arriba el marco superior tapa la pieza.
      target es un THREE.Vector3 que también se lee como [x, y, z] */
   F.printerGoal = function (i) {
     const p = impresoras[i];
@@ -379,7 +380,7 @@
     t.y += 0.06;
     ['x', 'y', 'z'].forEach((k, j) => Object.defineProperty(t, j, { get() { return this[k]; } }));
     Object.defineProperty(t, 'length', { value: 3 });
-    return { target: t, theta: F.items[8] ? F.items[8].th : 0.42, phi: 1.2, radius: 0.7 };
+    return { target: t, theta: F.items[8] ? F.items[8].th : 0.42, phi: 1.42, radius: 0.7 };
   };
   /* para exportar: todas las piezas terminadas sobre la cama y el cabezal a un lado. Devuelve la función
      que deja cada impresora como estaba */
