@@ -1,0 +1,69 @@
+name: Corregir un precio
+description: Un mueble o material cambió de precio, se agotó o su enlace ya no funciona.
+title: "Precio: "
+labels: ["precio"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por avisar. Con estos datos se actualiza `js/data.js` y el presupuesto se recalcula solo.
+  - type: dropdown
+    id: elemento
+    attributes:
+      label: Elemento del plano
+      description: El número que aparece en la ficha y en la lista de muebles.
+      options:
+        - "1 · Pantalla 75\""
+        - "2 · Estantería retroiluminada"
+        - "3 · Isla principal"
+        - "4 · Isla secundaria"
+        - "5 · Mesa alta"
+        - "6 · Taburetes"
+        - "7 · Mesón de impresoras"
+        - "8 · Impresoras 3D"
+        - "9 · Repisa de filamentos"
+        - "10 · Mueble bajo con cajones"
+        - "11 · Panel perforado"
+        - "12 · Vitrina mural"
+        - "13 · Estantería alta"
+        - "14 · Maceteros"
+        - "15 · Mampara de vidrio"
+        - "16 · Estantería de bodega"
+        - "17 · Escritorio de diseño"
+        - "18 · Silla de trabajo"
+        - "19 · Pantalla 55\" pilar izquierdo"
+        - "20 · Pantalla 55\" pilar derecho"
+    validations:
+      required: true
+  - type: input
+    id: material
+    attributes:
+      label: Material o producto
+      description: Como aparece en la pestaña «Materiales» de la ficha.
+      placeholder: "Melamina Plomo RH 15 mm"
+  - type: input
+    id: precio
+    attributes:
+      label: Precio nuevo (pesos colombianos)
+      placeholder: "$592.833 por lámina"
+    validations:
+      required: true
+  - type: input
+    id: enlace
+    attributes:
+      label: Enlace de la tienda
+      placeholder: "https://…"
+    validations:
+      required: true
+  - type: input
+    id: fecha
+    attributes:
+      label: Fecha en que lo viste
+      placeholder: "AAAA-MM-DD"
+    validations:
+      required: true
+  - type: textarea
+    id: nota
+    attributes:
+      label: Algo más
+      description: Oferta, sin existencias, otra presentación…

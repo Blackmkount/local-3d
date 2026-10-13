@@ -1,0 +1,63 @@
+# Publica el sitio en GitHub Pages con cada cambio en main.
+# Solo se sube lo que la página usa: index.html, 404.html, manifest.webmanifest,
+# css/, js/, assets/ y vendor/. Las pruebas, las herramientas, los documentos y
+# node_modules no se publican.
+# Requisito (una sola vez): Settings → Pages → Build and deployment → Source: «GitHub Actions».
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  armar:
+    name: Revisar y armar el sitio
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # no se publica un presupuesto que no cuadra
+      - name: Revisar datos y estilo
+        run: |
+          npm ci
+          npm run check
+
+      - name: Copiar solo los archivos del sitio
+        run: |
+          mkdir -p _site
+          cp index.html 404.html manifest.webmanifest _site/
+          for d in css js assets vendor; do
+            if [ -d "$d" ]; then cp -R "$d" _site/; fi
+          done
+          echo "Se publican:" && find _site -maxdepth 2 | sort
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  publicar:
+    name: Publicar
+    needs: armar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
