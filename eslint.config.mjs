@@ -15,7 +15,7 @@ const reglas = {
 
 export default [
   {
-    ignores: ['vendor/**', 'dist/**', 'node_modules/**', 'tools/qr/qrcode.js', 'tools/*/frames/**',
+    ignores: ['vendor/**', 'dist/**', 'node_modules/**', '.claude/**', 'tools/qr/qrcode.js', 'tools/*/frames/**',
       'test-results/**', 'playwright-report/**', 'blob-report/**', 'coverage/**']
   },
   js.configs.recommended,
