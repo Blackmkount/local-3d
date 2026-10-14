@@ -220,15 +220,15 @@
     cot.add(new T.LineSegments(lg, lm));
     E.noReflect.push(cot);
     R.cotaLabels = [
-      { t: '6.00 m', s: 'frente', p: new T.Vector3(wx(3), 0, wz(-1.5)) },
-      { t: '4.80', s: 'vano de acceso', p: new T.Vector3(wx(3), 0, wz(-0.95)) },
-      { t: '7.00 m', s: 'fondo', p: new T.Vector3(wx(-0.95), 0, wz(3.5)) },
-      { t: '5.50', s: 'sala de ventas', p: new T.Vector3(wx(6.95), 0, wz(2.75)) },
-      { t: '1.40', s: 'trastienda', p: new T.Vector3(wx(6.95), 0, wz(6.3)) }
+      { t: '6,00 m', s: 'frente', p: new T.Vector3(wx(3), 0, wz(-1.5)) },
+      { t: '4,80 m', s: 'vano de acceso', p: new T.Vector3(wx(3), 0, wz(-0.95)) },
+      { t: '7,00 m', s: 'fondo', p: new T.Vector3(wx(-0.95), 0, wz(3.5)) },
+      { t: '5,50 m', s: 'sala de ventas', p: new T.Vector3(wx(6.95), 0, wz(2.75)) },
+      { t: '1,40 m', s: 'trastienda', p: new T.Vector3(wx(6.95), 0, wz(6.3)) }
     ];
     R.zoneLabels = [
-      { t: 'Sala de ventas', s: '6.00 × 5.50 · piso de madera', p: new T.Vector3(wx(4.55), 0, wz(1.0)) },
-      { t: 'Trastienda · taller', s: '6.00 × 1.40 · distribución propuesta', p: new T.Vector3(wx(2.35), 0, wz(6.42)) },
+      { t: 'Sala de ventas', s: '6,00 × 5,50 m · piso de madera', p: new T.Vector3(wx(4.55), 0, wz(1.0)) },
+      { t: 'Trastienda · taller', s: '6,00 × 1,40 m · distribución propuesta', p: new T.Vector3(wx(2.35), 0, wz(6.42)) },
       { t: 'Acceso', s: 'desde el pasillo del centro comercial', p: new T.Vector3(wx(3), 0, wz(-0.45)) }
     ];
     return root;

@@ -13,6 +13,13 @@
      fab     pasos de fabricación        ens     pasos de ensamble
      seq     secuencia de la animación de armado (src = paso del que sale)
      why     razón de cada material
+     total   suma exacta del costo de sus filas (una fila con costo 0 no suma)
+
+   La interfaz no escribe cifras a mano: los conteos (20 elementos, 12 que se
+   fabrican, 8 que se compran, materiales, frentes y pasos) y los porcentajes
+   salen de aquí. presupuesto.notas y presupuesto.ofertas son frases y cifras
+   que las pruebas de datos comprueban contra los elementos.
+   Los decimales se escriben con punto (0.40 m); la página los muestra con coma.
    ========================================================================== */
 (function () {
   const L = (window.L3D = window.L3D || {});
@@ -20,12 +27,12 @@
   const items = [
     /* ------------------------------------------------------------------ 1 */
     {
-      n: 1, id: 'pantalla75', name: 'Pantalla vertical «Tus ideas en 3D»', short: 'Pantalla 75"',
-      origen: 'compra', grupo: 'Fachada y pantallas',
+      n: 1, id: 'pantalla75', name: 'Pantalla vertical «Así nace una pieza»', short: 'Pantalla 75"',
+      origen: 'compra', grupo: 'Pantallas',
       dims: '0.95 × 0.08 × 1.67 m', cant: '1',
       ubic: 'Muro izquierdo, a 0.50 m de la fachada; base a 0.40 m del piso',
       total: 2990800,
-      resumen: 'Televisor de 75" colgado en vertical: es lo primero que se ve al entrar por la izquierda. Muestra en bucle un video de cómo se imprime una pieza en 3D.',
+      resumen: 'Televisor de 75" colgado en vertical: es lo primero que se ve al entrar por la izquierda. Muestra en bucle un video de 36 segundos que explica, en cuatro pasos, cómo nace una pieza impresa en 3D.',
       mats: [
         { key: 'producto', m: 'Televisor Hisense 75" QLED 4K 75Q6QV', uso: '166.9 × 95.2 × 7.9 cm', cant: '1', pu: '$2.899.900 por unidad', costo: 2899900, prov: 'Homecenter', nota: 'En oferta (normal $4.579.900); sin stock en línea el día de la consulta' },
         { key: 'soporte', m: 'Soporte fijo de TV de 32" a 75", Power', uso: 'Carga máxima 70 kg; se fija girado 90°', cant: '1', pu: '$90.900 por unidad', costo: 90900, prov: 'Homecenter', nota: 'Sin stock en línea' }
@@ -59,7 +66,7 @@
         { key: 'melPlomo', proc: ['aglomerado', 'melamina'], m: 'Melamina Plomo RH 15 mm', uso: '4 puertas 596 × 520; 2 zócalos 1170 × 80', cant: '1.43 m²', pu: '$592.833 por lámina', costo: 327318 },
         { key: 'fondo', proc: ['aglomerado', 'melamina'], m: 'Fondo blanco 6 mm', uso: '2 fondos 2390 × 1190', cant: '5.69 m²', pu: '$212.534 por lámina', costo: 349980 },
         { key: 'canto', proc: ['canto'], m: 'Canto PVC 19 mm', uso: '27.6 m blanco y 8.9 m Plomo', cant: '36.5 m', pu: '$167.200 y $96.400 por rollo', costo: 77338 },
-        { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte de láminas y pegado de canto', cant: '36.5 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 93807 },
+        { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte de láminas y pegado de canto', cant: '36.5 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 93808 },
         { key: 'led', proc: ['aluminio', 'led'], m: 'Perfil LED con cinta integrada', uso: 'Vertical, cortado a 1.80 m, uno por lateral', cant: '4 tramos de 3 m', pu: '$44.910 por tramo', costo: 179640 },
         { key: 'fuente', m: 'Fuente 12 V (variante 8 m)', uso: 'Una para los dos módulos, que suman 7.2 m de LED', cant: '1', pu: '$67.250 por unidad', costo: 67250 },
         { key: 'herraje', m: 'Bisagras cierre lento', uso: 'Dos por puerta', cant: '4 pares', pu: '$3.137 por par', costo: 12548 },
@@ -72,7 +79,7 @@
         'Enchapar con canto de 19 mm el frente de laterales, techos y entrepaños, y los cuatro lados de cada puerta.',
         'Perforar en los laterales dos filas de agujeros de 5 mm para los soportes de entrepaño, del divisor hacia arriba.',
         'Fresar la cazoleta de 35 mm de las bisagras en las cuatro puertas.',
-        'Cortar los cuatro perfiles LED a 1.80 m. Los cuatro retales de 1.20 m se guardan para la vitrina mural.'
+        'Cortar los cuatro perfiles LED a 1.80 m. Un retal se usa en la vitrina; los otros tres quedan de repuesto.'
       ],
       ens: [
         'Unir piso, divisor (a 0.60 m) y techo a los dos laterales con tornillos de ensamble, pretaladrando para no abrir el aglomerado.',
@@ -93,7 +100,7 @@
         { t: 'Soportes y entrepaños', src: 'Ensamble 7' }
       ],
       why: [
-        { t: 'Melamina blanca', d: 'Llega terminada, no necesita pintura y el blanco devuelve la luz del LED hacia las piezas. Es el tablero más barato del proyecto.' },
+        { t: 'Melamina blanca', d: 'Llega terminada, no necesita pintura y el blanco devuelve la luz del LED hacia las piezas. Es la melamina más barata del proyecto.' },
         { t: 'Plomo solo en puertas y zócalo', d: 'Es el tablero más caro ($592.833 por lámina), así que se usa donde se ve y donde el pie golpea.' },
         { t: 'Fondo de 6 mm', d: 'Rigidiza el mueble con menos de la mitad del peso de un fondo de 15 mm.' },
         { t: 'Perfil con difusor en vez de cinta desnuda', d: 'Oculta los puntos de luz y protege la cinta del polvo y de las manos.' }
@@ -149,7 +156,7 @@
         { t: 'MDF y no melamina en el cuerpo', d: 'La melamina no se puede curvar ni pintar; el MDF se deja rutear, doblar en capas delgadas y lacar sin que se marque la veta.' },
         { t: 'Dos capas de 5.5 mm en las curvas', d: 'Una sola lámina de 15 mm no toma un radio de 0.25 m; dos delgadas sí, y juntas recuperan rigidez.' },
         { t: 'Tapa en Rovere', d: 'La superficie de trabajo recibe roce todo el día, y la ficha de la melamina declara resistencia a rayado y abrasión, sin necesidad de repintar.' },
-        { t: 'Tira COB en el zócalo', d: 'Da una línea de luz continua, sin puntos, que es lo que se ve reflejado en el piso pulido.' }
+        { t: 'Tira COB en el zócalo', d: 'Da una línea de luz continua, sin puntos, que es lo que se ve reflejado en el piso de madera laqueado.' }
       ]
     },
     /* ------------------------------------------------------------------ 4 */
@@ -178,7 +185,7 @@
       ],
       ens: [
         'En el local: adosarla a 2.30 m del muro izquierdo, nivelarla 15 cm por debajo de la isla principal y unir los dos cuerpos con cuatro tornillos desde adentro.',
-        'Conectar su tira LED a la fuente de la isla principal.'
+        'Atornillar la tapa Rovere desde adentro y conectar su tira LED a la fuente de la isla principal.'
       ],
       seq: [
         { t: 'Esqueleto: piso, costillas y bastidor', src: 'Fabricación 1' },
@@ -240,7 +247,7 @@
     {
       n: 6, id: 'taburetes', name: 'Taburete alto', short: 'Taburetes',
       origen: 'compra', grupo: 'Mobiliario comprado',
-      dims: 'Ø 0.35 × 0.75 m', cant: '4',
+      dims: '0.48 × 0.52 × 1.08 m (asiento a 0.78 m)', cant: '4',
       ubic: 'Tres al frente de la mesa alta y uno en la cabecera derecha',
       total: 999600,
       resumen: 'Cuatro sillas para bar negras alrededor de la mesa alta de atención.',
@@ -250,7 +257,7 @@
       fab: [],
       ens: [
         'Se arman según su instructivo.',
-        'Van tres al frente de la mesa alta y uno en la cabecera. Con el asiento a 78 cm quedan 27 cm libres bajo la tapa de 1.05 m.'
+        'Van tres al frente de la mesa alta y uno en la cabecera. Con el asiento a 78 cm quedan unos 20 cm libres bajo la estructura de la mesa.'
       ],
       seq: [],
       why: [
@@ -304,7 +311,7 @@
         { t: 'Puertas Plomo, entrepaños y pasacables', src: 'Ensamble 7' }
       ],
       why: [
-        { t: 'Módulos de 0.80 m', d: 'Coinciden con el eje de cada impresora, así cada equipo queda sobre un lateral doble y no en mitad de un vano.' },
+        { t: 'Módulos de 0.80 m', d: 'Un módulo por impresora: cada equipo queda centrado sobre su puerta y su pasacable, y la tapa de 30 mm reparte su peso en el vano de 0.77 m.' },
         { t: 'Tapa de 30 mm', d: 'Cuatro impresoras de 12.95 kg mueven masas a alta velocidad; la tapa doble reparte la carga y vibra menos que una de 15 mm.' },
         { t: 'Blanco por dentro y Plomo solo en lo visible', d: 'El interior guarda filamento y repuestos, y no justifica el tablero más caro.' },
         { t: 'Rovere arriba', d: 'La tapa de trabajo es la superficie más visible del fondo del local.' }
@@ -382,8 +389,8 @@
         { key: 'melBlanca', proc: ['aglomerado', 'melamina'], m: 'Melamina blanca RH 15 mm', uso: '10 laterales 770 × 480; 5 pisos 570 × 480; 10 amarres 570 × 100; 30 costados de cajón 450 × 180; 30 frentes y traseros interiores 510 × 180; 4 tapas 1500 × 500', cant: '13.82 m²', pu: '$226.756 por lámina', costo: 809554 },
         { key: 'melRovere', proc: ['aglomerado', 'melamina'], m: 'Melamina Rovere RH 15 mm', uso: '15 frentes de cajón 596 × 252; 2 zócalos 1500 × 90; 2 tapas laterales 870 × 500', cant: '3.39 m²', pu: '$444.625 por lámina', costo: 449576 },
         { key: 'fondo', proc: ['aglomerado', 'melamina'], m: 'Fondo blanco 6 mm', uso: '5 fondos 760 × 590; 15 fondos de cajón 538 × 450', cant: '5.87 m²', pu: '$212.534 por lámina', costo: 361381 },
-        { key: 'canto', proc: ['canto'], m: 'Canto PVC 19 mm', uso: '47.4 m blanco y 28.2 m Rovere', cant: '75.5 m', pu: '$167.200 y $285.600 por rollo', costo: 195687 },
-        { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte y pegado de canto', cant: '75.5 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 173934 },
+        { key: 'canto', proc: ['canto'], m: 'Canto PVC 19 mm', uso: '47.4 m blanco y 28.2 m Rovere', cant: '75.6 m', pu: '$167.200 y $285.600 por rollo', costo: 195687 },
+        { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte y pegado de canto', cant: '75.6 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 173934 },
         { key: 'riel', m: 'Riel de extensión total 45 cm', uso: 'Un par por cajón', cant: '15 pares', pu: '$9.086 por par', costo: 136290 },
         { key: 'manija', proc: ['aluminio'], m: 'Perfil manija de aluminio', uso: 'Borde superior de cada frente', cant: '3 tramos de 3 m', pu: '$22.421 por tramo', costo: 67263 },
         { key: 'patas', m: 'Patas niveladoras', uso: 'Cuatro por módulo', cant: '20', pu: '$2.042 por unidad', costo: 40840 },
@@ -416,7 +423,7 @@
       why: [
         { t: 'Riel de extensión total', d: 'El cajón sale completo y se alcanza el fondo; soporta 38 kg, de sobra para repuestos y herramienta.' },
         { t: 'Perfil manija en vez de tiradores', d: 'No sobresale hacia el pasillo principal de 2.00 m y deja el frente limpio.' },
-        { t: 'Cajas blancas y frentes Rovere', d: 'El tablero más barato va donde no se ve, y el tono madera solo en la cara.' },
+        { t: 'Cajas blancas y frentes Rovere', d: 'La melamina más barata del proyecto va donde no se ve, y el tono madera solo en la cara.' },
         { t: 'Tapa blanca', d: 'Es la superficie de empaque y entrega; el blanco deja ver piezas pequeñas y tornillos.' }
       ]
     },
@@ -482,7 +489,7 @@
       ens: [
         'Armar laterales, piso y fondo.',
         'Deslizar los tres entrepaños y el frente por sus ranuras y cerrar con el techo.',
-        'Fijar el retal de perfil LED en vertical, dentro de un lateral.',
+        'Fijar el retal de perfil LED en vertical, dentro de un lateral, y la fuente de 12 V sobre el techo de la vitrina.',
         'Colgar la vitrina con dos chazos, con la base a 1.05 m del piso, sobre el mueble bajo.'
       ],
       seq: [
@@ -506,7 +513,7 @@
       total: 1026272,
       resumen: 'Un módulo en Rovere con fondo blanco y luz vertical. Es el mueble que se ve desde el pasillo del centro comercial.',
       mats: [
-        { key: 'melRovere', proc: ['aglomerado', 'melamina'], m: 'Melamina Rovere RH 15 mm', uso: '2 laterales 2400 × 350; techo y piso 1170 × 350; 5 entrepaños 1170 × 330; zócalo 1170 × 80', cant: '4.52 m²', pu: '$444.625 por lámina', costo: 599337 },
+        { key: 'melRovere', proc: ['aglomerado', 'melamina'], m: 'Melamina Rovere RH 15 mm', uso: '2 laterales 2400 × 350; techo y piso 1170 × 350; 5 entrepaños 1170 × 330; zócalo 1170 × 80', cant: '4.52 m²', pu: '$444.625 por lámina', costo: 599336 },
         { key: 'fondo', proc: ['aglomerado', 'melamina'], m: 'Fondo blanco 6 mm', uso: '1 fondo 2390 × 1190', cant: '2.84 m²', pu: '$212.534 por lámina', costo: 174990 },
         { key: 'canto', proc: ['canto'], m: 'Canto PVC Rovere 19 mm', uso: 'Frentes de laterales, techo, piso y entrepaños', cant: '13.7 m', pu: '$285.600 por rollo', costo: 54146 },
         { key: 'servicio', m: 'Corte y enchape en Madecentro', uso: 'Corte de láminas y pegado de canto', cant: '13.7 m de canto', pu: '$5.354 por lámina; $1.847 por metro', costo: 36274 },
@@ -538,7 +545,7 @@
       ],
       why: [
         { t: 'Rovere en todo el cuerpo', d: 'Es el mueble que se ve desde el pasillo del centro comercial, y el tono madera lo separa de la estantería blanca del muro opuesto.' },
-        { t: 'Fondo blanco', d: 'Contrasta con las figuras oscuras y aprovecha los sobrantes de las láminas de fondo ya compradas.' }
+        { t: 'Fondo blanco', d: 'Contrasta con las figuras oscuras y devuelve la luz del LED hacia las piezas.' }
       ]
     },
     /* ----------------------------------------------------------------- 14 */
@@ -565,14 +572,15 @@
     /* ----------------------------------------------------------------- 15 */
     {
       n: 15, id: 'mampara', name: 'Mampara de vidrio con puerta', short: 'Mampara de vidrio',
-      origen: 'fabrica', grupo: 'Mampara y fachada', origenNota: 'vidriería',
+      origen: 'fabrica', grupo: 'Divisiones', origenNota: 'vidriería',
       dims: '2.10 × 0.10 × 2.40 m', cant: '1',
       ubic: 'Fondo derecho: vidrio fijo 1.05 + puerta 0.90 + columna 0.15',
       total: 1290900,
       resumen: 'Un vidrio fijo y una puerta batiente de vidrio templado de 10 mm separan la sala de ventas de la trastienda.',
       mats: [
         { key: 'vidrio', proc: ['vidrio'], m: 'Vidrio templado incoloro 10 mm', uso: 'Fijo 1050 × 2400 y puerta 900 × 2400', cant: '4.68 m²', pu: '$200.000 por m²', costo: 936000 },
-        { key: 'kit', m: 'Kit sistema batiente para vidrio', uso: 'Bisagra, chapeta fija y manija en acero inoxidable', cant: '1 kit', pu: '$354.900 por kit', costo: 354900 }
+        { key: 'kit', m: 'Kit sistema batiente para vidrio', uso: 'Bisagra, chapeta fija y manija en acero inoxidable', cant: '1 kit', pu: '$354.900 por kit', costo: 354900 },
+        { key: 'canal', m: 'Canal perimetral negro', uso: 'Piso, columna y dintel', cant: 'Por medir', pu: 'Por cotizar con la vidriería', costo: 0, nota: 'No incluido en el total' }
       ],
       fab: [
         'Medir el vano ya terminado, con piso y cielo instalados, y restar las holguras que pida la vidriería.',
@@ -580,14 +588,14 @@
         'Después templa cada pieza: la recalienta a unos 700 °C y la enfría de golpe con aire.'
       ],
       ens: [
-        'Fijar el canal perimetral en piso, columna y cielo para el vidrio fijo.',
+        'Fijar el canal perimetral en piso, columna y dintel para el vidrio fijo.',
         'Asentar el vidrio fijo sobre calzos, aplomarlo y sellarlo.',
         'Atornillar la bisagra del kit a la columna de 0.15 m y colgar la puerta, que abre hacia la trastienda.',
         'Montar la manija y regular hasta que la puerta cierre sin rozar el vidrio fijo.',
         'Pegar una franja visible a la altura de los ojos para que nadie choque con el vidrio.'
       ],
       seq: [
-        { t: 'Canal perimetral en piso, columna y cielo', src: 'Ensamble 1' },
+        { t: 'Canal perimetral en piso, columna y dintel', src: 'Ensamble 1' },
         { t: 'Vidrio fijo sobre calzos, aplomado y sellado', src: 'Ensamble 2' },
         { t: 'Bisagras en la columna y puerta colgada', src: 'Ensamble 3' },
         { t: 'Manija de acero inoxidable', src: 'Ensamble 4' },
@@ -653,14 +661,14 @@
         { t: 'Tapa blanca atornillada desde abajo, con su pasacable', src: 'Ensamble 1' }
       ],
       why: [
-        { t: 'El mueble menos visible', d: 'Usa el tablero más barato, el tubo más delgado y la pintura sobrante.' }
+        { t: 'El mueble menos visible', d: 'Usa la melamina más barata del proyecto, el tubo más delgado y la pintura sobrante.' }
       ]
     },
     /* ----------------------------------------------------------------- 18 */
     {
       n: 18, id: 'silla', name: 'Silla de trabajo', short: 'Silla de trabajo',
       origen: 'compra', grupo: 'Mobiliario comprado',
-      dims: 'Ø 0.45 × 0.85 m', cant: '1',
+      dims: '0.60 × 0.45 × 0.95 m', cant: '1',
       ubic: 'Trastienda, frente al escritorio',
       total: 159900,
       resumen: 'Silla ergonómica en malla y polipropileno para el puesto de diseño.',
@@ -677,7 +685,7 @@
     /* ----------------------------------------------------------------- 19 */
     {
       n: 19, id: 'pantalla-pilar-izq', name: 'Pantalla exterior «Entra y crea» (pilar izquierdo)', short: 'Pantalla 55" pilar izquierdo',
-      origen: 'compra', grupo: 'Fachada y pantallas',
+      origen: 'compra', grupo: 'Pantallas',
       dims: '0.69 × 1.21 m de frente (55" en vertical)', cant: '1',
       ubic: 'Cara exterior del pilar izquierdo de la fachada; base a 0.90 m del piso',
       total: 1790800,
@@ -700,14 +708,14 @@
       why: [
         { t: 'Una pantalla en cada pilar', d: 'Quien camina por el pasillo ve el video llegue por donde llegue, y las dos pantallas iguales enmarcan la entrada como un portal.' },
         { t: 'Medida comercial', d: 'El de 55" ocupa 0.69 × 1.21 m en vertical: es el más grande que cabe en el pilar de 0.75 m, con 3 cm libres a cada lado.' },
-        { t: 'Mismo modelo que la de 75"', d: 'Es la misma línea Hisense QLED de la pantalla interior: los colores del video se ven iguales afuera y adentro.' },
+        { t: 'Misma línea que la de 75"', d: 'Es la misma línea Hisense QLED de la pantalla interior: los colores del video se ven iguales afuera y adentro.' },
         { t: 'Antes de comprar', d: 'Conviene confirmar con el fabricante que el modelo admite montaje vertical y encendido continuo durante el horario del centro comercial.' }
       ]
     },
     /* ----------------------------------------------------------------- 20 */
     {
       n: 20, id: 'pantalla-pilar-der', name: 'Pantalla exterior «Entra y crea» (pilar derecho)', short: 'Pantalla 55" pilar derecho',
-      origen: 'compra', grupo: 'Fachada y pantallas',
+      origen: 'compra', grupo: 'Pantallas',
       dims: '0.69 × 1.21 m de frente (55" en vertical)', cant: '1',
       ubic: 'Cara exterior del pilar derecho de la fachada; base a 0.90 m del piso',
       total: 1790800,
@@ -730,7 +738,7 @@
       why: [
         { t: 'Una pantalla en cada pilar', d: 'Quien camina por el pasillo ve el video llegue por donde llegue, y las dos pantallas iguales enmarcan la entrada como un portal.' },
         { t: 'Medida comercial', d: 'El de 55" ocupa 0.69 × 1.21 m en vertical: es el más grande que cabe en el pilar de 0.75 m, con 3 cm libres a cada lado.' },
-        { t: 'Mismo modelo que la de 75"', d: 'Es la misma línea Hisense QLED de la pantalla interior: los colores del video se ven iguales afuera y adentro.' },
+        { t: 'Misma línea que la de 75"', d: 'Es la misma línea Hisense QLED de la pantalla interior: los colores del video se ven iguales afuera y adentro.' },
         { t: 'Antes de comprar', d: 'Conviene confirmar con el fabricante que el modelo admite montaje vertical y encendido continuo durante el horario del centro comercial.' }
       ]
     }
@@ -773,7 +781,7 @@
     {
       id: 'vidrio', mat: 'Vidrio flotado y templado', uso: 'Mampara y puerta del fondo',
       proceso: 'Sílice, álcalis y cal se funden en un horno continuo. El vidrio fundido flota sobre un baño de estaño, donde se aplana solo, y después se recuece. Para templarlo, la pieza ya cortada y con los cantos pulidos se recalienta y se enfría de golpe con aire: las caras quedan a compresión y el núcleo a tracción.',
-      dato: 'Fusión a unos 1.500 °C; templado a unos 700 °C. El templado cuadruplica la resistencia y hace que rompa en fragmentos pequeños de bordes romos',
+      dato: 'Fusión a unos 1500 °C; templado a unos 700 °C. El templado cuadruplica la resistencia y hace que rompa en fragmentos pequeños de bordes romos',
       fuentes: [{ t: 'Wikipedia: Vidrio flotado', u: 'https://es.wikipedia.org/wiki/Vidrio_flotado' }, { t: 'Interempresas: El vidrio templado', u: 'https://www.interempresas.net/Vidrio-plano/230541-El-vidrio-templado.html' }]
     },
     {
@@ -808,8 +816,8 @@
         { m: 'Aglomerado melamina Rovere RH 15 mm, Pelikano', pres: 'Lámina 2.15 × 2.44 m', precio: '$444.625 por lámina', prov: 'Madecentro', nota: 'En oferta (antes $592.833); 18 mm a $515.065', u: MC + 'tablero-aglomerado-melamina-rovere-rh-pelikano' },
         { m: 'Aglomerado melamina Plomo RH 15 mm, Pelikano', pres: 'Lámina 2.15 × 2.44 m', precio: '$592.833 por lámina', prov: 'Madecentro', nota: 'Antes $617.534', u: MC + 'tablero-aglomerado-melamina-plomo-rh-pelikano' },
         { m: 'Fondo aglomerado melamina blanco nevado RH 6 mm, Pelikano', pres: 'Lámina 2.15 × 2.44 m', precio: '$212.534 por lámina', prov: 'Madecentro', nota: 'Melamina en una cara; antes $340.599', u: MC + 'fondo-aglomerado-melamina-blanco-nevado-rh-pelikano' },
-        { m: 'MDF 15 mm, Trupan', pres: 'Lámina 1.83 × 2.44 m', precio: '$134.900 por lámina ($30.213 por m²)', prov: 'Homecenter', nota: '46.8 kg por lámina', u: HC + '884212/tablero-mdf-15mm-183x244m-trupan/884232/' },
-        { m: 'MDF 5.5 mm, Trupan', pres: 'Lámina 1.83 × 2.44 m', precio: '$63.900 por lámina ($14.549 por m²)', prov: 'Homecenter', nota: '21.1 kg por lámina', u: HC + '884212/tablero-mdf-55mm-183x244m-trupan/884236/' }
+        { m: 'MDF 15 mm, Trupan', pres: 'Lámina 1.83 × 2.44 m', precio: '$134.900 por lámina ($30.211 por m²)', prov: 'Homecenter', nota: '46.8 kg por lámina', u: HC + '884212/tablero-mdf-15mm-183x244m-trupan/884232/' },
+        { m: 'MDF 5.5 mm, Trupan', pres: 'Lámina 1.83 × 2.44 m', precio: '$63.900 por lámina ($14.311 por m²)', prov: 'Homecenter', nota: '21.1 kg por lámina', u: HC + '884212/tablero-mdf-55mm-183x244m-trupan/884236/' }
       ]
     },
     {
@@ -882,7 +890,7 @@
       { r: 'Mobiliario comprado', q: 'Taburetes, maceteros, estanterías de bodega y silla', c: 3219000 },
       { r: 'Metal, vidrio, plásticos y acabados', q: 'Tubo, vidrio templado y kit, acrílico, lámina perforada, ganchos, laca, anticorrosivo, pegante', c: 2614500 },
       { r: 'Herrajes e iluminación', q: 'Bisagras, rieles, patas, soportes, tornillería, chazos, perfiles y tiras LED, fuentes', c: 1171190 },
-      { r: 'Servicios de Madecentro', q: 'Corte de 21 láminas, 196 m de enchape y 7 engrueses', c: 615123 },
+      { r: 'Servicios de Madecentro', q: 'Corte de 21 láminas, 197 m de enchape y 7 engrueses', c: 615123 },
       { r: 'Cantos', q: 'Tres rollos de PVC de 19 mm', c: 549200 }
     ],
     tiendas: [
@@ -905,14 +913,45 @@
       'Los precios son los publicados en línea el 9 de octubre de 2026; varios están en oferta y cinco productos figuraban sin stock ese día. El precio del televisor de 55" ($1.699.900) se confirmó el 10 de octubre de 2026.',
       'Las medidas vienen del plano, que se estimó desde la imagen: hay que verificarlas en sitio antes de pedir el corte.',
       'El total no incluye mano de obra, transporte, instalación eléctrica, plantas ni el canal perimetral de la mampara.',
-      'Los precios y los procesos industriales tienen su fuente enlazada. El despiece, las cantidades y los métodos de fabricación y ensamble son diseño propio del documento del proyecto.'
+      'Los precios y los procesos industriales tienen su fuente enlazada. El despiece, las cantidades y los métodos de fabricación y ensamble son diseño propio del documento del proyecto.',
+      'No incluye la obra del local: piso de madera, muro de listones, techo y luminarias, fachada y letrero.'
+    ],
+    /* lo que el modelo 3D muestra pero no tiene precio (se repite como último supuesto) */
+    noIncluye: 'No incluye la obra del local: piso de madera, muro de listones, techo y luminarias, fachada y letrero.',
+    /* notas de las dos listas del presupuesto; las pruebas de datos comprueban cada afirmación */
+    notas: {
+      fabrica: 'El mueble bajo y el mesón concentran más de un tercio del costo de fabricación. La mampara es el cuarto costo aunque solo tiene dos piezas, porque el vidrio templado se paga por metro cuadrado. El escritorio completo cuesta menos que un solo taburete.',
+      compra: 'Las cuatro impresoras se llevan casi dos tercios de lo que se compra, y las tres pantallas, una cuarta parte.'
+    },
+    /* precios en oferta el día de la consulta: diferencia con el precio normal («antes» o «normal»
+       del catálogo) por la cantidad que se compra. Si se acaban las ofertas, el total sube en la suma. */
+    ofertas: [
+      { t: 'Impresoras 3D (4 × $1.000.000)', ahorro: 4000000 },
+      { t: 'Televisor de 75"', ahorro: 1680000 },
+      { t: 'Televisores de 55" (2 × $770.000)', ahorro: 1540000 },
+      { t: 'Melamina Rovere (5 láminas × $148.208)', ahorro: 741040 },
+      { t: 'Fondo blanco 6 mm (5 láminas × $128.065)', ahorro: 640325 },
+      { t: 'Estanterías de bodega (2 × $180.000)', ahorro: 360000 },
+      { t: 'Taburetes (4 × $50.000)', ahorro: 200000 },
+      { t: 'Vidrio templado (4.68 m² × $40.000)', ahorro: 187200 },
+      { t: 'Silla de trabajo', ahorro: 130000 },
+      { t: 'Melamina blanca (9 láminas × $9.448)', ahorro: 85032 },
+      { t: 'Melamina Plomo (2 láminas × $24.701)', ahorro: 49402 },
+      { t: 'Tira LED COB (2 rollos × $20.000)', ahorro: 40000 }
     ],
     pendientes: [
       'Verificar en sitio las medidas del local y de cada muro; las del plano son estimadas desde la imagen.',
       'Definir las tomas eléctricas: una de piso bajo la isla principal, una detrás de cada pantalla, cuatro en el mesón con circuito propio y una por cada fuente LED.',
       'Confirmar existencias de los cinco productos que figuraban sin stock en línea: laca, lámina perforada, ganchos, el televisor de 75" y el soporte (se necesitan tres).',
       'Pedir a Madecentro la unidad exacta de cobro del enchape y del engruese, que la página no indica.',
-      'Cotizar con la vidriería el canal perimetral negro y la instalación de la mampara.'
+      'Cotizar con la vidriería el canal perimetral negro y la instalación de la mampara.',
+      'Confirmar que la tapa de cada impresora y su unidad AMS abren bajo la repisa de filamentos a 1.60 m: en el modelo quedan menos de 2 cm libres.',
+      'Confirmar los metros de tira LED de las islas: el documento dice 7 m y 3 m, pero sus zócalos miden 5.4 m y 1.9 m.',
+      'Definir el bastidor del panel perforado: los cuatro listones verticales de 1.10 m no caben entre los tres horizontales en el mismo plano (van por detrás o en ocho tramos cortos).',
+      'Confirmar el rango de la pata niveladora «para zócalo de 100 mm» en los zócalos de 80 mm de las estanterías 2 y 13.',
+      'Verificar el precio «antes» de la melamina Rovere ($592.833): es idéntico al precio actual del Plomo.',
+      'Confirmar la carga de la estantería de bodega: la ficha dice 100 kg por nivel y la dirección del producto dice 400 kg.',
+      'Revisar el canto de la isla secundaria: los tres lados de la tapa de 1.20 × 0.60 m suman unos 2.3 m, no 2.9 m.'
     ]
   };
 
@@ -920,33 +959,31 @@
      Orden de fabricación y montaje del local
      ------------------------------------------------------------------- */
   const montaje = {
-    intro: 'El montaje va del fondo hacia la fachada y deja las islas para el final, porque una vez puestas ocupan el centro y estorban el paso de los módulos largos.',
-    nota: 'La vidriería es el frente que más condiciona: no puede medir hasta que piso y cielo estén terminados, y el vidrio templado no admite ajustes en obra.',
+    intro: 'Se monta del fondo hacia la entrada: primero lo que va contra las paredes y al final las islas del centro, porque ocupan el paso.',
+    nota: 'La vidriería es el frente que más condiciona: no puede medir hasta que piso y techo estén terminados, y el vidrio templado no admite ajustes en obra.',
     frentes: [
-      { t: 'Carpintería', d: ['Corte y enchape', 'Módulos de melamina', 'Islas en MDF y laca'] },
-      { t: 'Metalmecánica', d: ['Mesa alta soldada', 'Escritorio soldado', 'Pintura negra mate'] },
-      { t: 'Vidriería', d: ['Medir vano terminado', 'Corte y perforaciones', 'Templado'] },
+      { t: 'Carpintería', d: ['Cortar las láminas y forrar los bordes', 'Armar los muebles de melamina', 'Islas de MDF pintadas con laca'] },
+      { t: 'Taller de metal', d: ['Mesa alta soldada', 'Escritorio soldado', 'Pintura negra mate'] },
+      { t: 'Vidriería', d: ['Medir el hueco ya terminado', 'Cortar y perforar el vidrio', 'Templarlo en el horno'] },
       { t: 'Compras', d: ['Impresoras y tres pantallas', 'Taburetes y maceteros', 'Estanterías y silla'] }
     ],
     /* items: números del plano que entran en cada paso */
     pasos: [
-      { t: 'Fondo y trastienda', d: 'Mesón, repisa, mampara, estanterías y escritorio', items: [7, 9, 15, 16, 17, 18] },
+      { t: 'Fondo y trastienda', d: 'Mesón, repisa, mampara, estanterías, escritorio y silla', items: [7, 9, 15, 16, 17, 18] },
       { t: 'Muro derecho', d: 'Mueble bajo, panel perforado, vitrina y estantería alta', items: [10, 11, 12, 13] },
-      { t: 'Muro izquierdo', d: 'Estantería retroiluminada y pantalla de 75 pulgadas', items: [2, 1] },
+      { t: 'Muro izquierdo', d: 'Estantería retroiluminada y pantalla de 75"', items: [2, 1] },
       { t: 'Centro', d: 'Mesa alta, isla principal e isla secundaria', items: [5, 3, 4] },
-      { t: 'Fachada', d: 'Pantallas de 55 pulgadas en los dos pilares, con el video de bienvenida', items: [19, 20] },
+      { t: 'Fachada', d: 'Pantallas de 55" en los dos pilares, con el video de bienvenida', items: [19, 20] },
       { t: 'Puesta en marcha', d: 'Impresoras, LED, taburetes y maceteros', items: [8, 6, 14], led: true }
     ]
   };
 
   L.data = {
     meta: {
-      marca: 'IMPRESIÓN 3D',
-      lema: ['Diseña', 'Imprime', 'Crea'],
-      local: 'Local de exhibición y taller',
-      medidas: '6.00 × 7.00 m',
-      fecha: '9 de octubre de 2026',
-      autor: '@BlackForge'
+      marca: 'BlackForge',
+      lema: ['Diseña', 'Imprime', 'Crea'],              // subtítulo de la pantalla de inicio
+      fecha: '9 de octubre de 2026',                     // fecha de los documentos del proyecto
+      fechas: '9 y 10 de octubre de 2026'                // días en que se consultaron los precios
     },
     items, procesos, catalogo, presupuesto, montaje
   };
