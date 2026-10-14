@@ -1,0 +1,30 @@
+name: Algo no funciona
+description: La página se queda cargando, algo se ve mal o un botón no responde.
+title: "Error: "
+labels: ["error"]
+body:
+  - type: textarea
+    id: que
+    attributes:
+      label: Qué pasó
+      description: Qué hiciste, qué esperabas ver y qué viste.
+      placeholder: "Toqué el mesón (7) y la ficha se abrió vacía…"
+    validations:
+      required: true
+  - type: input
+    id: enlace
+    attributes:
+      label: Dirección exacta
+      description: Copia la dirección de la barra del navegador (por ejemplo …/local-3d/#m7/materiales).
+  - type: input
+    id: equipo
+    attributes:
+      label: Equipo y navegador
+      placeholder: "iPhone 13 con Safari · Portátil con Windows 11 y Chrome 129"
+    validations:
+      required: true
+  - type: textarea
+    id: captura
+    attributes:
+      label: Captura de pantalla
+      description: Arrastra aquí una imagen o un video corto.

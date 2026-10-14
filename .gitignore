@@ -1,3 +1,16 @@
 dist/
 node_modules/
 .DS_Store
+
+# resultados de las pruebas (npm run test:e2e)
+test-results/
+playwright-report/
+blob-report/
+coverage/
+
+# cachés de Python (tools/build-artifact.py)
+__pycache__/
+
+# modelos descargados desde la página y secretos locales
+/*.glb
+.env

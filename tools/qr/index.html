@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Etiquetas QR · BlackForge</title>
+<!-- ==========================================================================
+     ETIQUETAS QR PARA LOS MUEBLES — una hoja A4 con 20 etiquetas (4 × 5), una
+     por elemento del plano. Cada código lleva al enlace corto <base>/<n>, que
+     404.html convierte en la ficha del mueble (#m<n>).
+     Uso: con el sitio servido (npm start), abrir
+       http://localhost:8000/tools/qr/
+     y imprimir en A4 al 100 % (sin «ajustar a la página»), idealmente en papel
+     adhesivo. ?base=https://otra.direccion/ cambia el sitio al que apuntan.
+     Los nombres y números salen de js/data.js.
+     ========================================================================== -->
+<style>
+  :root {
+    --ink: #1c1c1e;
+    --ink-2: #5b5b60;
+    --line: #c9c9ce;
+    --accent: #c96500;
+    --paper: #ffffff;
+    --desk: #e9e7e3;
+    --bar: #1c1c1e;
+    --bar-ink: #f5f5f7;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--desk); color: var(--ink); font: 14px/1.4 -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Arial, sans-serif; }
+
+  /* barra de pantalla (no se imprime) */
+  .bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 16px; background: var(--bar); color: var(--bar-ink); }
+  .bar h1 { margin: 0; font-size: 16px; font-weight: 650; }
+  .bar label { display: flex; align-items: center; gap: 8px; flex: 1 1 320px; font-size: 13px; }
+  .bar input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid #48484a; border-radius: 8px; background: #2c2c2e; color: var(--bar-ink); font: inherit; }
+  .bar button { height: 36px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; font: 600 14px/1 inherit; font-family: inherit; cursor: pointer; }
+  .bar button:focus-visible, .bar input:focus-visible { outline: 2px solid #ffb340; outline-offset: 2px; }
+  .bar p { flex-basis: 100%; margin: 0; font-size: 12px; color: #aeaeb2; }
+
+  /* hoja A4: 210 × 297 mm con 10 mm de margen → 4 × 5 etiquetas de 47,5 × 55,4 mm */
+  .sheet { width: 210mm; min-height: 297mm; margin: 16px auto; padding: 10mm; background: var(--paper); box-shadow: 0 6px 30px rgba(0, 0, 0, 0.18); }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 55.4mm; }
+  .tag { display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 3.2mm 3mm 2.6mm; border: 0.25mm dashed var(--line); text-align: center; overflow: hidden; break-inside: avoid; }
+  .tag .top { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .tag .n { display: inline-grid; place-items: center; min-width: 7.5mm; height: 7.5mm; padding: 0 1.6mm; border-radius: 3.75mm; background: var(--ink); color: #fff; font-weight: 750; font-size: 4.2mm; font-variant-numeric: tabular-nums; }
+  .tag .logo { width: 22mm; height: auto; color: var(--ink); }
+  .tag svg.qr { display: block; flex: none; width: 26mm; height: 26mm; margin: 1.2mm 0 1mm; }
+  .tag b { display: block; max-width: 100%; font-size: 3.3mm; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag small { display: block; margin-top: 0.5mm; font-size: 2.3mm; line-height: 1.25; color: var(--ink-2); }
+  .tag .u { display: block; margin-top: 0.5mm; font: 1.9mm/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink-2); white-space: nowrap; }
+
+  @media screen and (max-width: 860px) {
+    .sheet { width: auto; min-height: 0; margin: 12px; padding: 12px; }
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; }
+    .tag { padding: 14px 10px; }
+  }
+  @page { size: A4; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .bar { display: none; }
+    .sheet { margin: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>Etiquetas QR · 20 muebles</h1>
+  <label>Sitio <input id="base" type="url" spellcheck="false" aria-describedby="nota"></label>
+  <button type="button" id="print">Imprimir</button>
+  <p id="nota">Imprime en A4 al 100 % (sin «ajustar a la página»). Cada código abre la ficha de su mueble: su número, de qué está hecho y cuánto cuesta.</p>
+</div>
+<main class="sheet" aria-label="Hoja de etiquetas">
+  <div class="grid" id="grid"></div>
+</main>
+
+<script src="../../js/brand.js"></script>
+<script src="../../js/data.js"></script>
+<script src="qrcode.js"></script>
+<script>
+(function () {
+  'use strict';
+  const PAGES = 'https://blackmkount.github.io/local-3d/';
+  const q = new URLSearchParams(location.search).get('base');
+  const input = document.getElementById('base');
+  const grid = document.getElementById('grid');
+  const items = (window.L3D && window.L3D.data && window.L3D.data.items) || [];
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const logo = window.L3D && window.L3D.brand ? window.L3D.brand.svg('logo', '') : '';
+
+  /* el código como un solo <path> que escala sin perder nitidez */
+  function qrSvg(texto) {
+    const qr = window.qrcode(0, 'M');
+    qr.addData(texto);
+    qr.make();
+    const n = qr.getModuleCount(), m = 2;
+    let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += 'M' + (c + m) + ' ' + (r + m) + 'h1v1h-1z';
+    return '<svg class="qr" viewBox="0 0 ' + (n + 2 * m) + ' ' + (n + 2 * m) + '" shape-rendering="crispEdges" role="img" aria-label="Código QR de ' + esc(texto) + '"><rect width="100%" height="100%" fill="#fff"/><path d="' + d + '" fill="#000"/></svg>';
+  }
+  function base() {
+    let b = (input.value || PAGES).trim();
+    if (!/\/$/.test(b)) b += '/';
+    return b;
+  }
+  function dibujar() {
+    const b = base();
+    grid.innerHTML = items.map((d) => {
+      const url = b + d.n;
+      return '<article class="tag"><div class="top"><span class="n">' + d.n + '</span>' + logo + '</div>' +
+        qrSvg(url) + '<div><b>' + esc(d.short) + '</b><small>Escanéame para ver de qué está hecho</small>' +
+        '<span class="u">' + esc(url.replace(/^https?:\/\//, '')) + '</span></div></article>';
+    }).join('');
+  }
+
+  input.value = q || PAGES;
+  input.addEventListener('change', () => {
+    const u = new URL(location.href);
+    u.searchParams.set('base', base());
+    history.replaceState(null, '', u);
+    dibujar();
+  });
+  document.getElementById('print').addEventListener('click', () => window.print());
+  if (!items.length) grid.innerHTML = '<p>No se pudo leer js/data.js. Abre esta página desde el sitio servido (npm start).</p>';
+  else dibujar();
+})();
+</script>
+</body>
+</html>
