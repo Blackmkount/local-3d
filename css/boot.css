@@ -1,0 +1,35 @@
+/* ============================================================================
+   ARRANQUE — tipografía local y pantalla de inicio.
+   Se carga antes que styles.css: la letra Inter viaja con el sitio
+   (assets/fonts, SIL Open Font License) y la pantalla de inicio sabe mostrar
+   el avance real de la carga y, si algo falla, una tarjeta con salidas claras
+   (la arma js/boot-guard.js).
+   ========================================================================== */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url(../assets/fonts/inter-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url(../assets/fonts/inter-latin-500-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url(../assets/fonts/inter-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url(../assets/fonts/inter-latin-700-normal.woff2) format('woff2'); }
+
+/* barra de avance real: deja de ir y venir en cuanto llega el primer dato de carga */
+#intro.has-progress .intro-bar span { width: 100%; animation: none; transform-origin: left; transform: scaleX(var(--p, 0)); transition: transform 0.3s; }
+
+/* tarjeta de error o de espera larga */
+.boot-card { display: none; width: min(440px, 100%); margin-top: 26px; padding: 20px 22px 22px; border-radius: 18px; text-align: left; background: rgba(255, 255, 255, 0.06); box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 14px 36px -8px rgba(0, 0, 0, 0.45); color: #f5f5f7; font-size: 15px; line-height: 1.5; opacity: 1; animation: bootIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.boot-card h2 { margin: 0 0 6px; font: 700 19px/1.25 var(--f-disp, system-ui, sans-serif); letter-spacing: -0.015em; }
+.boot-card p { margin: 0 0 6px; }
+.boot-card ol { margin: 10px 0 0; padding-left: 24px; list-style: decimal outside; }
+.boot-card li { margin: 4px 0; padding-left: 2px; }
+.boot-card li::marker { color: var(--accent-ink, #ffb340); font-weight: 700; }
+.boot-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.boot-acts .btn { height: 44px; min-width: 44px; padding: 0 18px; border-radius: 12px; font-size: 15px; }
+.boot-acts .btn:focus-visible { outline: 2px solid var(--accent, #ff9f0a); outline-offset: 2px; }
+#intro.is-error .boot-card, #intro.is-slow .boot-card { display: block; }
+#intro.is-error .intro-bar, #intro.is-error .intro-msg { display: none; }
+#intro.is-error .intro-logo { animation: none; }
+/* la espera larga no detiene la carga: la barra sigue debajo de la tarjeta */
+#intro.is-slow .boot-card { margin-top: 18px; }
+@keyframes bootIn { from { opacity: 0; translate: 0 8px; } }
+@media (max-width: 520px) {
+  .boot-card { padding: 18px 16px 18px; }
+  .boot-acts .btn { flex: 1 1 100%; }
+}

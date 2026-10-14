@@ -9,9 +9,8 @@
 (function () {
   'use strict';
   const L = (window.L3D = window.L3D || {});
-  // versión con que index.html carga este archivo (?v=): la usa también el video, para no ver el anterior en caché
-  const VER = ((document.currentScript && document.currentScript.src.match(/[?&]v=([^&#]+)/)) || [])[1];
-  const T = THREE, E = L.engine, G = L.geo, R = L.room;
+  if (!window.THREE || !L.engine) return;          // sin motor 3D no hay muebles que armar
+  const T = window.THREE, E = L.engine, G = L.geo, R = L.room;
   const F = (L.furn = { items: {}, order: [] });
   const wx = R.wx, wz = R.wz, PI = Math.PI;
   const V = (a) => new T.Vector3(a[0], a[1], a[2]);
@@ -132,42 +131,89 @@
   const screenMat = (tex) => { const m = new T.MeshBasicMaterial({ map: tex, toneMapped: false }); m.name = 'pantalla'; return m; };
 
   /* Video en bucle sobre una o varias pantallas, sin sonido. Mientras carga, si el archivo no está, si el navegador
-     no deja usarlo (página abierta con doble clic: file://) o si el sistema pide reducir movimiento, queda
-     la imagen fija. Solo se reproduce mientras alguna de sus pantallas está a la vista: así no gasta batería ni GPU.
+     no deja usarlo (página abierta con doble clic: file://), en el modo ligero o mientras el modelo está quieto
+     (reducir movimiento, animaciones apagadas o reposo) queda la imagen fija o el último cuadro.
+     No se descarga nada hasta que una de sus pantallas aparece de verdad a la vista (dentro de la imagen, de
+     frente, a menos de 16 m, con al menos 48 px de alto y sin un muro delante): quien solo mira la planta no baja
+     ni un byte de video.
+     Solo se reproduce mientras se ve, y redibuja el modelo a lo sumo 15 veces por segundo.
      Las pantallas que piden el mismo archivo comparten un solo video (las dos de los pilares van sincronizadas). */
-  const _fr = new T.Frustum(), _pm = new T.Matrix4(), _sp = new T.Sphere(), _nv = new T.Vector3(), _dv = new T.Vector3();
+  const _sp = new T.Sphere(), _nv = new T.Vector3(), _dv = new T.Vector3();
+  const _ray = new T.Raycaster(), _q = new T.Vector3(), _dir = new T.Vector3();
+  const RAYS = [];
+  [-0.4, 0, 0.4].forEach((y) => [-0.4, 0, 0.4].forEach((x) => RAYS.push([x, y])));
+  /* ¿algún muro del local (fachada, pilares, cielo…) tapa la pantalla? Desde la entrada, por ejemplo, el
+     pilar izquierdo deja ver apenas el canto de la de 75". Nueve rayos a la pantalla: cuenta como vista
+     si llegan limpios al menos cuatro (casi la mitad de la imagen) */
+  function clearLine(m) {
+    // con la cámara en movimiento basta revisarlo cuatro veces por segundo
+    const now = performance.now(), c = m.userData.los;
+    if (c && now - c.t < 250) return c.ok;
+    const occ = E.shells.filter((s) => s.obj.visible && s.a > 0.5).map((s) => s.obj);
+    const g = m.geometry.parameters, cam = E.camera.position;
+    let ok = 0;
+    if (!occ.length || !g || !g.width) ok = RAYS.length;
+    for (let i = 0; i < RAYS.length && ok < 4 && ok + RAYS.length - i >= 4; i++) {
+      const q = RAYS[i];
+      _q.set(q[0] * g.width / 2, q[1] * g.height / 2, 0).applyMatrix4(m.matrixWorld);
+      _dir.subVectors(_q, cam);
+      const d = _dir.length(); _dir.divideScalar(d);
+      _ray.set(cam, _dir); _ray.far = d - 0.02;
+      if (!_ray.intersectObjects(occ, true).some((h) => h.object.visible && h.object.material && !h.object.material.transparent)) ok++;
+    }
+    m.userData.los = { t: now, ok: ok >= 4 };
+    return ok >= 4;
+  }
   const videos = {};
+  F.videos = [];                                   // estado de cada video, para ?stats
   function screenVideo(mesh, base) {
-    if (E.reduced || location.protocol === 'file:') return;
+    if (E.lite || location.protocol === 'file:') return;
     if (videos[base]) { videos[base].add(mesh); return; }
     const v = document.createElement('video'), meshes = [];
-    // MP4 (H.264) en casi todos los navegadores; WebM (VP9) para los que no traen H.264
-    const src = base + (v.canPlayType('video/mp4; codecs="avc1.640028"') ? '.mp4' : '.webm');
-    v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+    v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true; v.preload = 'none';
     v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
-    let tex = null, on = false;
+    let tex = null, on = false, asked = false, blocked = false, lastF = 0;
     const use = (m) => { const mat = m.material; mat._poster = mat.map; mat.map = tex; mat.needsUpdate = true; };
     const shown = (m) => { for (let o = m; o; o = o.parent) if (!o.visible) return false; return m.material === m.userData.screenMat; };
     const seen = (m) => {
-      const cam = E.camera;
+      if (!shown(m)) return false;
       if (!m.geometry.boundingSphere) m.geometry.computeBoundingSphere();
       _sp.copy(m.geometry.boundingSphere).applyMatrix4(m.matrixWorld);
-      _nv.set(0, 0, 1).transformDirection(m.matrixWorld); _dv.copy(cam.position).sub(_sp.center);
-      return shown(m) && _fr.intersectsSphere(_sp) && _nv.dot(_dv) > 0 && _dv.length() < 16;
+      if (!E.isSeen(_sp.center, _sp.radius, 16)) return false;
+      _nv.set(0, 0, 1).transformDirection(m.matrixWorld); _dv.copy(E.camera.position).sub(_sp.center);
+      const d = _dv.length(), facing = _nv.dot(_dv) / d;
+      if (facing < 0.12) return false;             // de canto o por detrás
+      const px = _sp.radius * 2 / d * E.size.h / (2 * Math.tan(E.camera.fov * Math.PI / 360));
+      return px * Math.sqrt(facing) > 48 && clearLine(m);
+    };
+    const play = () => {
+      const p = v.play();
+      // si el navegador no deja reproducir (ahorro de batería, permisos), se intenta de nuevo al siguiente toque
+      if (p && p.catch) p.catch(() => {
+        on = false; if (blocked) return; blocked = true;
+        window.addEventListener('pointerdown', () => { blocked = false; E.invalidate(2); }, { once: true, capture: true });
+      });
     };
     const check = () => {
-      if (!tex) return;
-      const cam = E.camera;
-      _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); _fr.setFromProjectionMatrix(_pm);
-      const vis = meshes.some(seen);
-      if (vis === on) return;
-      on = vis;
-      if (on) { const p = v.play(); if (p && p.catch) p.catch(() => { on = false; }); } else v.pause();
+      const want = !blocked && !E.still && !document.hidden && meshes.some(seen);
+      if (want && !asked) {
+        // primera vez a la vista: recién ahora se pide el archivo. MP4 (H.264) en casi todos los navegadores; WebM (VP9) en los demás
+        asked = true; v.preload = 'auto';
+        v.src = base + (v.canPlayType('video/mp4; codecs="avc1.640028"') ? '.mp4' : '.webm');
+      }
+      if (!tex || want === on) return;
+      on = want;
+      if (on) play(); else v.pause();
     };
-    videos[base] = { add(m) { m.userData.screenMat = m.material; meshes.push(m); if (tex) use(m); } };
-    videos[base].add(mesh);
-    // cada cuadro nuevo del video pide redibujar el modelo, solo mientras se ve
-    const frameCb = () => { if (on) E.invalidate(1); v.requestVideoFrameCallback(frameCb); };
+    const rec = (videos[base] = {
+      add(m) { m.userData.screenMat = m.material; meshes.push(m); if (tex) use(m); },
+      pause() { on = false; v.pause(); }
+    });
+    rec.add(mesh);
+    F.videos.push({ name: base.split('/').pop(), el: v, state: () => (!asked ? 'sin pedir' : !tex ? 'cargando' : on ? 'reproduciendo' : 'en pausa') });
+    E.hooks.push(check);
+    // cada cuadro nuevo del video pide redibujar el modelo, solo mientras se ve y a lo sumo cada 66 ms
+    const frameCb = (now) => { if (on && now - lastF >= 66) { lastF = now; E.invalidate(1, 'content'); } v.requestVideoFrameCallback(frameCb); };
     v.addEventListener('loadeddata', () => {
       try {                                            // un video de otro origen no se puede usar como textura
         const c = document.createElement('canvas'); c.width = c.height = 1;
@@ -176,11 +222,15 @@
       tex = new T.VideoTexture(v); tex.colorSpace = T.SRGBColorSpace;
       meshes.forEach(use);
       if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(frameCb);
-      else setInterval(() => { if (on) E.invalidate(1); }, 1000 / 30);
-      E.hooks.push(check); check(); E.invalidate(2);
+      else setInterval(() => { if (on) E.invalidate(1, 'content'); }, 66);
+      check(); E.invalidate(2);
     }, { once: true });
-    v.src = src + (VER ? '?v=' + VER : '');
   }
+  // pestaña oculta: todos los videos en pausa; al volver, el siguiente cuadro decide cuáles siguen
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) Object.keys(videos).forEach((k) => videos[k].pause());
+    else E.invalidate(2);
+  });
 
   /* ----------------------------------------------- impresoras: piezas y animación
      Cada impresora fabrica en bucle una pieza distinta. La pieza es un sólido de revolución armado por filas
@@ -275,7 +325,10 @@
       const u = f / P1, rowsF = u * p.part.rows; row = Math.floor(rowsF) + 1;
       // contorno de la capa actual: dos vueltas por capa, la segunda por dentro (perímetro interior)
       const lu = rowsF - Math.floor(rowsF), a = lu * PI * 4 + pr.twist * (row / p.part.rows), r = pr.r(Math.min(1, row / p.part.rows)) * (lu < 0.5 ? 1 : 0.86);
-      const star = pr.star ? (Math.cos(a * pr.seg / 2) * 0.5 + 0.5) * (1 - pr.star) : 0;
+      // florero estrella: el radio sigue a las puntas del contorno; la fase se mide desde la primera punta de la capa,
+      // sin el giro (twist), así la boquilla pasa por las puntas y los valles del mismo anillo que se dibuja
+      const ph = (a - pr.twist * (row / p.part.rows)) * pr.seg / 2;
+      const star = pr.star ? (0.5 - 0.5 * Math.cos(ph)) * (1 - pr.star) : 0;
       hx = (r * (1 - star)) * Math.cos(a); hz = (r * (1 - star)) * Math.sin(a);
       state = 'Imprimiendo'; pct = Math.min(99, Math.floor(u * 100));
     } else if (f < P2) {
@@ -290,28 +343,57 @@
     if (f < P2) ponerCapa(p, row, 0);
     p.head.position.x = hx; p.head.position.z = hz; p.xbar.position.z = hz;
     p.lcd.set(state, pct);
+    // estado en vivo, para quien quiera mostrarlo (F.printers): la capa la deja ponerCapa en p.row
+    p.state = state; p.pct = pct;
   }
-  /* ciclo de animación propio: unas 30 veces por segundo y solo mientras alguna impresora está a la vista */
+  /* Reloj propio de las impresoras: avanza solo mientras alguna está a la vista y el modelo no está quieto
+     (reducir movimiento, animaciones apagadas, reposo o pestaña oculta), así al pausar y seguir no hay
+     saltos. Se dibujan 15 veces por segundo (10 en el modo ligero): son lentas y la pantalla es chica. */
+  let relojImpresoras = 0;
   function animarImpresoras() {
-    if (!impresoras.length || E.reduced) return;
-    let lastT = 0;
-    const seen = (o) => {
-      for (let x = o.group; x; x = x.parent) if (!x.visible) return false;
-      const cam = E.camera;
-      _pm.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); _fr.setFromProjectionMatrix(_pm);
-      _sp.set(o.center, o.radius);
-      return _fr.intersectsSphere(_sp) && cam.position.distanceTo(o.center) < 9;
+    if (!impresoras.length) return;
+    let lastDraw = 0;
+    const seen = (p) => {
+      for (let x = p.o.group; x; x = x.parent) if (!x.visible) return false;
+      return E.isSeen(p.o.center, p.o.radius, 9);
     };
-    const tick = (now) => {
-      requestAnimationFrame(tick);
-      if (now - lastT < 33 || document.hidden) return;
-      lastT = now;
-      if (!impresoras.some((p) => seen(p.o))) return;
-      impresoras.forEach((p) => animarImpresora(p, now / 1000));
-      E.invalidate(1);
-    };
-    requestAnimationFrame(tick);
+    impresoras.forEach((p) => animarImpresora(p, 0));
+    E.ticks.push((dt, now) => {
+      if (E.still || document.hidden || !impresoras.some(seen)) return;
+      relojImpresoras += dt;
+      if (now - lastDraw < (E.lite ? 100 : 66)) return;
+      lastDraw = now;
+      impresoras.forEach((p) => animarImpresora(p, relojImpresoras));
+      E.invalidate(1, 'content');
+    });
   }
+  /* las cuatro impresoras con su estado en vivo: name, row, rows, pct, state (y sus piezas 3D) */
+  F.printers = impresoras;
+  /* cámara para mirar de cerca la impresora i (0–3): la cama, 6 cm más arriba, de frente a la puerta y casi a
+     su altura (phi 1.42): desde más arriba el marco superior tapa la pieza.
+     target es un THREE.Vector3 que también se lee como [x, y, z] */
+  F.printerGoal = function (i) {
+    const p = impresoras[i];
+    if (!p) return null;
+    p.bed.updateWorldMatrix(true, false);
+    const t = p.bed.getWorldPosition(new T.Vector3());
+    t.y += 0.06;
+    ['x', 'y', 'z'].forEach((k, j) => Object.defineProperty(t, j, { get() { return this[k]; } }));
+    Object.defineProperty(t, 'length', { value: 3 });
+    return { target: t, theta: F.items[8] ? F.items[8].th : 0.42, phi: 1.42, radius: 0.7 };
+  };
+  /* para exportar: todas las piezas terminadas sobre la cama y el cabezal a un lado. Devuelve la función
+     que deja cada impresora como estaba */
+  F.finishPrints = function () {
+    const saved = impresoras.map((p) => ({ row: p.row, y: p.bed.position.y, hx: p.head.position.x, hz: p.head.position.z }));
+    impresoras.forEach((p) => { ponerCapa(p, p.part.rows, 0); p.head.position.x = 0.13; p.head.position.z = -0.15; p.xbar.position.z = -0.15; });
+    return () => impresoras.forEach((p, i) => {
+      const s = saved[i];
+      ponerCapa(p, s.row, 0); p.bed.position.y = s.y;
+      p.head.position.x = s.hx; p.head.position.z = s.hz; p.xbar.position.z = s.hz;
+      E.invalidate();
+    });
+  };
 
   /* ================================================================ modelos */
   F.build = function () {
@@ -529,15 +611,15 @@
         const head = kid(new T.Mesh(G.merge(headL), M.cabezal), 0, gy, 0);
         // la pieza: un sólido de revolución por filas, dibujado hasta la capa actual, con su tapa
         const pr = PIEZAS[k], part = solidoPorCapas(pr);
-        const piece = kid(new T.Mesh(part.geo, M.impreso), 0, 0, 0); piece.castShadow = true; bed.add(piece);
-        const cap = kid(new T.Mesh(part.cap, M.impreso), 0, 0, 0); bed.add(cap);
+        const piece = kid(new T.Mesh(part.geo, M.impreso), 0, 0, 0, { printPiece: true }); piece.castShadow = true; bed.add(piece);
+        const cap = kid(new T.Mesh(part.cap, M.impreso), 0, 0, 0, { printPiece: true }); bed.add(cap);
         // unidad AMS encima, con sus cuatro carretes bajo la tapa ahumada
         const l = [];
         G.pushBox(l, -0.184, h, -0.1415, 0.368, 0.05, 0.283, 0x2b2c2f);
         for (let i = 0; i < 4; i++) G.spool(l, -0.132 + i * 0.088, h + 0.135, 0, 0.085, 0.066, sp[(k * 3 + i) % sp.length], 'x');
         const ams = PM(o, 'Unidad AMS', 'decor', l, 1, [0, 0.34, 0], { mk: 'producto' });
         const cover = new T.Mesh(new T.BoxGeometry(0.368, 0.176, 0.283), M.vidrioOscuro); cover.position.set(0, h + 0.05 + 0.088, 0); cover.renderOrder = 3; ams.add(cover); cover.userData = { n: 8, inst: o, child: true };
-        impresoras.push({ o, k, bed, head, xbar, piece, cap, part, pr, lcd, top: NZ + 0.008 });
+        impresoras.push({ o, k, bed, head, xbar, piece, cap, part, pr, lcd, top: NZ + 0.008, name: pr.name, rows: part.rows, row: -1, pct: 0, state: 'Imprimiendo' });
         return o;
       };
       add(8, [1.0, 1.8, 2.6, 3.4].map(mk), { th: 0.42, ph: 1.12 });
@@ -698,8 +780,9 @@
       P(o, 'Puerta 900 × 2400', 'vidrio', 1.05, 0.012, 0.045, 0.875, 2.36, 0.01, 2, [0, 0, 1.3], { noShadow: true, order: 3 });
       PM(o, 'Bisagras', 'inox', [0.35, 2.05].map((y) => ({ g: new T.BoxGeometry(0.07, 0.1, 0.03), m: G.mat(1.9, y, 0.05), c: 0xd9dbde })), 2, [0.1, 0, 1.3], { mk: 'kit' });
       PM(o, 'Manija', 'inox', [{ g: G.cyl(), m: cylM(1.13, 1.1, 0.085, 0.011, 0.42), c: 0xd9dbde }, { g: G.cyl(), m: cylM(1.13, 1.1, 0.015, 0.011, 0.42), c: 0xd9dbde }, { g: G.cyl(), m: cylM(1.13, 0.96, 0.05, 0.007, 0.08, 'z'), c: 0xd9dbde }, { g: G.cyl(), m: cylM(1.13, 1.24, 0.05, 0.007, 0.08, 'z'), c: 0xd9dbde }], 3, [0, 0, 1.6], { mk: 'kit' });
-      P(o, 'Franja visible', 'escarcha', 0.03, 1.45, 0.056, 1.01, 0.09, 0.001, 4, [-0.2, 0, 1.75], { noShadow: true, order: 4, mk: 'franja' });
-      P(o, 'Franja visible', 'escarcha', 1.06, 1.45, 0.056, 0.855, 0.09, 0.001, 4, [0, 0, 1.9], { noShadow: true, order: 4, mk: 'franja' });
+      // la franja esmerilada va pegada al vidrio: se resalta con él en la tabla de materiales
+      P(o, 'Franja visible', 'escarcha', 0.03, 1.45, 0.056, 1.01, 0.09, 0.001, 4, [-0.2, 0, 1.75], { noShadow: true, order: 4, mk: 'vidrio' });
+      P(o, 'Franja visible', 'escarcha', 1.06, 1.45, 0.056, 0.855, 0.09, 0.001, 4, [0, 0, 1.9], { noShadow: true, order: 4, mk: 'vidrio' });
       add(15, [o], { th: 0.1, ph: 1.25 });
     }
 
