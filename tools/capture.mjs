@@ -14,7 +14,7 @@
    docs/img/<estado>.png         1400 × 900 (movil.png: 390 × 844), con la interfaz
 
    Las capturas que dependen de algo que todavía no existe en la página (la
-   historia, el glosario…) se saltan y se avisa al final.
+   ayuda…) se saltan y se avisa al final.
    ========================================================================== */
 import { chromium } from '@playwright/test';
 import { mkdirSync, statSync, existsSync, rmSync } from 'node:fs';
@@ -96,9 +96,7 @@ const ESTADOS = [
   ['armar', 'A.select(7); A.playAsm();', 4],
   ['presupuesto', 'A.openBudget();', 1.5],
   ['montaje', 'A.openMontaje();', 7],
-  ['historia', 'if (!L.story) return "falta"; L.story.open();', 3],
-  ['explorador', "if (!L.kids) return 'falta'; L.prefs.set('mode', 'explorador'); A.select(8);", 3],
-  ['glosario', "if (!L.glossary) return 'falta'; A.select(7); return 'gl';", 3]
+  ['experto', "L.prefs.set('mode', 'experto'); A.select(7); A.setTab && A.setTab('mats');", 3]
 ];
 
 async function docs(browser) {

@@ -31,18 +31,6 @@ y `?stats` para ver los cuadros por segundo.
 ¿Viste un precio distinto en una tienda pero no vas a editar el código? Abre un aviso con el formulario
 [«Corregir un precio»](https://github.com/Blackmkount/local-3d/issues/new?template=precio.yml).
 
-## Agregar una palabra al glosario o un texto para niños
-
-Los textos para niños viven en `js/kids-data.js`:
-
-- **Palabra del glosario**: agrega una entrada a `glosario` con `id` (único, sin espacios), `t` (la palabra como se
-  muestra), `alias` (las formas exactas que se buscan en el texto: singular, plural…), `d` (una línea que entienda
-  alguien de 10 años) y, si se ve en el modelo, `ver` (el número del mueble). Usa `cs: true` para siglas y nombres de
-  color que solo cuentan con mayúscula (MDF, Plomo).
-- **Texto de un mueble**: en `items[n]`, `que`, `para` y `sabias` (máximo 25 palabras cada uno, hablándole al lector
-  de tú) y, si quieres, una pregunta `quiz` con tres respuestas y la correcta en `ok`.
-- `npm test` revisa que los id no se repitan, que cada `ver` exista y que las preguntas tengan respuesta.
-
 ## Volver a generar un video
 
 Los videos de las pantallas están hechos con código. Los pasos completos, con los comandos de `ffmpeg`, están en

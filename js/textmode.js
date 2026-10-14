@@ -2,7 +2,7 @@
    MODO LISTA — toda la información del local en una página de texto, sin 3D.
    Sirve cuando el navegador no puede dibujar el modelo (WebGL), cuando el motor
    no cargó, para leer con lector de pantalla, para equipos viejos y para
-   imprimir. Solo usa L3D.data (y L3D.kids si está); nunca toca THREE, así que
+   imprimir. Solo usa L3D.data; nunca toca THREE, así que
    funciona aunque three.js no haya llegado.
 
    L3D.textMode.show(reason)   reason: 'webgl' | 'engine' (aviso + «Reintentar en 3D»)
@@ -40,14 +40,13 @@
   const go = (url) => { if (url === location.href) location.reload(); else location.assign(url); };
 
   /* ---------------------------------------------------------------- contenido */
-  function itemHtml(d, K) {
-    const fab = d.origen === 'fabrica', kid = K && K.items && K.items[d.n];
+  function itemHtml(d) {
+    const fab = d.origen === 'fabrica';
     const units = parseInt(d.cant, 10);
     let h = '<article class="tm-item" id="tm-m' + d.n + '" aria-labelledby="tm-m' + d.n + '-t">' +
       '<h3 id="tm-m' + d.n + '-t" tabindex="-1"><span class="tm-n" aria-hidden="true">' + d.n + '</span><span><span class="sr-only">Elemento ' + d.n + ': </span>' + escd(d.name) + '</span></h3>' +
       '<p class="tm-meta"><span class="pill pill-' + d.origen + '">' + (fab ? 'Se fabrica' + (d.origenNota ? ' · ' + esc(d.origenNota) : '') : 'Se compra') + '</span>' +
       '<b>' + cop(d.total) + '</b><span>' + (fab ? 'en materiales' : (units > 1 ? units + ' unidades' : 'producto')) + '</span></p>' +
-      (kid && kid.que ? '<p class="tm-kid">' + esc(kid.que) + '</p>' : '') +
       '<p>' + escd(d.resumen) + '</p>' +
       '<dl class="tm-facts"><dt>Medidas</dt><dd>' + escd(d.dims) + '</dd><dt>Cantidad</dt><dd>' + escd(d.cant) + '</dd><dt>Ubicación</dt><dd>' + escd(d.ubic) + '</dd></dl>';
     h += '<h4>' + (fab ? 'Materiales y costos' : 'Producto') + '</h4>' +
@@ -61,7 +60,7 @@
   }
   function build() {
     if (root) return root;
-    const D = L.data, K = L.kids;
+    const D = L.data;
     if (!D || !D.items) return null;
     const P = D.presupuesto || {}, M = D.montaje || {}, meta = D.meta || {};
     const byN = {}; D.items.forEach((d) => { byN[d.n] = d; });
@@ -83,7 +82,7 @@
     // elementos por grupo
     groups.forEach((g) => {
       h += '<section id="' + g.id + '" aria-labelledby="' + g.id + '-t"><h2 id="' + g.id + '-t" tabindex="-1">' + esc(g.t) + '</h2>' +
-        g.items.map((d) => itemHtml(d, K)).join('') + '<a class="tm-top" href="#tm-nav-t">Volver al índice</a></section>';
+        g.items.map((d) => itemHtml(d)).join('') + '<a class="tm-top" href="#tm-nav-t">Volver al índice</a></section>';
     });
     // presupuesto
     if (P.total) {

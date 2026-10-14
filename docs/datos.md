@@ -1,7 +1,7 @@
 # Los datos del proyecto
 
 Todo lo que la página cuenta (nombres, medidas, materiales, precios, pasos y textos) sale de un solo archivo,
-**`js/data.js`**. Los textos para niños están aparte, en `js/kids-data.js`. Las pruebas (`npm test`) revisan que
+**`js/data.js`**. Las pruebas (`npm test`) revisan que
 las cuentas cuadren cada vez que algo cambia.
 
 [← Volver al README](../README.md)
@@ -54,5 +54,4 @@ verificarse en sitio antes de pedir el corte.
 - las frases del presupuesto que comparan cifras siguen siendo ciertas;
 - los números escritos a mano en `index.html` y el total del README coinciden con los datos.
 
-`tests/kids.test.mjs` revisa `js/kids-data.js` (los 20 textos, las preguntas, el glosario y la historia) y
-`tests/html.test.mjs` lo que se publica (archivos, versiones, íconos, imagen para redes).
+`tests/html.test.mjs` revisa lo que se publica (archivos, versiones, íconos, imagen para redes).

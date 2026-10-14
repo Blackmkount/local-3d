@@ -3,7 +3,7 @@
    teléfono) y, sobre ella, lo que un visitante hace: enlace directo a una
    ficha, los 20 muebles con «separar piezas» y «ver cómo se arma», el
    presupuesto, la búsqueda, el botón Atrás, Esc y los eventos del contrato.
-   Lo que depende de otra rama (rutas del núcleo, accesibilidad, glosario) se
+   Lo que depende de otra rama (rutas del núcleo, accesibilidad, ayuda) se
    salta con una nota mientras esa rama no esté unida, y se activa sola.
    ========================================================================== */
 import { test, expect, abrir, boot, rasgos, cop } from './fixtures.mjs';
@@ -82,17 +82,11 @@ test.describe.serial('Recorrido básico', () => {
     await expect(page.locator('#modal')).toBeHidden();
   });
 
-  test('la búsqueda encuentra la descarga .glb y las palabras del taller', async () => {
+  test('la búsqueda encuentra la descarga .glb', async () => {
     await page.evaluate(() => window.L3D.api.openSpot());
     await expect(page.locator('#spot')).toBeVisible();
     await page.locator('#spot-q').fill('glb');
     await expect(page.locator('#spot-list')).toContainText('Descargar modelo 3D (.glb)');
-    if (R.glosario) {
-      await page.locator('#spot-q').fill('chazo');
-      await expect(page.locator('#spot-list')).toContainText(/chazo/i);
-      const def = await page.evaluate(() => { const g = (window.L3D.kids.glosario || []).find((x) => x.id === 'chazo'); return g ? g.d.slice(0, 30) : ''; });
-      if (def) await expect(page.locator('#spot-list')).toContainText(def);
-    } else test.info().annotations.push({ type: 'pendiente (WS5)', description: 'el glosario aún no está: no se busca «chazo»' });
     await page.keyboard.press('Escape');
     await expect(page.locator('#spot')).toBeHidden();
   });

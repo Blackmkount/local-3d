@@ -1,7 +1,7 @@
 /* ============================================================================
    CONTRATO ENTRE MÓDULOS — se carga antes que data.js y no depende de three.js.
    Todo cuelga de window.L3D (= L). Los módulos nuevos (bienvenida, recorrido,
-   glosario, pasaporte…) se enchufan aquí sin tocar app.js.
+   ayuda, menú «Más», ajustes…) se enchufan aquí sin tocar app.js.
 
    L.bus     mensajes entre módulos
              on(ev, fn) → función para dejar de escuchar · off(ev, fn) · emit(ev, detail)

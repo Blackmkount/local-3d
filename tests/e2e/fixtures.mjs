@@ -91,7 +91,6 @@ export const rasgos = (page) => page.evaluate(() => {
     a11y: !!(L.ui && L.ui.trap) || !!document.getElementById('sr-status'),   // WS3
     textMode: !!(L.textMode && L.textMode.show),     // WS3: modo lista
     bootFail: typeof L.bootFail === 'function',      // WS2: tarjeta de error del arranque
-    glosario: !!(L.glossary && L.glossary.match),    // WS5
     ayuda: !!(L.onboarding || L.tour)                // WS4
   };
 });

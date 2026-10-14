@@ -8,17 +8,14 @@ el mismo número que se usaba en el `?v=` de `index.html`; `npm run version` sug
 
 ### Añadido
 
-- Bienvenida de tres pasos, modo explorador (palabras sencillas, «¿Qué es? ¿Para qué sirve? ¿Sabías que…?» y
-  preguntas) y modo experto; recorrido guiado de 2 minutos con Forge; ayuda y menú «Más».
-- Palabras del taller con su definición al tocarlas, «¿Cómo nace una pieza?» con el video y una impresora en vivo,
-  Pasaporte BlackForge con 20 sellos, silueta de un niño de 1,40 m para comparar tamaños y «de cada 100 pesos» en
-  el presupuesto.
+- Modo sencillo (por defecto) y modo experto: en el sencillo la información técnica (cantidades, plan de corte,
+  fuentes) queda plegada en «Para expertos», a un toque.
 - Modo lista sin 3D (`?texto`), que también aparece si el navegador no puede dibujar el modelo, y una tarjeta clara
   cuando algo falla al cargar.
 - Enlaces directos a cada ficha, pestaña y ventana (`#m7/materiales`, `#presupuesto`…) y el botón Atrás del
   navegador cierra lo último que se abrió.
 - Pruebas: `npm test` revisa sin navegador que las cuentas del presupuesto cuadren (totales, rubros, tiendas, plan de
-  corte, montaje), el contenido para niños y los archivos publicados; `npm run test:e2e` recorre la página en Chromium,
+  corte, montaje) y los archivos publicados; `npm run test:e2e` recorre la página en Chromium,
   en escritorio y teléfono, con revisión de accesibilidad (axe).
 - ESLint (`npm run lint`), `.editorconfig`, `package.json` con todos los comandos y Node 22 (`.nvmrc`).
 - Pruebas automáticas en GitHub (CI) y publicación en GitHub Pages solo con los archivos del sitio.

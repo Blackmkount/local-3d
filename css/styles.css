@@ -814,7 +814,6 @@ html.is-text #textmode { display: block; }
 .tm-item { margin: 0 0 16px; padding: 18px 20px 12px; border-radius: 18px; background: var(--card); box-shadow: 0 0 0 0.5px var(--hair); }
 .tm-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 8px 0 12px !important; }
 .tm-meta b { font: 600 19px var(--f-disp); color: var(--accent-ink); font-variant-numeric: tabular-nums; }
-.tm-kid { padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); }
 .tm-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; }
 .tm-facts dt { color: var(--ink-3); }
 .tm-facts dd { margin: 0; font-variant-numeric: tabular-nums; }
@@ -882,7 +881,6 @@ html.is-text #textmode { display: block; }
   #textmode .tm-acts, #textmode .tm-banner, #textmode .tm-top { display: none !important; }
   #textmode .tm-nav ul ul a { background: none; padding: 0; min-height: 0; }
   .tm-item { padding: 0 0 8pt; margin-bottom: 12pt; border-radius: 0; background: none; box-shadow: none; border-bottom: 1pt solid #bbb; break-inside: auto; }
-  .tm-kid { background: none; padding: 0; font-style: italic; }
   .tm-tbl-wrap { overflow: visible; box-shadow: none; }
   .tm-tbl { font-size: 9.5pt; }
   .tm-tbl th, .tm-tbl td { padding: 3pt 5pt; }
