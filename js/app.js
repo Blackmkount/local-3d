@@ -11,22 +11,39 @@
   const cop = (n) => '$' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   const copShort = (n) => (n >= 1e6 ? '$' + (n / 1e6).toFixed(n >= 1e7 ? 1 : 2).replace('.', ',') + ' M' : '$' + Math.round(n / 1000) + ' mil');
   const byN = {}; DATA.items.forEach((i) => { byN[i.n] = i; });
+  const VS = L.versions, baseN = Object.assign({}, byN);
+  /* datos de un elemento en una versión: los fabricados de B y C toman su diseño, despiece y costo de versions.js */
+  function dataFor(n, v) {
+    const a = baseN[n];
+    if (v === 'A' || a.origen !== 'fabrica' || !VS.items[v][n]) return a;
+    const it = VS.items[v][n], c = VS.calc(v).items[n];
+    return Object.assign({}, a, { name: it.name, resumen: it.resumen, mats: c.mats, total: c.total, fab: it.fab, ens: it.ens, seq: it.seq, why: it.why, ver: v });
+  }
+  const ITEMS = () => DATA.items.map((d) => byN[d.n]);
+  const NEXT = (n, k) => { const i = DATA.items.findIndex((x) => x.n === n); return byN[DATA.items[(i + k + DATA.items.length) % DATA.items.length].n]; };
+  function totals(v) {
+    const P = DATA.presupuesto;
+    if (v === 'A') return { total: P.total, fabricado: P.fabricado, comprado: P.comprado };
+    const c = VS.calc(v); return { total: P.comprado + c.total, fabricado: c.total, comprado: P.comprado };
+  }
+  const verInfo = (v) => VS.list.find((x) => x.id === v);
   const procBy = {}; DATA.procesos.forEach((p) => { procBy[p.id] = p; });
   const app = $('#app');
   const Y = new T.Vector3(0, 1, 0);
 
-  const S = { sel: null, inst: null, mode: 'solid', step: -1, playing: false, gen: 0, labels: false, plan: false, hover: null, hl: null, tab: 'resumen', filter: 'todos', inv: false, mont: null, usable: { w: 1, h: 1 }, tws: [] };
+  const S = { ver: 'A', sel: null, inst: null, mode: 'solid', step: -1, playing: false, gen: 0, labels: false, plan: false, hover: null, hl: null, tab: 'resumen', filter: 'todos', inv: false, mont: null, usable: { w: 1, h: 1 }, tws: [] };
 
   /* ------------------------------------------------------------------ vistas */
   const VIEWS = {
     fachada: { t: [0.1, 1.72, 1.2], th: 0.17, ph: 1.485, r: 12.2, min: 1.45 },
     interior: { t: [0, 1.15, -0.9], th: 0.3, ph: 1.36, r: 5.4, min: 0.9 },
-    taller: { t: [-0.7, 1.05, -1.6], th: -0.5, ph: 1.27, r: 5.1, min: 0.8 },
     aerea: { t: [0, 0.7, 0.1], th: 0.62, ph: 0.86, r: 13.4, min: 1.15 },
     planta: { t: [0, 0, 0.72], th: 0, ph: 0.02, r: 18.4, min: 1.05 }
   };
   function goView(name, dur) {
+    if (name === 'plano') { openPlan(); return; }
     const v = VIEWS[name]; if (!v) return;
+    if (S.planOpen) closePlan(true);
     exitMontaje(true); deselect(true);
     S.plan = name === 'planta'; S.view = name;
     $$('#views button').forEach((b) => b.classList.toggle('is-on', b.dataset.view === name));
@@ -125,7 +142,11 @@
     if (it.zone === 'trastienda') ghostOthers(it, true);
     layout(); focus(it, S.inst);
     markInv(); syncLabels(); refreshEdges();
-    try { history.replaceState(null, '', '#m' + n); } catch (e) { /* sin historial */ }
+    setHash('m' + n);
+  }
+  function setHash(h) {
+    const v = S.ver === 'A' ? '' : S.ver.toLowerCase(), t = h ? h + v : v;
+    try { history.replaceState(null, '', t ? '#' + t : location.pathname + location.search); } catch (e) { /* sin historial */ }
   }
   function deselect(silent) {
     if (!S.sel) return;
@@ -134,7 +155,7 @@
     $('#act-spin').setAttribute('aria-pressed', 'false');
     $('#panel').hidden = true; $('#actions').hidden = true; $('#stepper').hidden = true; $('#hint').hidden = false;
     layout(); markInv(); syncLabels(); refreshEdges();
-    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sin historial */ }
+    setHash('');
     if (!silent) { const g = E.cam.goal; E.flyTo({ radius: Math.max(g.r, 6.5), phi: Math.min(g.ph, 1.25) }, 1.0); }
   }
   /* deja el mueble armado y la escena completa */
@@ -374,6 +395,7 @@
   const labelEls = [];
   function buildLabels() {
     const box = $('#labels');
+    box.innerHTML = ''; labelEls.length = 0;
     F.order.forEach((n) => {
       const it = F.items[n], multi = it.insts.length > 1 && unionRadius(it) > 2.6;
       (multi ? it.insts : [null]).forEach((o) => {
@@ -415,11 +437,7 @@
   /* ------------------------------------------------------------- inventario */
   const norm = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   function buildInventory() {
-    $('#inv-list').innerHTML = DATA.items.map((d, i) =>
-      '<li data-o="' + d.origen + '" data-q="' + esc(norm(d.n + ' ' + d.short + ' ' + d.name + ' ' + d.grupo)) + '" style="--i:' + i + '"><button type="button" class="inv-row" data-n="' + d.n + '">' +
-      '<span class="num">' + d.n + '</span><span class="inv-name">' + esc(d.short) + '<small>' + (d.origen === 'fabrica' ? 'Se fabrica' : 'Se compra') + (d.cant !== '1' ? ' · ' + esc(d.cant.split(' ')[0]) + ' u.' : '') + '</small></span>' +
-      '<span class="inv-cost">' + cop(d.total) + '</span></button></li>').join('');
-    $('#inv-total').innerHTML = '<span>Total del local<small>materiales y equipos</small></span><b>' + cop(DATA.presupuesto.total) + '</b>';
+    renderInvList();
     $('#inv-list').addEventListener('click', (e) => { const b = e.target.closest('.inv-row'); if (b) select(+b.dataset.n, null, { force: S.mode !== 'solid' }); });
     $('#inv-list').addEventListener('pointerover', (e) => { const b = e.target.closest('.inv-row'); const n = b ? +b.dataset.n : null; if (n !== S.rowHover) { S.rowHover = n; refreshEdges(); } });
     $('#inv-list').addEventListener('pointerleave', () => { if (S.rowHover) { S.rowHover = null; refreshEdges(); } });
@@ -435,6 +453,16 @@
       else if (e.key === 'Enter') { const li = $$('#inv-list li').find((x) => !x.hidden); if (li) select(+li.firstChild.dataset.n, null, { force: S.mode !== 'solid' }); }
     });
     $('#inv-total').addEventListener('click', openBudget);
+  }
+  function renderInvList() {
+    const vi = verInfo(S.ver);
+    $('#inv-ver').innerHTML = '<i style="--vc:' + vi.color + '">' + S.ver + '</i>' + esc(vi.nombre) + ' · ' + esc(vi.titulo);
+    $('#inv-list').innerHTML = ITEMS().map((d, i) =>
+      '<li data-o="' + d.origen + '" data-q="' + esc(norm(d.n + ' ' + d.short + ' ' + d.name + ' ' + d.grupo)) + '" style="--i:' + i + '"><button type="button" class="inv-row" data-n="' + d.n + '">' +
+      '<span class="num">' + d.n + '</span><span class="inv-name">' + esc(d.short) + '<small>' + (d.origen === 'fabrica' ? (S.ver === 'A' ? 'Se fabrica' : esc(d.name)) : 'Se compra') + (d.cant !== '1' ? ' · ' + esc(d.cant.split(' ')[0]) + ' u.' : '') + '</small></span>' +
+      '<span class="inv-cost">' + cop(d.total) + '</span></button></li>').join('');
+    $('#inv-total').innerHTML = '<span>Total del local<small>versión ' + S.ver + ' · materiales y equipos</small></span><b>' + cop(totals(S.ver).total) + '</b>';
+    filterInv(); markInv();
   }
   /* filtro por origen y búsqueda sin tildes ni mayúsculas, por número, nombre o grupo */
   function filterInv() {
@@ -455,7 +483,7 @@
   }
 
   /* -------------------------------------------------------------------- ficha */
-  const TABS = [['resumen', 'Resumen'], ['mats', 'Materiales'], ['fab', 'Fabricación'], ['ens', 'Ensamble'], ['why', 'Por qué']];
+  const TABS = [['resumen', 'Resumen'], ['mats', 'Materiales'], ['fab', 'Fabricación'], ['ens', 'Ensamble'], ['why', 'Por qué'], ['req', 'Requisitos']];
   function barList(rows, max, cls) {
     return '<ul class="bars ' + (cls || '') + '">' + rows.map((r) =>
       '<li' + (r.n ? ' data-n="' + r.n + '" tabindex="0" role="button"' : '') + ' title="' + esc(r.label) + ': ' + cop(r.v) + (r.sub ? ' — ' + esc(r.sub) : '') + '">' +
@@ -466,21 +494,22 @@
   function renderPanel() {
     const it = S.sel, d = byN[it.n], p = $('#panel');
     const fab = d.origen === 'fabrica', hasParts = new Set(); it.insts[0].parts.forEach((x) => hasParts.add(x.userData.mk));
-    const tabs = TABS.filter((t) => (t[0] !== 'fab' || d.fab.length)).map((t) => [t[0], !fab && t[0] === 'mats' ? 'Producto' : !fab && t[0] === 'ens' ? 'Instalación' : t[1]]);
+    const tabs = TABS.filter((t) => (t[0] !== 'fab' || d.fab.length) && (t[0] !== 'req' || VS.req[d.n])).map((t) => [t[0], !fab && t[0] === 'mats' ? 'Producto' : !fab && t[0] === 'ens' ? 'Instalación' : t[1]]);
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = 'resumen';
-    const idx = DATA.items.indexOf(d), prev = DATA.items[(idx + 19) % 20], next = DATA.items[(idx + 1) % 20];
+    const prev = NEXT(d.n, -1), next = NEXT(d.n, 1), TT = totals(S.ver);
     const top = d.mats.slice().sort((a, b) => b.costo - a.costo).slice(0, 5), maxC = top[0] ? top[0].costo : 1;
     const canAnim = d.seq && d.seq.length;
-    const share = (d.total / DATA.presupuesto.total * 100);
+    const share = (d.total / TT.total * 100);
     const sec = {};
     sec.resumen =
       '<p class="lead">' + esc(d.resumen) + '</p>' +
       '<dl class="facts"><div><dt>Medidas</dt><dd class="mono">' + esc(d.dims) + '</dd></div><div><dt>Cantidad</dt><dd>' + esc(d.cant) + '</dd></div><div class="wide"><dt>Ubicación en el plano</dt><dd>' + esc(d.ubic) + '</dd></div></dl>' +
       (it.insts[0].parts.length > 1 ? '<div class="cta"><button type="button" class="btn btn-led js-play"' + (canAnim ? '' : ' hidden') + '>Ver armado paso a paso</button><button type="button" class="btn js-explode">Explosionar</button></div>' : '') +
       '<h3>' + (fab ? 'En qué se va el costo' : 'Qué se compra') + '</h3>' + barList(top.map((m) => ({ label: m.m, v: m.costo })), maxC) +
-      '<p class="note">' + (fab ? 'Costo de materiales. ' : '') + 'Es el ' + (share < 1 ? share.toFixed(1).replace('.', ',') : Math.round(share)) + ' % del total del local (' + cop(DATA.presupuesto.total) + '). Precios del ' + esc(DATA.meta.fecha) + '.</p>';
+      '<p class="note">' + (fab ? 'Costo de materiales. ' : '') + 'Es el ' + (share < 1 ? share.toFixed(1).replace('.', ',') : Math.round(share)) + ' % del total del local en la versión ' + S.ver + ' (' + cop(TT.total) + '). Precios del ' + esc(d.ver ? VS.fecha : DATA.meta.fecha) + '.</p>' +
+      (VS.req[d.n] ? versCompare(d.n) : '');
     sec.mats =
-      '<p class="note">' + (fab ? 'El costo de tableros y cantos es la parte que le toca al mueble de las láminas y rollos completos que se compran. Pasa el cursor por un material para verlo en el modelo.' : 'El material es el que declara la ficha de la tienda.') + '</p>' +
+      '<p class="note">' + (fab ? (d.ver ? 'Láminas, barras, galones y carretes se compran completos para toda la versión ' + d.ver + ' y su costo se reparte entre los muebles por área, metros o peso. Toca el nombre de la tienda para ver el producto. Pasa el cursor por un material para verlo en el modelo.' : 'El costo de tableros y cantos es la parte que le toca al mueble de las láminas y rollos completos que se compran. Pasa el cursor por un material para verlo en el modelo.') : 'El material es el que declara la ficha de la tienda.') + '</p>' +
       '<ul class="mats">' + d.mats.map((m, i) => {
         const live = fab && hasParts.has(m.key);
         const procs = (m.proc || []).map((id) => procBy[id]).filter(Boolean);
@@ -488,7 +517,7 @@
           '<div class="mat-h"><b>' + esc(m.m) + '</b><span class="mono">' + (m.costo ? cop(m.costo) : '$0') + '</span></div>' +
           '<p>' + esc(m.uso) + '</p>' +
           '<p class="mat-q"><span>' + esc(m.cant) + '</span><span>' + esc(m.pu) + '</span></p>' +
-          (m.prov ? '<p class="mat-q"><span>' + esc(m.prov) + '</span><span>' + esc(m.nota || '') + '</span></p>' : '') +
+          (m.prov ? '<p class="mat-q"><span>' + (m.u ? '<a href="' + esc(m.u) + '" target="_blank" rel="noopener">' + esc(m.prov) + '</a>' : esc(m.prov)) + '</span><span>' + esc(m.nota || '') + '</span></p>' : '') +
           (live ? '<span class="eye" aria-hidden="true">ver en 3D</span>' : '') +
           (procs.length ? '<details><summary>Cómo se fabrica este material</summary>' + procs.map((pr) => '<div class="proc"><h4>' + esc(pr.mat) + '</h4><p>' + esc(pr.proceso) + '</p><p class="dato">' + esc(pr.dato) + '</p><p class="src">' + pr.fuentes.map((f) => '<a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.t) + '</a>').join(' · ') + '</p></div>').join('') + '</details>' : '') +
           '</li>';
@@ -499,11 +528,12 @@
       (canAnim ? '<div class="seq-box"><div class="seq-h"><h3>Animación de armado</h3><button type="button" class="btn btn-led js-play">Ver armado paso a paso</button></div><ol class="seq">' + d.seq.map((s, i) => '<li><button type="button" data-k="' + i + '"><span>' + esc(s.t) + '</span><small>' + esc(s.src) + '</small></button></li>').join('') + '</ol></div>' : '') +
       '<h3>' + (fab ? 'Ensamble en el local' : 'Instalación') + '</h3><ol class="steps">' + d.ens.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ol>';
     sec.why = '<ul class="why">' + d.why.map((w) => '<li><h4>' + esc(w.t) + '</h4><p>' + esc(w.d) + '</p></li>').join('') + '</ul>';
+    if (VS.req[d.n]) sec.req = reqPanel(d.n);
 
     p.innerHTML =
       '<div class="grabber" aria-hidden="true"></div>' +
       '<header class="p-head">' +
-        '<div class="p-top"><span class="num num-lg">' + d.n + '</span><span class="pill pill-' + d.origen + '">' + (fab ? 'Se fabrica' + (d.origenNota ? ' · ' + esc(d.origenNota) : '') : 'Se compra') + '</span><span class="p-group">' + esc(d.grupo) + '</span>' +
+        '<div class="p-top"><span class="num num-lg">' + d.n + '</span><span class="pill pill-' + d.origen + '">' + (fab ? 'Se fabrica' + (d.origenNota ? ' · ' + esc(d.origenNota) : '') : 'Se compra') + '</span>' + (VS.req[d.n] ? '<button type="button" class="vchip" data-vers="1" title="Comparar las tres versiones" style="--vc:' + verInfo(S.ver).color + '"><i>' + S.ver + '</i>' + esc(verInfo(S.ver).nombre) + '</button>' : '<span class="p-group">' + esc(d.grupo) + '</span>') +
         '<div class="p-acts"><button type="button" class="ibtn ibtn-fill" id="p-share" aria-label="Copiar enlace a esta ficha" title="Copiar enlace"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 12.4V3.2M6.6 6.4 10 3l3.4 3.4M6.2 9H4.6v8h10.8V9h-1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
         '<button type="button" class="ibtn ibtn-fill" id="p-close" aria-label="Cerrar ficha" title="Cerrar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div></div>' +
         '<h2>' + esc(d.name) + '</h2>' +
@@ -525,6 +555,9 @@
       const tab = t.closest('[data-tab]');
       if (tab) { S.tab = tab.dataset.tab; $$('[data-tab]', p).forEach((b) => b.setAttribute('aria-selected', b === tab)); $$('[data-panel]', p).forEach((s) => { s.hidden = s.dataset.panel !== S.tab; }); $('.p-body', p).scrollTop = 0; setHL(null); return; }
       const go = t.closest('[data-go]'); if (go) return select(+go.dataset.go, null, { tab: S.tab, force: true });
+      const sv = t.closest('[data-setver]'); if (sv) return setVersion(sv.dataset.setver);
+      if (t.closest('[data-vers]')) return openVersions();
+      if (t.closest('[data-reqs]')) return openReqs(+t.closest('[data-reqs]').dataset.reqs);
       if (t.closest('.js-play')) return playAsm(0);
       if (t.closest('.js-explode')) return setExplode(S.mode !== 'exploded');
       const sq = t.closest('.seq button'); if (sq) { if (S.mode !== 'asm') { playAsm(+sq.dataset.k); } else { S.playing = false; asmStep(+sq.dataset.k, true); } return; }
@@ -541,6 +574,7 @@
   let lastFocus = null, lastPress = null, lastPressT = 0, winDrag = null;
   document.addEventListener('pointerdown', (e) => { const b = e.target.closest && e.target.closest('button, .inv-foot'); if (b) { lastPress = b; lastPressT = performance.now(); } }, true);
   function openModal(title, html, cls, from) {
+    if (S.reopen) { $('#modal-title').textContent = title; $('#modal-body').innerHTML = html; return; }
     lastFocus = document.activeElement;
     const card = $('.modal-card');
     $('#modal-title').textContent = title; $('#modal-body').innerHTML = html; $('#modal-body').scrollTop = 0;
@@ -554,6 +588,7 @@
   }
   function closeModal(min) {
     if ($('#modal').hidden) return;
+    S.modalKind = null;
     if (min === true) { L.ui.originFrom($('.modal-card'), S.winFrom); $('#modal').classList.add('is-min'); }
     $('#modal').hidden = true;
     restoreFocus(lastFocus, $('#modal'));
@@ -566,11 +601,14 @@
   }
   function zoomModal() { $('.modal-card').classList.toggle('is-zoomed'); if (winDrag) winDrag.reset(); }
   function openBudget() {
+    S.modalKind = 'budget';
+    const vline = '<p class="vline">' + vtag(S.ver) + '<span>Versión ' + S.ver + ' · ' + esc(verInfo(S.ver).nombre) + ' — ' + esc(verInfo(S.ver).titulo) + '</span><button type="button" class="btn btn-sm" data-vers="1">Comparar versiones</button></p>';
+    if (S.ver !== 'A') return openModal('Presupuesto del local · versión ' + S.ver, vline + budgetAlt(S.ver), 'is-wide');
     const P = DATA.presupuesto;
     const fab = DATA.items.filter((i) => i.origen === 'fabrica').sort((a, b) => b.total - a.total), buy = DATA.items.filter((i) => i.origen === 'compra').sort((a, b) => b.total - a.total);
     const row = (i) => ({ n: i.n, label: i.short, v: i.total });
-    openModal('Presupuesto del local',
-      '<div class="kpis"><div><span>Total en materiales y equipos</span><b class="mono">' + cop(P.total) + '</b></div><div><span>12 elementos que se fabrican</span><b class="mono">' + cop(P.fabricado) + '</b></div><div><span>8 productos que se compran</span><b class="mono">' + cop(P.comprado) + '</b></div></div>' +
+    openModal('Presupuesto del local · versión A',
+      vline + '<div class="kpis"><div><span>Total en materiales y equipos</span><b class="mono">' + cop(P.total) + '</b></div><div><span>12 elementos que se fabrican</span><b class="mono">' + cop(P.fabricado) + '</b></div><div><span>8 productos que se compran</span><b class="mono">' + cop(P.comprado) + '</b></div></div>' +
       '<p class="lead">Más del 40 % del total, ' + cop(P.impresoras) + ', son las cuatro impresoras 3D. La cifra no incluye mano de obra, transporte, instalación eléctrica ni plantas.</p>' +
       '<div class="cols"><section><h3>Se fabrica <small>materiales por mueble</small></h3>' + barList(fab.map(row), fab[0].total, 'is-click') + '<p class="note">El mueble bajo y el mesón concentran más de un tercio del costo de fabricación. La mampara es el cuarto costo aunque solo tiene dos piezas, porque el vidrio templado se paga por metro cuadrado.</p></section>' +
       '<section><h3>Se compra <small>escala propia</small></h3>' + barList(buy.map(row), buy[0].total, 'is-click') + '<p class="note">El escritorio completo cuesta menos que un solo taburete.</p></section></div>' +
@@ -582,6 +620,7 @@
       '<div class="cols"><section><h3>Supuestos de las cifras</h3><ul class="plain">' + P.supuestos.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ul></section><section><h3>Pendientes antes del primer corte</h3><ul class="plain check">' + P.pendientes.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ul></section></div>', 'is-wide');
   }
   function openMats() {
+    S.modalKind = 'mats';
     openModal('Materiales y procesos',
       '<p class="lead">Todo el mobiliario sale de 6 tableros, 3 cantos y unos 25 herrajes e insumos, casi todos de Madecentro y Homecenter. Precios publicados en línea por cada tienda el ' + esc(DATA.meta.fecha) + ', en pesos colombianos.</p>' +
       '<h3>Cómo se fabrica cada material</h3><p class="note">Nueve materiales industriales componen el mobiliario. Así llega cada uno a la tienda antes de que el carpintero lo toque.</p>' +
@@ -600,7 +639,7 @@
   }
   function shareLink() {
     const it = S.sel; if (!it) return;
-    const url = location.href.split('#')[0] + '#m' + it.n, name = byN[it.n].short;
+    const url = location.href.split('#')[0] + '#m' + it.n + (S.ver === 'A' ? '' : S.ver.toLowerCase()), name = byN[it.n].short;
     const ok = () => L.ui.toast('Enlace copiado', 'Abre directamente la ficha de ' + name + '.', 'link');
     const fail = () => (copyText(url) ? ok() : L.ui.toast('No se pudo copiar', url, 'err', 8000));
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(ok, fail); else fail();
@@ -613,7 +652,7 @@
     L.ui.toast('Preparando el modelo 3D', 'Muros, mobiliario pieza por pieza, materiales y luces.', 'cube', 2500);
     try {
       exitMontaje(true); deselect(true);
-      const views = ['fachada', 'interior', 'taller', 'aerea', 'planta'].map((k) => Object.assign({ name: k === 'aerea' ? 'Aérea' : k[0].toUpperCase() + k.slice(1) }, VIEWS[k]));
+      const views = ['fachada', 'interior', 'aerea', 'planta'].map((k) => Object.assign({ name: k === 'aerea' ? 'Aérea' : k[0].toUpperCase() + k.slice(1) }, VIEWS[k]));
       const bytes = await L.exporter.download({ views }), mb = (bytes / 1048576).toFixed(1).replace('.', ',');
       L.ui.toast('Modelo 3D listo', 'local-impresion-3d.glb · ' + mb + ' MB. Ábrelo en Unreal Engine, Blender o Twinmotion.', 'cube', 6000);
     } catch (err) {
@@ -680,6 +719,309 @@
     if (!quiet) goView('aerea');
   }
 
+  /* ---------------------------------------------------- versiones del mobiliario */
+  const FABN = DATA.items.filter((d) => d.origen === 'fabrica' && VS.req[d.n]).map((d) => d.n);
+  const baseItems = {};                    // los muebles de la versión A, guardados al cambiar de versión
+  const cumpleOf = (n, v) => (v === 'A' ? VS.cumpleA[n] : VS.items[v][n] && VS.items[v][n].cumple) || [];
+  const stIcon = (e) => '<i class="st st-' + e + '" role="img" aria-label="' + (e === 'si' ? 'Cumple' : 'Cumple con una salvedad') + '"></i>';
+  const vtag = (v, cls) => '<i class="vtag ' + (cls || '') + '" style="--vc:' + verInfo(v).color + '">' + v + '</i>';
+  const itemCost = (n, v) => (v === 'A' ? baseN[n].total : VS.calc(v).items[n].total);
+  const itemName = (n, v) => (v === 'A' ? baseN[n].name : VS.items[v][n].name);
+
+  function setVersion(v, opt) {
+    opt = opt || {};
+    const vi = verInfo(v);
+    if (!vi || (v === S.ver && !opt.force)) return;
+    exitMontaje(true);
+    const keep = S.sel ? { n: S.sel.n, tab: S.tab } : null;
+    if (S.sel) deselect(true);
+    let set = null;
+    if (v !== 'A') {
+      try { set = L.alt.build(v); E.finalize(); } catch (err) { console.error(err); L.ui.toast('No se pudo armar la versión ' + v, String(err && err.message || err), 'err', 7000); return; }
+    }
+    const gen = (S.verGen = (S.verGen || 0) + 1), fresh = [];
+    FABN.forEach((n) => {
+      const cur = F.items[n], nxt = set ? set[n] : baseItems[n];
+      if (!nxt) return;
+      if (cur !== nxt) cur.insts.forEach((o) => { o.group.visible = false; o.group.userData.verOff = true; });
+      nxt.insts.forEach((o) => { o.group.visible = true; o.group.userData.verOff = false; o.group.position.copy(o.home); fresh.push(o); });
+      F.items[n] = nxt; byN[n] = dataFor(n, v);
+    });
+    S.ver = v;
+    // los muebles nuevos caen en su sitio, del fondo hacia la fachada
+    if (!opt.quiet && !E.reduced) {
+      fresh.sort((a, b) => a.home.z - b.home.z);
+      fresh.forEach((o, i) => {
+        o.group.visible = false;
+        E.tween(0.75, (e) => {
+          if (gen !== S.verGen) return;
+          o.group.visible = true; o.group.position.copy(o.home); o.group.position.y += 1.4 * (1 - e);
+        }, { delay: 0.05 + i * 0.05, ease: E.ease.outQuint, done: () => { if (gen === S.verGen) { o.group.position.copy(o.home); E.shadowDirty = true; } } });
+      });
+    }
+    E.setLed(E.ledLevel); E.shadowDirty = true; E.invalidate(3);
+    buildLabels(); syncLabels(); renderInvList(); SP.all = null;
+    syncVerUI();
+    if (S.planOpen) renderPlan();
+    if (keep) select(keep.n, null, { tab: keep.tab, force: true });
+    setHash(S.planOpen ? 'plano' : keep ? 'm' + keep.n : '');
+    if (!$('#modal').hidden && S.modalKind) reopenModal();
+    if (!opt.quiet) L.ui.toast('Versión ' + v + ' · ' + vi.nombre, vi.titulo + '. Mobiliario fabricado: ' + cop(totals(v).fabricado) + ' en materiales.', 'cube', 4200);
+  }
+  function syncVerUI() {
+    $$('[data-ver]').forEach((b) => { const on = b.dataset.ver === S.ver; b.classList.toggle('is-on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+    app.style.setProperty('--vc', verInfo(S.ver).color);
+  }
+  /* comparación de las tres versiones de un mueble (pestaña Resumen) */
+  function versCompare(n) {
+    const rows = VS.list.map((v) => ({ v: v.id, c: itemCost(n, v.id), nm: itemName(n, v.id) })), max = Math.max.apply(null, rows.map((r) => r.c));
+    return '<h3>Tres versiones de este mueble</h3><ul class="vcmp">' + rows.map((r) =>
+      '<li class="' + (r.v === S.ver ? 'is-on' : '') + '">' + vtag(r.v) +
+      '<span class="vcmp-n"><b>' + esc(r.nm) + '</b><span class="vbar"><span style="width:' + (r.c / max * 100).toFixed(1) + '%;background:' + verInfo(r.v).color + '"></span></span></span>' +
+      '<span class="vcmp-c mono">' + cop(r.c) + '</span>' +
+      (r.v === S.ver ? '<span class="vcmp-a">En el modelo</span>' : '<button type="button" class="btn btn-sm" data-setver="' + r.v + '">Ver</button>') + '</li>').join('') + '</ul>' +
+      '<p class="note">Al cambiar de versión cambian los doce muebles que se fabrican; los ocho productos que se compran son los mismos. <button type="button" class="link" data-vers="1">Comparar las tres versiones</button></p>';
+  }
+  /* requisitos del mueble y cómo los cumple cada versión (pestaña Requisitos) */
+  function reqPanel(n) {
+    const R0 = VS.req[n], cur = cumpleOf(n, S.ver);
+    return '<p class="note" style="margin-top:0">Lo que el mueble debe resolver, sacado del documento del proyecto, del plano y de las imágenes de referencia. Es igual para las tres versiones; cambia la manera de cumplirlo.</p>' +
+      '<ol class="reqs">' + R0.map((r, i) => {
+        const c = cur[i] || ['si', ''];
+        return '<li class="req-' + c[0] + '"><div class="req-h">' + stIcon(c[0]) + '<b>' + esc(r) + '</b></div>' +
+          '<p><span class="req-v">' + vtag(S.ver, 'sm') + '</span>' + esc(c[1]) + '</p>' +
+          '<div class="req-o">' + VS.list.filter((v) => v.id !== S.ver).map((v) => { const o = cumpleOf(n, v.id)[i] || ['si', '']; return '<span title="' + esc('Versión ' + v.id + ': ' + o[1]) + '">' + vtag(v.id, 'sm') + stIcon(o[0]) + '<em>' + esc(o[1]) + '</em></span>'; }).join('') + '</div></li>';
+      }).join('') + '</ol>' +
+      '<div class="cta"><button type="button" class="btn" data-reqs="' + n + '">Todos los requisitos de diseño</button></div>';
+  }
+
+  /* ventana: las tres versiones lado a lado */
+  function openVersions() {
+    S.modalKind = 'vers';
+    const T3 = VS.list.map((v) => Object.assign({ v }, totals(v.id)));
+    const maxF = Math.max.apply(null, T3.map((t) => t.fabricado));
+    const card = (t) => {
+      const v = t.v, cur = v.id === S.ver, dif = t.fabricado - T3[0].fabricado;
+      return '<article class="vcard' + (cur ? ' is-on' : '') + '" style="--vc:' + v.color + '">' +
+        '<header>' + vtag(v.id, 'lg') + '<div><h4>' + esc(v.nombre) + '</h4><span>' + esc(v.titulo) + '</span></div></header>' +
+        '<p>' + esc(v.concepto) + '</p>' +
+        '<dl class="vnums"><div><dt>Mobiliario fabricado</dt><dd class="mono">' + cop(t.fabricado) + '</dd></div><div><dt>Total del local</dt><dd class="mono">' + cop(t.total) + '</dd></div>' +
+        '<div class="wide"><dt>Frente a la versión A</dt><dd class="mono">' + (v.id === 'A' ? 'Referencia' : (dif > 0 ? '+' : '−') + cop(Math.abs(dif)) + ' (' + (dif > 0 ? '+' : '−') + Math.round(Math.abs(dif) / T3[0].fabricado * 100) + ' %)') + '</dd></div></dl>' +
+        '<h5>Materiales</h5><ul class="plain">' + v.materiales.map((m) => '<li>' + esc(m) + '</li>').join('') + '</ul>' +
+        '<h5>A favor</h5><ul class="plain pro">' + v.ventajas.map((m) => '<li>' + esc(m) + '</li>').join('') + '</ul>' +
+        '<h5>En contra</h5><ul class="plain con">' + v.contras.map((m) => '<li>' + esc(m) + '</li>').join('') + '</ul>' +
+        '<footer>' + (cur ? '<span class="vcur">Es la versión que está en el modelo</span>' : '<button type="button" class="btn btn-led" data-setver="' + v.id + '">Ver la versión ' + v.id + ' en 3D</button>') + '</footer></article>';
+    };
+    const maxI = Math.max.apply(null, FABN.map((n) => Math.max(itemCost(n, 'A'), itemCost(n, 'B'), itemCost(n, 'C'))));
+    const chart = '<div class="gbars" role="table" aria-label="Costo de materiales por mueble y versión">' +
+      '<div class="gb-legend" aria-hidden="true">' + VS.list.map((v) => '<span><i style="background:' + v.color + '"></i>' + v.id + ' · ' + esc(v.nombre) + '</span>').join('') + '</div>' +
+      FABN.map((n) => '<div class="gb-row" role="row" data-n="' + n + '" tabindex="0"><span class="gb-l" role="rowheader"><i class="num">' + n + '</i>' + esc(baseN[n].short) + '</span><span class="gb-b">' +
+        VS.list.map((v) => { const c = itemCost(n, v.id); return '<span class="gb-bar" role="cell" title="' + esc(v.id + ' · ' + itemName(n, v.id) + ': ' + cop(c)) + '"><span style="width:' + Math.max(0.8, c / maxI * 100).toFixed(2) + '%;background:' + v.color + '"></span><em class="mono">' + v.id + ' ' + copShort(c) + '</em></span>'; }).join('') +
+        '</span></div>').join('') + '</div>';
+    const html =
+      '<p class="lead">El mismo local de 6.00 × 7.00 m con tres juegos de muebles. Cada versión conserva la huella de cada mueble en el plano, los pasos libres y los ocho productos que se compran; cambian el diseño, los materiales, la fabricación y el armado de los doce muebles que se fabrican.</p>' +
+      '<div class="vtot">' + T3.map((t) => '<div style="--vc:' + t.v.color + '"><span>' + vtag(t.v.id, 'sm') + esc(t.v.nombre) + '</span><span class="vtot-b"><span style="width:' + (t.fabricado / maxF * 100).toFixed(1) + '%"></span></span><b class="mono">' + cop(t.fabricado) + '</b></div>').join('') + '</div>' +
+      '<p class="note" style="margin-top:6px">Materiales de los doce muebles fabricados. Precios publicados por cada tienda el ' + esc(VS.fecha) + '; sin mano de obra, transporte ni instalación.</p>' +
+      '<div class="vcards">' + T3.map(card).join('') + '</div>' +
+      '<h3>Costo de cada mueble en las tres versiones <small>toca un mueble para ver su ficha</small></h3>' + chart +
+      '<div class="cta"><button type="button" class="btn" data-reqs="0">Requisitos de diseño</button><button type="button" class="btn" data-plan="1">Ver el plano 2D</button><button type="button" class="btn" data-budget="1">Presupuesto de la versión ' + S.ver + '</button></div>';
+    openModal('Versiones del mobiliario', html, 'is-wide');
+  }
+
+  /* ventana: requisitos de diseño */
+  function openReqs(n) {
+    S.modalKind = 'reqs'; S.reqN = n || 0;
+    const cnt = (v) => { let si = 0, pa = 0; FABN.forEach((k) => cumpleOf(k, v).forEach((c) => { if (c[0] === 'si') si++; else pa++; })); return { si, pa }; };
+    const tot = FABN.reduce((a, k) => a + VS.req[k].length, 0);
+    const html =
+      '<p class="lead">Antes de dibujar un mueble se fijaron las condiciones que debía cumplir: el espacio del plano, la ergonomía de quien atiende y de quien compra, las cargas de las impresoras y del filamento, la luz, la seguridad, la fabricación con láminas comerciales, la imagen de marca y el presupuesto. Las tres versiones responden a los mismos requisitos.</p>' +
+      '<div class="rq-sum">' + VS.list.map((v) => { const c = cnt(v.id); return '<div style="--vc:' + v.color + '">' + vtag(v.id) + '<span><b>' + esc(v.nombre) + '</b><small>' + c.si + ' de ' + tot + ' requisitos cumplidos' + (c.pa ? ' · ' + c.pa + ' con salvedad' : '') + '</small></span></div>'; }).join('') + '</div>' +
+      '<h3>Requisitos generales</h3><div class="rq-gen">' + VS.generales.map((g) => '<article><h4>' + esc(g.t) + '</h4><span class="src">' + esc(g.src) + '</span><ul class="plain">' + g.d.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></article>').join('') + '</div>' +
+      '<h3>Requisitos de cada mueble <small>' + stIcon('si') + ' cumple · ' + stIcon('parcial') + ' cumple con una salvedad</small></h3>' +
+      '<div class="rq-pick seg seg-sm" role="group" aria-label="Mueble">' + '<button type="button" data-rqn="0"' + (S.reqN ? '' : ' class="is-on"') + '>Todos</button>' + FABN.map((k) => '<button type="button" data-rqn="' + k + '"' + (S.reqN === k ? ' class="is-on"' : '') + '>' + k + '</button>').join('') + '</div>' +
+      '<div class="rq-items">' + FABN.map((k) => '<section class="rq-item" data-rq="' + k + '"' + (S.reqN && S.reqN !== k ? ' hidden' : '') + '><header><i class="num">' + k + '</i><h4>' + esc(baseN[k].short) + '</h4><button type="button" class="btn btn-sm" data-goitem="' + k + '">Ver ficha</button></header>' +
+        '<div class="tbl-wrap"><table class="tbl rq-tbl"><thead><tr><th>Requisito</th>' + VS.list.map((v) => '<th class="' + (v.id === S.ver ? 'is-cur' : '') + '">' + vtag(v.id, 'sm') + esc(v.nombre) + '</th>').join('') + '</tr></thead><tbody>' +
+        VS.req[k].map((r, i) => '<tr><td>' + esc(r) + '</td>' + VS.list.map((v) => { const c = cumpleOf(k, v.id)[i] || ['si', '']; return '<td class="' + (v.id === S.ver ? 'is-cur' : '') + ' rq-' + c[0] + '">' + stIcon(c[0]) + esc(c[1]) + '</td>'; }).join('') + '</tr>').join('') +
+        '</tbody></table></div></section>').join('') + '</div>' +
+      '<p class="note">Fuentes: documento «Intención del proyecto», plano de distribución e imágenes de referencia del local. Las medidas del plano se estimaron desde la imagen con el frente de 6.00 m; se verifican en sitio antes de cortar.</p>';
+    openModal('Requisitos de diseño', html, 'is-wide');
+    L.ui.seg($('.rq-pick'));
+    if (S.reqN && !S.reopen) {
+      const pk = $('.rq-pick'), el = $('.rq-pick .is-on'), body = $('#modal-body');
+      requestAnimationFrame(() => { body.scrollTop = pk.offsetTop - 14; if (el) pk.scrollLeft = el.offsetLeft - pk.clientWidth / 2 + el.offsetWidth / 2; });
+    }
+  }
+  function reopenModal() {
+    const k = S.modalKind, body = $('#modal-body'), top = body.scrollTop;
+    S.reopen = true;
+    try { if (k === 'vers') openVersions(); else if (k === 'reqs') openReqs(S.reqN); else if (k === 'budget') openBudget(); } finally { S.reopen = false; }
+    body.scrollTop = top;
+  }
+
+  /* --------------------------------------------------------------- plano 2D */
+  const PO = { k: 1, x: 0, y: 0, cotas: true, nums: true, ptrs: new Map(), W: 1260, H: 891 };
+  const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+  function openPlan() {
+    if (S.planOpen) return;
+    exitMontaje(true); deselect(true); if (!$('#modal').hidden) closeModal(); closeSpot(true);
+    S.planOpen = true; S.planFrom = S.view || 'fachada';
+    renderPlan();
+    $('#plano').hidden = false; document.body.classList.add('plan-open');
+    $$('#views button').forEach((b) => b.classList.toggle('is-on', b.dataset.view === 'plano'));
+    requestAnimationFrame(() => { L.ui.syncSegs(); planFit(false); });
+    setHash('plano');
+  }
+  function closePlan(silent) {
+    if (!S.planOpen) return;
+    S.planOpen = false; $('#plano').hidden = true; document.body.classList.remove('plan-open'); planCard(null);
+    setHash('');
+    if (!silent) goView(S.planFrom && VIEWS[S.planFrom] ? S.planFrom : 'fachada', 1.2);
+  }
+  function renderPlan() {
+    $('#pl-sheet').innerHTML = L.plan.svg(S.ver, { cotas: PO.cotas, nums: PO.nums });
+    const vi = verInfo(S.ver);
+    $('#pl-sub').textContent = 'Versión ' + S.ver + ' · escala 1:50 en A3'; void vi;
+    $('#pl-cotas').setAttribute('aria-pressed', PO.cotas ? 'true' : 'false');
+    $('#pl-nums').setAttribute('aria-pressed', PO.nums ? 'true' : 'false');
+    if (PO.card) planCard(PO.card);
+  }
+  function planApply(anim) {
+    const sh = $('#pl-sheet');
+    sh.classList.toggle('is-anim', !!anim);
+    sh.style.transform = 'translate(' + PO.x.toFixed(1) + 'px,' + PO.y.toFixed(1) + 'px) scale(' + PO.k.toFixed(4) + ')';
+    $('#pl-zv').textContent = Math.round(PO.k / PO.fitK * 100) + ' %';
+  }
+  function planFit(anim) {
+    const st = $('#pl-stage'), w = st.clientWidth, h = st.clientHeight, pad = w < 600 ? 12 : 36;
+    PO.fitK = PO.k = Math.min((w - pad * 2) / PO.W, (h - pad * 2) / PO.H);
+    PO.x = (w - PO.W * PO.k) / 2; PO.y = (h - PO.H * PO.k) / 2;
+    planApply(anim);
+  }
+  function planZoom(f, cx, cy, anim) {
+    const st = $('#pl-stage');
+    if (cx == null) { cx = st.clientWidth / 2; cy = st.clientHeight / 2; }
+    const k = E.clamp(PO.k * f, PO.fitK * 0.6, PO.fitK * 8), r = k / PO.k;
+    PO.x = cx - (cx - PO.x) * r; PO.y = cy - (cy - PO.y) * r; PO.k = k;
+    planApply(anim);
+  }
+  function planHL(n) {
+    if (PO.hl === n) return; PO.hl = n;
+    $$('#pl-sheet [data-n]').forEach((g) => g.classList.toggle('is-hl', n != null && +g.dataset.n === n));
+  }
+  function planCard(n) {
+    PO.card = n; const c = $('#pl-card');
+    if (n == null) { c.hidden = true; planHL(null); return; }
+    const d = byN[n], fab = d.origen === 'fabrica';
+    c.innerHTML = '<div class="plc-h"><span class="num">' + n + '</span><span class="pill pill-' + d.origen + '">' + (fab ? 'Se fabrica' : 'Se compra') + '</span>' + (fab && VS.req[n] ? vtag(S.ver, 'sm') : '') +
+      '<button type="button" class="ibtn ibtn-fill" id="plc-x" aria-label="Cerrar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>' +
+      '<h4>' + esc(d.name) + '</h4><p class="plc-m mono">' + esc(d.dims) + ' · ' + esc(d.cant) + '</p><p class="plc-u">' + esc(d.ubic) + '</p>' +
+      '<div class="plc-f"><b class="mono">' + cop(d.total) + '</b><button type="button" class="btn btn-led" id="plc-go">Abrir ficha en 3D</button></div>';
+    c.hidden = false; planHL(n);
+  }
+  function planPrint() {
+    document.body.classList.add('is-printing');
+    const done = () => { document.body.classList.remove('is-printing'); window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    setTimeout(() => { try { window.print(); } catch (e) { done(); } }, 60);
+  }
+  function planDownload() {
+    const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' + L.plan.svg(S.ver, { cotas: PO.cotas, nums: PO.nums });
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const a = document.createElement('a'); a.href = url; a.download = 'plano-blackforge-version-' + S.ver.toLowerCase() + '.svg';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    L.ui.toast('Plano descargado', a.download + ' · lámina A3 a escala 1:50, lista para AutoCAD, Illustrator o Inkscape.', 'ok', 5000);
+  }
+  function bindPlan() {
+    const st = $('#pl-stage'), root = $('#plano');
+    if (inFrame) { $('#pl-print').hidden = true; $('#pl-svg').hidden = true; }
+    L.ui.seg($('#pl-ver'));
+    root.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t.closest('#pl-back')) return closePlan();
+      const vb = t.closest('[data-ver]'); if (vb) return setVersion(vb.dataset.ver);
+      if (t.closest('#pl-cotas')) { PO.cotas = !PO.cotas; return renderPlan(); }
+      if (t.closest('#pl-nums')) { PO.nums = !PO.nums; return renderPlan(); }
+      if (t.closest('#pl-zi')) return planZoom(1.4, null, null, true);
+      if (t.closest('#pl-zo')) return planZoom(1 / 1.4, null, null, true);
+      if (t.closest('#pl-fit')) return planFit(true);
+      if (t.closest('#pl-print')) return planPrint();
+      if (t.closest('#pl-svg')) return planDownload();
+      if (t.closest('#plc-x')) return planCard(null);
+      if (t.closest('#plc-go')) { const n = PO.card; closePlan(true); planCard(null); return select(n, null, { force: true }); }
+    });
+    const elAt = (t) => t.closest && t.closest('#pl-sheet [data-n]');
+    st.addEventListener('pointerover', (e) => { if (e.pointerType === 'touch') return; const g = elAt(e.target); if (PO.card == null) planHL(g ? +g.dataset.n : null); });
+    st.addEventListener('pointerleave', () => { if (PO.card == null) planHL(null); });
+    st.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { const g = elAt(e.target); if (g) { e.preventDefault(); planCard(+g.dataset.n); } } });
+    // desplazar con un dedo o el ratón, pellizcar o rueda para acercar
+    let moved = 0, pinch = null;
+    st.addEventListener('pointerdown', (e) => {
+      if (e.button > 0) return;
+      PO.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0;
+      try { st.setPointerCapture(e.pointerId); } catch (err) { /* sin captura */ }
+      if (PO.ptrs.size === 2) { const p = Array.from(PO.ptrs.values()); pinch = { d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), k: PO.k }; }
+      st.classList.add('is-grab');
+    });
+    st.addEventListener('pointermove', (e) => {
+      const p0 = PO.ptrs.get(e.pointerId); if (!p0) return;
+      const dx = e.clientX - p0.x, dy = e.clientY - p0.y; p0.x = e.clientX; p0.y = e.clientY;
+      if (PO.ptrs.size === 1) { PO.x += dx; PO.y += dy; moved += Math.abs(dx) + Math.abs(dy); planApply(false); }
+      else if (pinch && PO.ptrs.size === 2) {
+        const p = Array.from(PO.ptrs.values()), d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), r = st.getBoundingClientRect();
+        planZoom(pinch.k * d / pinch.d / PO.k, (p[0].x + p[1].x) / 2 - r.left, (p[0].y + p[1].y) / 2 - r.top, false); moved = 99;
+      }
+    });
+    const up = (e) => {
+      const had = PO.ptrs.delete(e.pointerId);
+      if (PO.ptrs.size < 2) pinch = null;
+      if (!PO.ptrs.size) st.classList.remove('is-grab');
+      if (had && moved < 6 && e.type === 'pointerup') {
+        const hit = document.elementFromPoint(e.clientX, e.clientY), g = hit && elAt(hit);
+        if (g) planCard(+g.dataset.n); else if (!hit || !hit.closest('#pl-card')) planCard(null);
+      }
+    };
+    st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
+    st.addEventListener('wheel', (e) => {
+      e.preventDefault(); const r = st.getBoundingClientRect();
+      if (e.ctrlKey || Math.abs(e.deltaY) > Math.abs(e.deltaX) && !e.shiftKey) planZoom(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018)), e.clientX - r.left, e.clientY - r.top, false);
+      else { PO.x -= e.deltaX; PO.y -= e.deltaY; planApply(false); }
+    }, { passive: false });
+    st.addEventListener('dblclick', (e) => { const r = st.getBoundingClientRect(); planZoom(1.8, e.clientX - r.left, e.clientY - r.top, true); });
+    window.addEventListener('resize', () => { if (S.planOpen) planFit(false); });
+  }
+
+  /* presupuesto de una versión alternativa */
+  function budgetAlt(v) {
+    const P = DATA.presupuesto, C = VS.calc(v), vi = verInfo(v), TT = totals(v);
+    const fab = FABN.map((n) => byN[n]).sort((a, b) => b.total - a.total), buy = DATA.items.filter((i) => i.origen === 'compra').sort((a, b) => b.total - a.total);
+    const row = (i) => ({ n: i.n, label: i.short, v: i.total, sub: i.origen === 'fabrica' ? i.name : '' });
+    const group = (key) => { const g = {}; C.compras.forEach((c) => { const k = c[key] || 'Otros'; g[k] = g[k] || { r: k, c: 0, n: 0 }; g[k].c += c.costo; g[k].n++; }); return Object.values(g).sort((a, b) => b.c - a.c); };
+    const cats = group('cat'), provs = group('prov');
+    const compras = C.compras.slice().sort((a, b) => b.costo - a.costo);
+    const dif = TT.fabricado - P.fabricado;
+    return '<div class="kpis"><div><span>Total en materiales y equipos · versión ' + v + '</span><b class="mono">' + cop(TT.total) + '</b></div><div><span>12 muebles que se fabrican</span><b class="mono">' + cop(TT.fabricado) + '</b></div><div><span>8 productos que se compran</span><b class="mono">' + cop(P.comprado) + '</b></div></div>' +
+      '<p class="lead">Versión ' + v + ', ' + esc(vi.nombre.toLowerCase()) + ': ' + esc(vi.titulo.toLowerCase()) + '. El mobiliario cuesta ' + cop(Math.abs(dif)) + (dif > 0 ? ' más' : ' menos') + ' que en la versión A (' + (dif > 0 ? '+' : '−') + Math.round(Math.abs(dif) / P.fabricado * 100) + ' %). Los productos que se compran, impresoras incluidas, no cambian. Sin mano de obra, transporte ni instalación eléctrica.</p>' +
+      '<div class="cols"><section><h3>Se fabrica <small>materiales por mueble</small></h3>' + barList(fab.map(row), fab[0].total, 'is-click') + '</section>' +
+      '<section><h3>Se compra <small>igual en las tres versiones</small></h3>' + barList(buy.map(row), buy[0].total, 'is-click') + '</section></div>' +
+      '<div class="cols"><section><h3>Por tipo de insumo</h3>' + barList(cats.map((r) => ({ label: r.r, v: r.c, sub: r.n + (r.n === 1 ? ' insumo' : ' insumos') })), cats[0].c) + '</section>' +
+      '<section><h3>Por tienda</h3>' + barList(provs.map((r) => ({ label: r.r, v: r.c, sub: r.n + (r.n === 1 ? ' insumo' : ' insumos') })), provs[0].c) + '</section></div>' +
+      '<h3>Plan de compras de la versión ' + v + ' <small>' + compras.length + ' insumos · toca el nombre para ver el producto en la tienda</small></h3>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Insumo</th><th>Se compra</th><th>Precio</th><th>Tienda</th><th class="r">Costo</th></tr></thead><tbody>' +
+      compras.map((c) => '<tr><td>' + (c.u ? '<a href="' + esc(c.u) + '" target="_blank" rel="noopener">' + esc(c.m) + '</a>' : esc(c.m)) + '</td><td>' + esc(c.texto) + '</td><td class="mono">' + esc(precioTxt(c.precio)) + '</td><td>' + esc(c.prov) + '</td><td class="r mono">' + cop(c.costo) + '</td></tr>').join('') +
+      '<tr class="tot"><td>Total de insumos</td><td></td><td></td><td></td><td class="r mono">' + cop(C.total) + '</td></tr></tbody></table></div>' +
+      '<div class="cols"><section><h3>Supuestos de las cifras</h3><ul class="plain">' +
+      ['Precios publicados en línea por cada tienda el ' + VS.fecha + ', en pesos colombianos con IVA.',
+        'Tableros: se compran láminas completas con un aprovechamiento del 72 %; su costo se reparte entre los muebles por área de piezas.',
+        'Tubos y perfiles: se compran barras completas con un 8 % de desperdicio de corte; cintas LED y cantos con un 5 %.',
+        'Pinturas y barnices: galones según el área, las manos y el rendimiento de la ficha técnica; filamento en carretes de 1 kg.',
+        'El vidrio templado se paga por metro cuadrado con un mínimo de 3 m² por pedido.',
+        'El perfil de aluminio 30 × 30 se cotizó en tramos de 1 m con el descuento por volumen de la tienda; los tramos largos se cotizan con un distribuidor industrial.',
+        'No incluye mano de obra, corte en la tienda, transporte, instalación eléctrica ni plantas.'].map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></section>' +
+      '<section><h3>Antes de comprar</h3><ul class="plain check">' + ['Confirmar precios y existencias: cambian cada semana.', 'Verificar en sitio las medidas del local y de cada mueble.', 'Pedir el despiece al carpintero o al taller metálico antes de comprar láminas y barras.', 'Para la versión C, imprimir primero una unión de prueba y comprobar el ajuste con el perfil real.'].map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></section></div>';
+  }
+  const precioTxt = (P) => '$' + String(Math.round(P.precio)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' · ' + String(P.pres || '').toLowerCase();
+
   /* --------------------------------------------------- búsqueda (Spotlight) */
   const SIC = {
     view: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.8 6.8h3.1l1.4-2h5.4l1.4 2h3.1v9.4H2.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="11.3" r="2.8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
@@ -687,21 +1029,28 @@
     stack: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3 17 7l-7 4-7-4zM3 10.5l7 4 7-4M3 14l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
     house: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16.2V9l6-5 6 5v7.2M8 16.2v-4h4v4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>',
     pin: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17.4s-5.2-4.6-5.2-8.6a5.2 5.2 0 1 1 10.4 0c0 4-5.2 8.6-5.2 8.6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="8.8" r="1.8" fill="currentColor"/></svg>',
-    cube: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.6 16.4 6.3v7.4L10 17.4 3.6 13.7V6.3zM10 10l6.4-3.7M10 10 3.6 6.3M10 10v7.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>'
+    cube: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.6 16.4 6.3v7.4L10 17.4 3.6 13.7V6.3zM10 10l6.4-3.7M10 10 3.6 6.3M10 10v7.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+    plan: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3.5h14v13H3zM3 9.5h5.5v7M11.5 3.5v6H17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+    vers: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="5" width="4.4" height="10" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.8" y="5" width="4.4" height="10" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="13.1" y="5" width="4.4" height="10" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    req: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 5.5h8M8.5 10h8M8.5 14.5h8M3.2 5.6l1.2 1.1 2-2.2M3.2 10.1l1.2 1.1 2-2.2M3.2 14.6l1.2 1.1 2-2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
   };
   const SP = { list: [], k: 0, from: null };
   function spotEntries() {
     if (SP.all) return SP.all;
-    const items = DATA.items.map((d) => ({ sec: 'Mobiliario', ic: String(d.n), t: d.short, s: d.name + ' · ' + (d.origen === 'fabrica' ? 'se fabrica' : 'se compra'), r: cop(d.total), q: norm(d.n + ' ' + d.short + ' ' + d.name + ' ' + d.grupo + ' ' + (d.origen === 'fabrica' ? 'fabrica' : 'compra')), run: () => select(d.n, null, { force: true }) }));
-    const views = [['fachada', 'Fachada'], ['interior', 'Interior'], ['taller', 'Taller'], ['aerea', 'Aérea'], ['planta', 'Planta']].map((v) => ({ sec: 'Vistas', ic: SIC.view, t: 'Vista ' + v[1], s: 'Llevar la cámara a esta vista', q: norm('vista camara ' + v[1]), run: () => goView(v[0]) }));
+    const items = ITEMS().map((d) => ({ sec: 'Mobiliario', ic: String(d.n), t: d.short, s: d.name + ' · ' + (d.origen === 'fabrica' ? 'se fabrica' : 'se compra'), r: cop(d.total), q: norm(d.n + ' ' + d.short + ' ' + d.name + ' ' + d.grupo + ' ' + (d.origen === 'fabrica' ? 'fabrica' : 'compra')), run: () => select(d.n, null, { force: true }) }));
+    const views = [['fachada', 'Fachada'], ['interior', 'Interior'], ['aerea', 'Aérea'], ['planta', 'Planta']].map((v) => ({ sec: 'Vistas', ic: SIC.view, t: 'Vista ' + v[1], s: 'Llevar la cámara a esta vista', q: norm('vista camara ' + v[1]), run: () => goView(v[0]) }));
+    views.push({ sec: 'Vistas', ic: SIC.plan, t: 'Plano 2D', s: 'Planta de arquitectura a escala 1:50, para imprimir en A3', q: norm('plano 2d planta arquitectura escala imprimir dibujo cotas'), run: () => openPlan() });
+    const vers = VS.list.map((v) => ({ sec: 'Versiones', ic: '<b class="vtag" style="--vc:' + v.color + '">' + v.id + '</b>', t: 'Versión ' + v.id + ' · ' + v.nombre + (v.id === S.ver ? ' (en el modelo)' : ''), s: v.titulo, r: copShort(totals(v.id).fabricado), q: norm('version ' + v.id + ' ' + v.nombre + ' ' + v.titulo + ' ' + v.materiales.join(' ')), run: () => setVersion(v.id) }));
     const acts = [
       { ic: SIC.chart, t: 'Presupuesto', s: 'Total, costo por mueble, por insumo, por tienda y plan de corte', q: 'presupuesto costo total precio dinero corte', run: () => openBudget() },
       { ic: SIC.stack, t: 'Materiales y procesos', s: 'Catálogo de precios y cómo se fabrica cada material', q: 'materiales catalogo procesos precios tiendas', run: () => openMats() },
+      { ic: SIC.vers, t: 'Comparar versiones', s: 'Las tres versiones del mobiliario, sus materiales y su costo', q: 'versiones comparar alternativas diseño industrial modular original', run: () => openVersions() },
+      { ic: SIC.req, t: 'Requisitos de diseño', s: 'Lo que debía cumplir cada mueble y cómo lo cumple cada versión', q: 'requisitos diseño criterios ergonomia cargas normas condiciones', run: () => openReqs(0) },
       { ic: SIC.house, t: 'Montaje del local', s: 'Orden de fabricación y montaje en seis pasos', q: 'montaje armado fabricacion orden pasos', run: () => openMontaje() },
       { ic: SIC.pin, t: 'Números del plano', s: 'Mostrar u ocultar el número de cada elemento', q: 'numeros rotulos etiquetas plano', run: () => $('#btn-labels').click() },
       { ic: SIC.cube, t: 'Descargar modelo 3D (.glb)', s: 'Para Unreal Engine, Blender, Twinmotion o D5', q: 'descargar exportar glb gltf unreal blender twinmotion modelo', run: () => downloadGLB() }
     ].map((a) => Object.assign({ sec: 'Acciones' }, a, { q: norm(a.q + ' ' + a.t) }));
-    return (SP.all = acts.concat(views, items));
+    return (SP.all = acts.concat(views, vers, items));
   }
   function spotRender() {
     const q = norm($('#spot-q').value.trim()), words = q.split(/\s+/).filter(Boolean);
@@ -799,6 +1148,12 @@
     $('#btn-inv').addEventListener('click', () => toggleInv());
     $('#btn-budget').addEventListener('click', openBudget);
     $('#btn-mats').addEventListener('click', openMats);
+    $('#btn-vers').addEventListener('click', openVersions);
+    $('#btn-req').addEventListener('click', () => openReqs(S.sel && VS.req[S.sel.n] ? S.sel.n : 0));
+    $('#inv-ver').addEventListener('click', openVersions);
+    $('#vers').addEventListener('click', (e) => { const b = e.target.closest('[data-ver]'); if (b) setVersion(b.dataset.ver); });
+    U.seg($('#vers'));
+    bindPlan();
     $('#btn-montaje').addEventListener('click', () => (S.mont ? exitMontaje() : openMontaje()));
     $('#btn-labels').addEventListener('click', () => { S.labels = !(S.labels || S.plan); if (!S.labels && S.plan) { S.plan = false; } syncLabels(); });
     $('#act-explode').addEventListener('click', () => setExplode(S.mode !== 'exploded'));
@@ -819,9 +1174,17 @@
       if (e.target.id === 'modal' || e.target.closest('#modal-close')) return closeModal();
       if (e.target.closest('#modal-min')) return closeModal(true);
       if (e.target.closest('#modal-zoom')) return zoomModal();
-      const li = e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); }
+      const li = e.target.closest('.bars.is-click li[data-n], .gb-row[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: li.classList.contains('gb-row') ? 'resumen' : 'mats', force: true }); return; }
+      const t = e.target;
+      const sv = t.closest('[data-setver]'); if (sv) { closeModal(); return setVersion(sv.dataset.setver); }
+      if (t.closest('[data-vers]')) return openVersions();
+      const rq = t.closest('[data-reqs]'); if (rq) return openReqs(+rq.dataset.reqs);
+      if (t.closest('[data-plan]')) { closeModal(); return openPlan(); }
+      if (t.closest('[data-budget]')) return openBudget();
+      const gi = t.closest('[data-goitem]'); if (gi) { closeModal(); if (S.planOpen) closePlan(true); return select(+gi.dataset.goitem, null, { tab: 'req', force: true }); }
+      const rn = t.closest('[data-rqn]'); if (rn) { S.reqN = +rn.dataset.rqn; $$('.rq-pick button').forEach((b) => b.classList.toggle('is-on', b === rn)); $$('.rq-item').forEach((x) => { x.hidden = !!S.reqN && +x.dataset.rq !== S.reqN; }); }
     });
-    $('#modal').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest && e.target.closest('.bars.is-click li[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); } } });
+    $('#modal').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const li = e.target.closest && e.target.closest('.bars.is-click li[data-n], .gb-row[data-n]'); if (li) { closeModal(); select(+li.dataset.n, null, { tab: 'mats', force: true }); } } });
     $('#mont').addEventListener('click', (e) => {
       if (e.target.closest('#mont-exit')) return exitMontaje();
       if (e.target.closest('#mont-play')) {
@@ -838,12 +1201,13 @@
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if ($('#spot').hidden) openSpot(); else closeSpot(); return; }
       if (!$('#spot').hidden) { if (e.key === 'Escape') closeSpot(); return; }
       if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); openSpot(); return; }
-      if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.mode === 'asm') return exitAsm(); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
+      if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.planOpen) { if (PO.card != null) return planCard(null); return closePlan(); } if (S.mode === 'asm') return exitAsm(); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
       if (!$('#modal').hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+      if (S.planOpen) { if (e.key === '+' || e.key === '=') planZoom(1.4, null, null, true); else if (e.key === '-') planZoom(1 / 1.4, null, null, true); else if (e.key === '0') planFit(true); return; }
+      if (!S.sel && /^[abc]$/i.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) { setVersion(e.key.toUpperCase()); return; }
       if (!S.sel) return;
-      const idx = DATA.items.indexOf(byN[S.sel.n]);
-      if (e.key === 'ArrowRight' && !e.target.closest('.tabs')) select(DATA.items[(idx + 1) % 20].n, null, { tab: S.tab, force: true });
-      else if (e.key === 'ArrowLeft' && !e.target.closest('.tabs')) select(DATA.items[(idx + 19) % 20].n, null, { tab: S.tab, force: true });
+      if (e.key === 'ArrowRight' && !e.target.closest('.tabs')) select(NEXT(S.sel.n, 1).n, null, { tab: S.tab, force: true });
+      else if (e.key === 'ArrowLeft' && !e.target.closest('.tabs')) select(NEXT(S.sel.n, -1).n, null, { tab: S.tab, force: true });
       else if (e.key === 'e' || e.key === 'E') { if (!$('#actions').hidden || S.mode === 'exploded') setExplode(S.mode !== 'exploded'); }
     });
     E.onClick = onClick; E.onHover = onHover; E.afterRender = updateLabels;
@@ -863,14 +1227,18 @@
       $('#intro-msg').textContent = 'Este navegador no pudo iniciar el modelo 3D (WebGL).';
       return;
     }
-    buildInventory(); buildLabels(); bindUI();
+    FABN.forEach((n) => { baseItems[n] = F.items[n]; });
+    buildInventory(); buildLabels(); bindUI(); syncVerUI();
     const redraw = () => { L.redraws.forEach((f) => f()); E.invalidate(3); };
     if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('300 80px Jost'), document.fonts.load('600 80px Jost'), document.fonts.load('400 40px Jost')]).then(redraw, () => {});
-    const start = /^#m(\d+)$/.exec(location.hash || '');
+    const hm = /^#(?:m(\d+)|(plano))?([abc])?$/i.exec(location.hash || '') || [];
+    const start = hm[1] ? [null, hm[1]] : null, startPlan = !!hm[2];
+    if (hm[3] && hm[3].toUpperCase() !== 'A') setVersion(hm[3].toUpperCase(), { quiet: true });
     if (E.size.w >= 1280 && !start) { S.inv = true; $('#inv').hidden = false; $('#btn-inv').setAttribute('aria-pressed', 'true'); }
     S.view = 'fachada';
     layout();
     E.cam.cur.th = E.cam.goal.th = 0.95; E.cam.cur.ph = E.cam.goal.ph = 0.62; E.cam.cur.r = E.cam.goal.r = 27; E.cam.cur.ty = E.cam.goal.ty = 0.6;
+    if (startPlan) openPlan();
     requestAnimationFrame(() => requestAnimationFrame(() => {
       app.classList.remove('is-loading'); app.classList.add('is-ready');
       const v = VIEWS.fachada, a = S.usable.w / S.usable.h, k = Math.max(1, v.min / a);
@@ -880,6 +1248,6 @@
       });
     }));
   }
-  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openSpot, downloadGLB, closeSpot, toggleInv, layout, state: S };
+  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openSpot, downloadGLB, closeSpot, toggleInv, layout, setVersion, openPlan, closePlan, openReqs, openVersions, planFit, state: S };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

@@ -6,19 +6,33 @@ costos, fabricación, ensamble y la razón de cada material.
 
 ## Qué se puede hacer en la página
 
-- **Recorrer el local**: arrastrar gira, la rueda acerca, el clic derecho desplaza. Hay cinco vistas listas: Fachada, Interior, Taller, Aérea y Planta.
-- **Elegir un mueble**: la cámara se acerca y se abre su ficha con cinco pestañas: Resumen, Materiales y costos, Fabricación, Ensamble y Por qué.
+- **Recorrer el local**: arrastrar gira, la rueda acerca, el clic derecho desplaza. Hay cuatro vistas listas: Fachada, Interior, Aérea y Planta.
+- **Tres versiones del mobiliario** (selector *A · B · C* de la barra superior, o las teclas <kbd>A</kbd>, <kbd>B</kbd>, <kbd>C</kbd>):
+  el mismo local con tres juegos de los doce muebles que se fabrican. Cada versión tiene su propio diseño, despiece,
+  costos con precios reales de tienda, fabricación, armado animado y explosionado:
+  - **A · Original**: melamina RH y MDF lacado (la del documento del proyecto).
+  - **B · Industrial**: tubo de acero negro y triplex barnizado, islas sobre ruedas, mampara en cuadrícula.
+  - **C · Modular**: perfil de aluminio 30 × 30, uniones y accesorios impresos en PETG, PVC espumado y acrílico opal.
+  *Versiones* compara las tres: concepto, materiales, ventajas, desventajas y costo de cada mueble.
+- **Plano 2D**: la planta de arquitectura a escala 1:50 en lámina A3, en líneas negras sobre blanco, con cotas, pasos
+  libres, números, cuadro de mobiliario y cajetín. Cambia con la versión, se acerca y desplaza, cada mueble abre su
+  ficha y se puede imprimir a escala (A3 horizontal) o descargar en SVG.
+- **Requisitos de diseño**: las condiciones que se fijaron antes de dibujar los muebles (espacio, ergonomía, cargas,
+  durabilidad, luz, instalaciones, seguridad, fabricación, marca y presupuesto) y cómo las cumple cada versión, mueble
+  por mueble. Cada ficha de un mueble fabricado tiene además la pestaña *Requisitos*.
+- **Elegir un mueble**: la cámara se acerca y se abre su ficha con sus pestañas: Resumen (con el costo del mueble en las tres versiones), Materiales y costos, Fabricación, Ensamble, Por qué y Requisitos.
 - **Explosionar**: separa el mueble en sus piezas, tal como salen del despiece.
 - **Ver armado**: reproduce el ensamble paso a paso; cada paso cita el punto del documento del que sale.
 - **Ver un material en el modelo**: al pasar el cursor por una fila de la tabla de materiales se resaltan las piezas hechas con él.
 - **Montaje**: muestra cómo se arma el local completo, del fondo hacia la fachada, en seis pasos.
-- **Presupuesto**: total, costo por mueble, por tipo de insumo, por tienda y plan de corte de tableros.
+- **Presupuesto**: de la versión que está en el modelo: total, costo por mueble, por tipo de insumo, por tienda y plan de corte (A) o plan de compras con enlace a cada producto (B y C).
 - **Materiales**: catálogo de precios con enlace a cada tienda y el proceso industrial de cada material.
 - **Planta**: vista superior con los números del plano y las cotas generales.
 - **Descargar el modelo 3D**: desde la búsqueda (<kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>), *Descargar modelo 3D (.glb)*, para abrirlo en Unreal Engine, Blender, Twinmotion o D5.
 
 Un enlace que termina en `#m7` abre directamente la ficha del elemento 7 (sirve con cualquier número del 1 al 20);
-el botón de compartir de cada ficha copia ese enlace.
+el botón de compartir de cada ficha copia ese enlace. Una letra al final elige la versión (`#m7b`, `#c`) y `#plano`
+abre el plano 2D (`#planob` lo abre en la versión B).
 
 ## Fachada
 
@@ -204,13 +218,16 @@ así los navegadores descargan la versión nueva en lugar de usar la guardada en
 | `assets/video/` | Videos en bucle de la pantalla de 75" y de las dos pantallas exteriores (MP4 y WebM) |
 | `js/brand.js` | Trazos del logotipo, para la barra superior, la pantalla de inicio y las letras de la fachada |
 | `js/data.js` | **Datos del proyecto**: 20 elementos, catálogo de precios, presupuesto, montaje |
-| `js/furniture.js` | Los muebles modelados pieza por pieza: medidas, material y paso de armado de cada una |
+| `js/furniture.js` | Los muebles modelados pieza por pieza: medidas, material y paso de armado de cada una (versión A) |
+| `js/versions.js` | **Versiones B y C y requisitos**: precios de tienda con enlace, despiece, fabricación, armado y razones de cada mueble; requisitos generales y por mueble, y el cálculo de costos de cada versión |
+| `js/furniture-alt.js` | Los muebles de las versiones B y C modelados pieza por pieza; se construyen la primera vez que se elige la versión |
+| `js/plan.js` | El plano 2D a escala 1:50 (SVG), con los muebles de cada versión |
 | `js/room.js` | Muros, fachada, cielo, luces y cotas |
 | `js/engine.js` | Motor: texturas PBR procedurales, materiales, luces, postproceso HDR, refinamiento progresivo, cámara, reflejo del piso y animaciones |
 | `js/geo.js` | Utilidades de geometría (tableros con canto redondeado, trazos SVG a formas 3D) |
 | `js/export.js` | Exporta el local completo a `.glb` |
 | `js/ui.js` | Comportamiento de la interfaz: paneles animados, segmentados, ventanas y notificaciones |
-| `js/app.js` | Interacción: selección, explosionado, armado, fichas, presupuesto y búsqueda |
+| `js/app.js` | Interacción: selección, explosionado, armado, fichas, versiones, plano 2D, requisitos, presupuesto y búsqueda |
 | `tools/build-artifact.py` | Empaqueta todo en un solo archivo HTML para compartirlo |
 | `tools/video-pantalla/` | Generador del video de la pantalla de 75" (escena, textos y render cuadro a cuadro) |
 | `tools/video-exterior/` | Generador del video de las pantallas exteriores |
@@ -224,6 +241,13 @@ Los precios son los publicados en línea el 9 de octubre de 2026 (el del televis
 colombianos. El total ($38.788.078) no incluye mano de obra, transporte, instalación eléctrica, plantas ni el canal
 perimetral de la mampara. Las medidas del plano se estimaron desde la imagen del local y deben
 verificarse en sitio antes de pedir el corte.
+
+Las versiones B y C usan precios publicados el 15 de octubre de 2026 en Homecenter, Madecentro, Vistronica, Sign
+Colombia, Asia Colombia y El Ruso Shop, con el enlace de cada producto en la ficha y en el plan de compras. Láminas,
+barras, galones y carretes se compran completos para toda la versión (72 % de aprovechamiento en tableros, 8 % de
+desperdicio en barras) y su costo se reparte entre los muebles. Mobiliario fabricado: A $12.200.678, B $11.173.778 y
+C $17.893.900; los ocho productos que se compran son los mismos en las tres. El perfil de aluminio 30 × 30 se cotizó en
+tramos de 1 m; los tramos largos se cotizan con un distribuidor industrial.
 
 ## Qué es fiel al documento y qué es interpretación del modelo
 
