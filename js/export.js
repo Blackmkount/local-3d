@@ -83,7 +83,7 @@
     R.root.traverse((o) => {
       if (!o.isMesh || o.userData.fx || o === R.cotas) return;
       let top = o; while (top.parent && top.parent !== R.root) top = top.parent;
-      if (top === R.cotas) return;
+      if (top === R.cotas || top.userData.verOff) return;          // muebles de las versiones que no están a la vista
       const mat = exportMaterial(o.userData.mat0 || o.material, cache);
       if (!mat) return;
       const m = new T.Mesh(o.geometry, mat);

@@ -58,10 +58,11 @@
     const l = pts.map((p) => ({ g: G.cyl(), m: cylM(p[0], p[1], p[2], 0.009, 0.06, 'z'), c: 0xd0d2d5 }));
     return PM(o, 'Chazos', 'inox', l, step, ex, Object.assign({ mk: 'anclaje', noShadow: true }, opt));
   }
-  function add(n, insts, cfg) {
-    const it = Object.assign({ n, insts, th: 0.5, ph: 1.08, zone: 'sala' }, cfg || {});
+  /* tgt: diccionario de una versión alternativa (furniture-alt.js); sin tgt, la versión A */
+  function add(n, insts, cfg, tgt) {
+    const it = Object.assign({ n, insts, th: 0.5, ph: 1.08, zone: 'sala', ver: tgt ? tgt._ver : 'A' }, cfg || {});
     insts.forEach((o, i) => { o.idx = i; o.item = it; R.root.add(o.group); });
-    F.items[n] = it; F.order.push(n);
+    if (tgt) tgt[n] = it; else { F.items[n] = it; F.order.push(n); }
     return it;
   }
   /* sombra de contacto: huella (x0, z0, ancho, fondo) en el sistema local del mueble */
@@ -764,14 +765,19 @@
     pilar(19, 0.225, { th: 0.35 });
     pilar(20, 5.775, { th: -0.35, lp: [-0.3, 0.12] });
 
-    // cajas envolventes y datos derivados
-    F.order.forEach((n) => F.items[n].insts.forEach((o) => {
+    F.finish(F.items);
+    animarImpresoras();
+  };
+  /* cajas envolventes y datos derivados de un juego de muebles */
+  F.finish = function (items) {
+    Object.keys(items).forEach((n) => { if (!items[n] || !items[n].insts) return; items[n].insts.forEach((o) => {
       o.group.updateMatrixWorld(true);
       o.box = new T.Box3();
       o.parts.forEach((p) => o.box.expandByObject(p));
       o.center = o.box.getCenter(new T.Vector3()); o.radius = o.box.getSize(new T.Vector3()).length() / 2;
       o.steps = o.parts.reduce((a, p) => Math.max(a, p.userData.step + 1), 0);
-    }));
-    animarImpresoras();
+    }); });
   };
+  /* constructores para las versiones alternativas */
+  F.h = { inst, reg, P, PM, D, cylM, patas, chazos, add, sombra, fila, pick, PAL };
 })();
