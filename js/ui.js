@@ -56,8 +56,14 @@
     seg._sync = function () {
       const on = seg.querySelector(':scope > button.is-on, :scope > button[aria-selected="true"]');
       if (!on || !on.offsetWidth) { th.style.opacity = '0'; return; }
-      th.style.width = on.offsetWidth + 'px';
-      th.style.transform = 'translateX(' + on.offsetLeft + 'px)';
+      // segmentado vertical (columna): el indicador se desliza de arriba abajo
+      if (getComputedStyle(seg).flexDirection === 'column') {
+        th.style.width = ''; th.style.height = on.offsetHeight + 'px';
+        th.style.transform = 'translateY(' + on.offsetTop + 'px)';
+      } else {
+        th.style.height = ''; th.style.width = on.offsetWidth + 'px';
+        th.style.transform = 'translateX(' + on.offsetLeft + 'px)';
+      }
       th.style.opacity = '1';
       if (!ready) { ready = true; requestAnimationFrame(() => requestAnimationFrame(() => th.classList.remove('no-anim'))); }
     };

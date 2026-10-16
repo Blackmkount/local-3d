@@ -690,9 +690,24 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
 .is-narrow .vcmp li > :last-child { grid-column: 2 / -1; justify-self: end; }
 .modal-body { position: relative; }
 .is-narrow .tb span[data-s] { font-size: 0; }
-.is-narrow .tb span[data-s]::after { content: attr(data-s); font-size: 9.5px; }
+.is-narrow .tb span[data-s]::after { content: attr(data-s); font-size: 9px; letter-spacing: -0.01em; }
 .is-narrow .tb { min-width: 0; }
 .is-narrow #vers > button { padding: 0 9px; }
 .is-narrow .tabs { overflow-x: auto; scrollbar-width: none; }
 .is-narrow .tabs::-webkit-scrollbar { display: none; }
 .is-narrow .tabs > button { flex: 1 0 auto; padding: 0 9px; }
+
+/* vistas en columna, en el costado derecho: la barra superior queda para la marca, la versión y las herramientas */
+#top { grid-template-columns: minmax(0, 1fr) auto; }
+#tools { grid-column: 2; }
+#views { position: absolute; right: var(--ur); top: calc(50vh - var(--gap)); translate: 0 -50%; flex-direction: column; height: auto; padding: 5px; z-index: 2; transition: right 0.5s var(--spring); }
+#views > button { height: 36px; justify-content: flex-start; padding: 0 14px; }
+#views > button:not(.is-on) + button:not(.is-on)::before { left: 22%; right: 22%; top: 0; bottom: auto; width: auto; height: 1px; }
+#views .seg-thumb { top: 0; bottom: auto; left: 5px; right: 5px; width: auto; }
+.views-h { padding: 5px 14px 6px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.is-narrow #top { grid-template-columns: auto minmax(0, 1fr); }
+.is-narrow #views { position: static; translate: none; grid-row: 1; grid-column: 2; flex-direction: row; }
+.is-narrow #views > button { height: auto; justify-content: center; }
+.is-narrow #views > button:not(.is-on) + button:not(.is-on)::before { left: 0; right: auto; top: 25%; bottom: 25%; width: 1px; height: auto; }
+.is-narrow #views .seg-thumb { left: 0; right: auto; }
+.is-narrow .views-h { display: none; }
