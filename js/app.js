@@ -12,19 +12,27 @@
   const copShort = (n) => (n >= 1e6 ? '$' + (n / 1e6).toFixed(n >= 1e7 ? 1 : 2).replace('.', ',') + ' M' : '$' + Math.round(n / 1000) + ' mil');
   const byN = {}; DATA.items.forEach((i) => { byN[i.n] = i; });
   const VS = L.versions, baseN = Object.assign({}, byN);
-  /* datos de un elemento en una versión: los fabricados de B y C toman su diseño, despiece y costo de versions.js */
+  /* datos de un elemento en una versión: los fabricados toman su diseño, despiece y costo de versions.js;
+     los comprados son los mismos, pero en A y B cambian de lugar */
   function dataFor(n, v) {
-    const a = baseN[n];
-    if (v === 'A' || a.origen !== 'fabrica' || !VS.items[v][n]) return a;
+    const a = baseN[n], lay = VS.layout[v] && VS.layout[v][n];
+    if (a.origen !== 'fabrica' || !VS.items[v][n]) {
+      if (!lay) return a;
+      const ens = a.ens.map((e, i) => (lay.ens && lay.ens[i]) || e);
+      return Object.assign({}, a, { ubic: lay.ubic, ens }, lay.resumen ? { resumen: lay.resumen } : null);
+    }
     const it = VS.items[v][n], c = VS.calc(v).items[n];
-    return Object.assign({}, a, { name: it.name, resumen: it.resumen, mats: c.mats, total: c.total, fab: it.fab, ens: it.ens, seq: it.seq, why: it.why, ver: v });
+    return Object.assign({}, a, { name: it.name, resumen: it.resumen, mats: c.mats, total: c.total, fab: it.fab, ens: it.ens, seq: it.seq, why: it.why, ver: v },
+      it.short ? { short: it.short } : null, it.dims ? { dims: it.dims } : null, it.ubic ? { ubic: it.ubic } : null, it.cant ? { cant: it.cant } : null);
   }
+  /* proceso industrial de cada material (data.js, procesos) */
+  const PROC_OF = { blanca15: ['aglomerado', 'melamina'], rovere15: ['aglomerado', 'melamina'], fondo6: ['aglomerado', 'melamina'], mdf15: ['mdf'], mdf55: ['mdf'], canto: ['canto'], cantoRovere: ['canto'], tubo1: ['tubo'], tubo15: ['tubo'], tuboRect: ['tubo'], perforada: ['tubo'], vidrio6: ['vidrio'], vidrio10: ['vidrio'], perfil3030: ['aluminio'], perfilLed: ['aluminio', 'led'], perfilManija: ['aluminio'], acril3: ['acrilico'], opal3: ['acrilico'], cob: ['led'] };
+  const MT = () => VS.montaje[S.ver] || DATA.montaje;
   const ITEMS = () => DATA.items.map((d) => byN[d.n]);
   const NEXT = (n, k) => { const i = DATA.items.findIndex((x) => x.n === n); return byN[DATA.items[(i + k + DATA.items.length) % DATA.items.length].n]; };
   function totals(v) {
-    const P = DATA.presupuesto;
-    if (v === 'A') return { total: P.total, fabricado: P.fabricado, comprado: P.comprado };
-    const c = VS.calc(v); return { total: P.comprado + c.total, fabricado: c.total, comprado: P.comprado };
+    const P = DATA.presupuesto, c = VS.calc(v);
+    return { total: P.comprado + c.total, fabricado: c.total, comprado: P.comprado };
   }
   const verInfo = (v) => VS.list.find((x) => x.id === v);
   const procBy = {}; DATA.procesos.forEach((p) => { procBy[p.id] = p; });
@@ -459,7 +467,7 @@
     $('#inv-ver').innerHTML = '<i style="--vc:' + vi.color + '">' + S.ver + '</i>' + esc(vi.nombre) + ' · ' + esc(vi.titulo);
     $('#inv-list').innerHTML = ITEMS().map((d, i) =>
       '<li data-o="' + d.origen + '" data-q="' + esc(norm(d.n + ' ' + d.short + ' ' + d.name + ' ' + d.grupo)) + '" style="--i:' + i + '"><button type="button" class="inv-row" data-n="' + d.n + '">' +
-      '<span class="num">' + d.n + '</span><span class="inv-name">' + esc(d.short) + '<small>' + (d.origen === 'fabrica' ? (S.ver === 'A' ? 'Se fabrica' : esc(d.name)) : 'Se compra') + (d.cant !== '1' ? ' · ' + esc(d.cant.split(' ')[0]) + ' u.' : '') + '</small></span>' +
+      '<span class="num">' + d.n + '</span><span class="inv-name">' + esc(d.short) + '<small>' + (d.origen === 'fabrica' ? (VS.items[S.ver][d.n] && VS.items[S.ver][d.n].short ? 'Se fabrica' : esc(d.name)) : 'Se compra') + (d.cant !== '1' ? ' · ' + esc(d.cant.split(' ')[0]) + ' u.' : '') + '</small></span>' +
       '<span class="inv-cost">' + cop(d.total) + '</span></button></li>').join('');
     $('#inv-total').innerHTML = '<span>Total del local<small>versión ' + S.ver + ' · materiales y equipos</small></span><b>' + cop(totals(S.ver).total) + '</b>';
     filterInv(); markInv();
@@ -506,13 +514,13 @@
       '<dl class="facts"><div><dt>Medidas</dt><dd class="mono">' + esc(d.dims) + '</dd></div><div><dt>Cantidad</dt><dd>' + esc(d.cant) + '</dd></div><div class="wide"><dt>Ubicación en el plano</dt><dd>' + esc(d.ubic) + '</dd></div></dl>' +
       (it.insts[0].parts.length > 1 ? '<div class="cta"><button type="button" class="btn btn-led js-play"' + (canAnim ? '' : ' hidden') + '>Ver armado paso a paso</button><button type="button" class="btn js-explode">Explosionar</button></div>' : '') +
       '<h3>' + (fab ? 'En qué se va el costo' : 'Qué se compra') + '</h3>' + barList(top.map((m) => ({ label: m.m, v: m.costo })), maxC) +
-      '<p class="note">' + (fab ? 'Costo de materiales. ' : '') + 'Es el ' + (share < 1 ? share.toFixed(1).replace('.', ',') : Math.round(share)) + ' % del total del local en la versión ' + S.ver + ' (' + cop(TT.total) + '). Precios del ' + esc(d.ver ? VS.fecha : DATA.meta.fecha) + '.</p>' +
+      '<p class="note">' + (fab ? 'Costo de materiales. ' : '') + 'Es el ' + (share < 1 ? share.toFixed(1).replace('.', ',') : Math.round(share)) + ' % del total del local en la versión ' + S.ver + ' (' + cop(TT.total) + '). Precios publicados por cada tienda; la fecha va en la nota de cada precio.</p>' +
       (VS.req[d.n] ? versCompare(d.n) : '');
     sec.mats =
       '<p class="note">' + (fab ? (d.ver ? 'Láminas, barras, galones y carretes se compran completos para toda la versión ' + d.ver + ' y su costo se reparte entre los muebles por área, metros o peso. Toca el nombre de la tienda para ver el producto. Pasa el cursor por un material para verlo en el modelo.' : 'El costo de tableros y cantos es la parte que le toca al mueble de las láminas y rollos completos que se compran. Pasa el cursor por un material para verlo en el modelo.') : 'El material es el que declara la ficha de la tienda.') + '</p>' +
       '<ul class="mats">' + d.mats.map((m, i) => {
         const live = fab && hasParts.has(m.key);
-        const procs = (m.proc || []).map((id) => procBy[id]).filter(Boolean);
+        const procs = (m.proc || PROC_OF[m.key] || []).map((id) => procBy[id]).filter(Boolean);
         return '<li class="mat' + (live ? ' is-live' : '') + '"' + (live ? ' data-key="' + m.key + '" tabindex="0"' : '') + '>' +
           '<div class="mat-h"><b>' + esc(m.m) + '</b><span class="mono">' + (m.costo ? cop(m.costo) : '$0') + '</span></div>' +
           '<p>' + esc(m.uso) + '</p>' +
@@ -603,31 +611,24 @@
   function openBudget() {
     S.modalKind = 'budget';
     const vline = '<p class="vline">' + vtag(S.ver) + '<span>Versión ' + S.ver + ' · ' + esc(verInfo(S.ver).nombre) + ' — ' + esc(verInfo(S.ver).titulo) + '</span><button type="button" class="btn btn-sm" data-vers="1">Comparar versiones</button></p>';
-    if (S.ver !== 'A') return openModal('Presupuesto del local · versión ' + S.ver, vline + budgetAlt(S.ver), 'is-wide');
-    const P = DATA.presupuesto;
-    const fab = DATA.items.filter((i) => i.origen === 'fabrica').sort((a, b) => b.total - a.total), buy = DATA.items.filter((i) => i.origen === 'compra').sort((a, b) => b.total - a.total);
-    const row = (i) => ({ n: i.n, label: i.short, v: i.total });
-    openModal('Presupuesto del local · versión A',
-      vline + '<div class="kpis"><div><span>Total en materiales y equipos</span><b class="mono">' + cop(P.total) + '</b></div><div><span>12 elementos que se fabrican</span><b class="mono">' + cop(P.fabricado) + '</b></div><div><span>8 productos que se compran</span><b class="mono">' + cop(P.comprado) + '</b></div></div>' +
-      '<p class="lead">Más del 40 % del total, ' + cop(P.impresoras) + ', son las cuatro impresoras 3D. La cifra no incluye mano de obra, transporte, instalación eléctrica ni plantas.</p>' +
-      '<div class="cols"><section><h3>Se fabrica <small>materiales por mueble</small></h3>' + barList(fab.map(row), fab[0].total, 'is-click') + '<p class="note">El mueble bajo y el mesón concentran más de un tercio del costo de fabricación. La mampara es el cuarto costo aunque solo tiene dos piezas, porque el vidrio templado se paga por metro cuadrado.</p></section>' +
-      '<section><h3>Se compra <small>escala propia</small></h3>' + barList(buy.map(row), buy[0].total, 'is-click') + '<p class="note">El escritorio completo cuesta menos que un solo taburete.</p></section></div>' +
-      '<div class="cols"><section><h3>Por tipo de insumo</h3>' + barList(P.rubros.map((r) => ({ label: r.r, v: r.c, sub: r.q })), P.rubros[0].c) + '</section>' +
-      '<section><h3>Por tienda</h3>' + barList(P.tiendas.map((r) => ({ label: r.r, v: r.c, sub: r.q })), P.tiendas[0].c) + '</section></div>' +
-      '<h3>Plan de corte de tableros</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tablero</th><th>Formato (m)</th><th class="r">Piezas</th><th class="r">Área (m²)</th><th class="r">Láminas</th><th>Aprovechamiento</th><th class="r">Costo</th></tr></thead><tbody>' +
-      P.corte.map((c) => '<tr><td>' + esc(c.t) + '</td><td class="mono">' + c.f + '</td><td class="r mono">' + c.piezas + '</td><td class="r mono">' + c.area + '</td><td class="r mono">' + c.laminas + '</td><td><span class="meter"><span style="width:' + c.ap + '%"></span></span><span class="mono">' + c.ap + ' %</span></td><td class="r mono">' + cop(c.c) + '</td></tr>').join('') +
-      '</tbody></table></div><p class="note">' + esc(P.corteNota) + '</p>' +
-      '<div class="cols"><section><h3>Supuestos de las cifras</h3><ul class="plain">' + P.supuestos.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ul></section><section><h3>Pendientes antes del primer corte</h3><ul class="plain check">' + P.pendientes.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ul></section></div>', 'is-wide');
+    openModal('Presupuesto del local · versión ' + S.ver, vline + budgetAlt(S.ver), 'is-wide');
   }
   function openMats() {
     S.modalKind = 'mats';
-    openModal('Materiales y procesos',
-      '<p class="lead">Todo el mobiliario sale de 6 tableros, 3 cantos y unos 25 herrajes e insumos, casi todos de Madecentro y Homecenter. Precios publicados en línea por cada tienda el ' + esc(DATA.meta.fecha) + ', en pesos colombianos.</p>' +
-      '<h3>Cómo se fabrica cada material</h3><p class="note">Nueve materiales industriales componen el mobiliario. Así llega cada uno a la tienda antes de que el carpintero lo toque.</p>' +
-      '<div class="procs">' + DATA.procesos.map((p) => '<article class="proc"><h4>' + esc(p.mat) + '</h4><p class="uso">' + esc(p.uso) + '</p><p>' + esc(p.proceso) + '</p><p class="dato">' + esc(p.dato) + '</p><p class="src">' + p.fuentes.map((f) => '<a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.t) + '</a>').join(' · ') + '</p></article>').join('') + '</div>' +
-      '<p class="note">Dos consecuencias prácticas: el vidrio templado se pide a medida porque se templa después de cortado, así que la posición de bisagras y manija se define con la vidriería antes de fabricar. Y el aglomerado RH resiste humedad ambiental, no agua: todo canto expuesto debe ir enchapado.</p>' +
-      DATA.catalogo.map((g) => '<h3>' + esc(g.grupo) + '</h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Material</th><th>Presentación</th><th>Precio (COP)</th><th>Proveedor</th><th>Nota</th></tr></thead><tbody>' +
-        g.filas.map((f) => '<tr><td><a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.m) + '</a></td><td>' + esc(f.pres) + '</td><td class="mono">' + esc(f.precio) + '</td><td>' + esc(f.prov) + '</td><td>' + esc(f.nota) + '</td></tr>').join('') + '</tbody></table></div>').join(''), 'is-wide');
+    const v = S.ver, vi = verInfo(v), C = VS.calc(v), keys = new Set(C.compras.map((c) => c.id));
+    const provs = new Set(C.compras.map((c) => c.prov.split(',')[0]));
+    const procIds = new Set(); keys.forEach((k) => (PROC_OF[k] || []).forEach((id) => procIds.add(id)));
+    const usoDe = (id) => C.compras.filter((c) => (PROC_OF[c.id] || []).includes(id)).map((c) => c.m.split(',')[0]).filter((x, i, a) => a.indexOf(x) === i).join(' · ');
+    const cats = {}; C.compras.forEach((c) => { (cats[c.cat] = cats[c.cat] || []).push(c); });
+    const tabla = (filas) => '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Material</th><th>Presentación</th><th>Precio (COP)</th><th>Proveedor</th><th>Nota</th></tr></thead><tbody>' + filas + '</tbody></table></div>';
+    const comprados = DATA.catalogo.find((g) => /compran hechos/.test(g.grupo));
+    openModal('Materiales y procesos · versión ' + v,
+      '<p class="vline">' + vtag(v) + '<span>Versión ' + v + ' · ' + esc(vi.nombre) + ' — ' + esc(vi.titulo) + '</span><button type="button" class="btn btn-sm" data-vers="1">Comparar versiones</button></p>' +
+      '<p class="lead">El mobiliario de esta versión sale de ' + C.compras.length + ' insumos de ' + provs.size + ' tiendas, con su precio publicado en línea y el enlace a cada producto. En pesos colombianos.</p>' +
+      '<h3>Cómo se fabrica cada material</h3><p class="note">Así llega cada material a la tienda antes de que el carpintero o el soldador lo toque.</p>' +
+      '<div class="procs">' + DATA.procesos.filter((p) => procIds.has(p.id)).map((p) => '<article class="proc"><h4>' + esc(p.mat) + '</h4><p class="uso">' + esc(usoDe(p.id)) + '</p><p>' + esc(p.proceso) + '</p><p class="dato">' + esc(p.dato) + '</p><p class="src">' + p.fuentes.map((f) => '<a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.t) + '</a>').join(' · ') + '</p></article>').join('') + '</div>' +
+      Object.keys(cats).map((k) => '<h3>' + esc(k) + '</h3>' + tabla(cats[k].map((c) => { const P = c.precio; return '<tr><td>' + (c.u ? '<a href="' + esc(c.u) + '" target="_blank" rel="noopener">' + esc(c.m) + '</a>' : esc(c.m)) + '</td><td>' + esc(P.pres) + '</td><td class="mono">' + esc(VS.precioTxt(P)) + '</td><td>' + esc(c.prov) + '</td><td>' + esc(P.nota || '') + '</td></tr>'; }).join(''))).join('') +
+      (comprados ? '<h3>' + esc(comprados.grupo) + ' <small>iguales en las tres versiones</small></h3>' + tabla(comprados.filas.map((f) => '<tr><td><a href="' + esc(f.u) + '" target="_blank" rel="noopener">' + esc(f.m) + '</a></td><td>' + esc(f.pres) + '</td><td class="mono">' + esc(f.precio) + '</td><td>' + esc(f.prov) + '</td><td>' + esc(f.nota) + '</td></tr>').join('')) : ''), 'is-wide');
   }
 
   /* enlace directo a la ficha (#m7) */
@@ -668,7 +669,7 @@
   }
   function openMontaje() {
     deselect(true); toggleInv(false);
-    const M = DATA.montaje;
+    const M = MT();
     $('#mont').innerHTML =
       '<div class="inv-head"><h2>Orden de fabricación y montaje</h2><p>' + esc(M.intro) + '</p></div>' +
       '<div class="mont-body"><h3>Cuatro frentes trabajan en paralelo</h3><div class="frentes">' + M.frentes.map((f) => '<div><b>' + esc(f.t) + '</b>' + f.d.map((x) => '<span>' + esc(x) + '</span>').join('') + '</div>').join('') + '</div>' +
@@ -682,13 +683,13 @@
     playMontaje(0);
   }
   function montState(k) {       // deja a la vista lo montado hasta el paso k (inclusive)
-    const M = DATA.montaje, shown = new Set();
+    const M = MT(), shown = new Set();
     M.pasos.forEach((p, i) => { if (i <= k) p.items.forEach((t) => montInsts(t).forEach((o) => shown.add(o))); });
     F.order.forEach((n) => F.items[n].insts.forEach((o) => { o.group.visible = shown.has(o); o.group.position.copy(o.home); }));
     E.setLed(k >= M.pasos.length - 1 ? 1 : 0.1);
   }
   function playMontaje(k) {
-    const M = DATA.montaje, st = S.mont; if (!st) return;
+    const M = MT(), st = S.mont; if (!st) return;
     const gen = ++S.gen; stopTweens();
     st.playing = true; st.step = k;
     montState(k - 1);
@@ -721,12 +722,29 @@
 
   /* ---------------------------------------------------- versiones del mobiliario */
   const FABN = DATA.items.filter((d) => d.origen === 'fabrica' && VS.req[d.n]).map((d) => d.n);
-  const baseItems = {};                    // los muebles de la versión A, guardados al cambiar de versión
-  const cumpleOf = (n, v) => (v === 'A' ? VS.cumpleA[n] : VS.items[v][n] && VS.items[v][n].cumple) || [];
+  const cumpleOf = (n, v) => VS.cumple(n, v);
   const stIcon = (e) => '<i class="st st-' + e + '" role="img" aria-label="' + (e === 'si' ? 'Cumple' : 'Cumple con una salvedad') + '"></i>';
   const vtag = (v, cls) => '<i class="vtag ' + (cls || '') + '" style="--vc:' + verInfo(v).color + '">' + v + '</i>';
-  const itemCost = (n, v) => (v === 'A' ? baseN[n].total : VS.calc(v).items[n].total);
-  const itemName = (n, v) => (v === 'A' ? baseN[n].name : VS.items[v][n].name);
+  const itemCost = (n, v) => VS.calc(v).items[n].total;
+  const itemName = (n, v) => VS.items[v][n].name;
+  /* posición de los productos comprados en la distribución original (furniture.js), para la versión C */
+  const basePos = {};
+  const MOVIBLES = [1, 6, 8, 14, 16, 18];
+  function placeBought(v) {
+    const lay = VS.layout[v], moved = {};
+    MOVIBLES.forEach((n) => {
+      const it = F.items[n]; if (!it) return;
+      if (!basePos[n]) basePos[n] = it.insts.map((o) => ({ p: o.home.clone(), r: o.group.rotation.y }));
+      it.insts.forEach((o, i) => {
+        const q = lay && lay[n] && lay[n].pos[i];
+        if (q) { o.group.position.set(R.wx(q[0]), q[1], R.wz(q[2])); o.group.rotation.y = q[3] || 0; }
+        else { o.group.position.copy(basePos[n][i].p); o.group.rotation.y = basePos[n][i].r; }
+        o.home.copy(o.group.position); o._off = null;
+      });
+      it._ur = null; moved[n] = it;
+    });
+    F.finish(moved);
+  }
 
   function setVersion(v, opt) {
     opt = opt || {};
@@ -736,19 +754,20 @@
     const keep = S.sel ? { n: S.sel.n, tab: S.tab } : null;
     if (S.sel) deselect(true);
     let set = null;
-    if (v !== 'A') {
-      try { set = L.alt.build(v); E.finalize(); } catch (err) { console.error(err); L.ui.toast('No se pudo armar la versión ' + v, String(err && err.message || err), 'err', 7000); return; }
-    }
+    try { set = L.alt.build(v); E.finalize(); } catch (err) { console.error(err); L.ui.toast('No se pudo armar la versión ' + v, String(err && err.message || err), 'err', 7000); return; }
     const gen = (S.verGen = (S.verGen || 0) + 1), fresh = [];
     FABN.forEach((n) => {
-      const cur = F.items[n], nxt = set ? set[n] : baseItems[n];
+      const cur = F.items[n], nxt = set[n];
       if (!nxt) return;
       if (cur !== nxt) cur.insts.forEach((o) => { o.group.visible = false; o.group.userData.verOff = true; });
       nxt.insts.forEach((o) => { o.group.visible = true; o.group.userData.verOff = false; o.group.position.copy(o.home); fresh.push(o); });
       F.items[n] = nxt; byN[n] = dataFor(n, v);
     });
     S.ver = v;
-    // los muebles nuevos caen en su sitio, del fondo hacia la fachada
+    placeBought(v);
+    MOVIBLES.forEach((n) => { byN[n] = dataFor(n, v); if (VS.layout[v] && VS.layout[v][n]) F.items[n].insts.forEach((o) => fresh.push(o)); });
+    if (R.setFixtures) R.setFixtures(VS.fixtures[v]);
+    // los muebles nuevos (y los equipos que cambian de lugar) caen en su sitio, del fondo hacia la fachada
     if (!opt.quiet && !E.reduced) {
       fresh.sort((a, b) => a.home.z - b.home.z);
       fresh.forEach((o, i) => {
@@ -764,7 +783,7 @@
     syncVerUI();
     if (S.planOpen) renderPlan();
     if (keep) select(keep.n, null, { tab: keep.tab, force: true });
-    setHash(S.planOpen ? 'plano' : keep ? 'm' + keep.n : '');
+    if (!opt.quiet) setHash(S.planOpen ? 'plano' : keep ? 'm' + keep.n : '');
     if (!$('#modal').hidden && S.modalKind) reopenModal();
     if (!opt.quiet) L.ui.toast('Versión ' + v + ' · ' + vi.nombre, vi.titulo + '. Mobiliario fabricado: ' + cop(totals(v).fabricado) + ' en materiales.', 'cube', 4200);
   }
@@ -780,7 +799,7 @@
       '<span class="vcmp-n"><b>' + esc(r.nm) + '</b><span class="vbar"><span style="width:' + (r.c / max * 100).toFixed(1) + '%;background:' + verInfo(r.v).color + '"></span></span></span>' +
       '<span class="vcmp-c mono">' + cop(r.c) + '</span>' +
       (r.v === S.ver ? '<span class="vcmp-a">En el modelo</span>' : '<button type="button" class="btn btn-sm" data-setver="' + r.v + '">Ver</button>') + '</li>').join('') + '</ul>' +
-      '<p class="note">Al cambiar de versión cambian los doce muebles que se fabrican; los ocho productos que se compran son los mismos. <button type="button" class="link" data-vers="1">Comparar las tres versiones</button></p>';
+      '<p class="note">Cada versión ordena el local a su manera y cambia los doce muebles que se fabrican; los ocho productos que se compran son los mismos. <button type="button" class="link" data-vers="1">Comparar las tres versiones</button></p>';
   }
   /* requisitos del mueble y cómo los cumple cada versión (pestaña Requisitos) */
   function reqPanel(n) {
@@ -800,13 +819,15 @@
     S.modalKind = 'vers';
     const T3 = VS.list.map((v) => Object.assign({ v }, totals(v.id)));
     const maxF = Math.max.apply(null, T3.map((t) => t.fabricado));
+    const minF = Math.min.apply(null, T3.map((t) => t.fabricado));
     const card = (t) => {
-      const v = t.v, cur = v.id === S.ver, dif = t.fabricado - T3[0].fabricado;
+      const v = t.v, cur = v.id === S.ver, dif = t.fabricado - minF;
       return '<article class="vcard' + (cur ? ' is-on' : '') + '" style="--vc:' + v.color + '">' +
         '<header>' + vtag(v.id, 'lg') + '<div><h4>' + esc(v.nombre) + '</h4><span>' + esc(v.titulo) + '</span></div></header>' +
         '<p>' + esc(v.concepto) + '</p>' +
         '<dl class="vnums"><div><dt>Mobiliario fabricado</dt><dd class="mono">' + cop(t.fabricado) + '</dd></div><div><dt>Total del local</dt><dd class="mono">' + cop(t.total) + '</dd></div>' +
-        '<div class="wide"><dt>Frente a la versión A</dt><dd class="mono">' + (v.id === 'A' ? 'Referencia' : (dif > 0 ? '+' : '−') + cop(Math.abs(dif)) + ' (' + (dif > 0 ? '+' : '−') + Math.round(Math.abs(dif) / T3[0].fabricado * 100) + ' %)') + '</dd></div></dl>' +
+        '<div class="wide"><dt>Frente a la más económica</dt><dd class="mono">' + (!dif ? 'Es la más económica' : '+' + cop(dif) + ' (+' + Math.round(dif / minF * 100) + ' %)') + '</dd></div></dl>' +
+        '<h5>Distribución</h5><ul class="plain">' + (v.distribucion || []).map((m) => '<li>' + esc(m) + '</li>').join('') + '</ul>' +
         '<h5>Materiales</h5><ul class="plain">' + v.materiales.map((m) => '<li>' + esc(m) + '</li>').join('') + '</ul>' +
         '<h5>A favor</h5><ul class="plain pro">' + v.ventajas.map((m) => '<li>' + esc(m) + '</li>').join('') + '</ul>' +
         '<h5>En contra</h5><ul class="plain con">' + v.contras.map((m) => '<li>' + esc(m) + '</li>').join('') + '</ul>' +
@@ -819,9 +840,9 @@
         VS.list.map((v) => { const c = itemCost(n, v.id); return '<span class="gb-bar" role="cell" title="' + esc(v.id + ' · ' + itemName(n, v.id) + ': ' + cop(c)) + '"><span style="width:' + Math.max(0.8, c / maxI * 100).toFixed(2) + '%;background:' + v.color + '"></span><em class="mono">' + v.id + ' ' + copShort(c) + '</em></span>'; }).join('') +
         '</span></div>').join('') + '</div>';
     const html =
-      '<p class="lead">El mismo local de 6.00 × 7.00 m con tres juegos de muebles. Cada versión conserva la huella de cada mueble en el plano, los pasos libres y los ocho productos que se compran; cambian el diseño, los materiales, la fabricación y el armado de los doce muebles que se fabrican.</p>' +
+      '<p class="lead">El mismo local de 6.00 × 7.00 m ordenado de tres maneras. Cada versión tiene su propia distribución y sus doce muebles fabricados, con diseño, materiales, fabricación y armado propios. Los ocho productos que se compran son los mismos: en A y B cambian de lugar.</p>' +
       '<div class="vtot">' + T3.map((t) => '<div style="--vc:' + t.v.color + '"><span>' + vtag(t.v.id, 'sm') + esc(t.v.nombre) + '</span><span class="vtot-b"><span style="width:' + (t.fabricado / maxF * 100).toFixed(1) + '%"></span></span><b class="mono">' + cop(t.fabricado) + '</b></div>').join('') + '</div>' +
-      '<p class="note" style="margin-top:6px">Materiales de los doce muebles fabricados. Precios publicados por cada tienda el ' + esc(VS.fecha) + '; sin mano de obra, transporte ni instalación.</p>' +
+      '<p class="note" style="margin-top:6px">Materiales de los doce muebles fabricados. Precios publicados por cada tienda entre el 9 y el 15 de octubre de 2026; sin mano de obra, transporte ni instalación.</p>' +
       '<div class="vcards">' + T3.map(card).join('') + '</div>' +
       '<h3>Costo de cada mueble en las tres versiones <small>toca un mueble para ver su ficha</small></h3>' + chart +
       '<div class="cta"><button type="button" class="btn" data-reqs="0">Requisitos de diseño</button><button type="button" class="btn" data-plan="1">Ver el plano 2D</button><button type="button" class="btn" data-budget="1">Presupuesto de la versión ' + S.ver + '</button></div>';
@@ -999,9 +1020,9 @@
     const group = (key) => { const g = {}; C.compras.forEach((c) => { const k = c[key] || 'Otros'; g[k] = g[k] || { r: k, c: 0, n: 0 }; g[k].c += c.costo; g[k].n++; }); return Object.values(g).sort((a, b) => b.c - a.c); };
     const cats = group('cat'), provs = group('prov');
     const compras = C.compras.slice().sort((a, b) => b.costo - a.costo);
-    const dif = TT.fabricado - P.fabricado;
+    const minFab = Math.min.apply(null, VS.list.map((x) => totals(x.id).fabricado)), keys = new Set(C.compras.map((c) => c.id));
     return '<div class="kpis"><div><span>Total en materiales y equipos · versión ' + v + '</span><b class="mono">' + cop(TT.total) + '</b></div><div><span>12 muebles que se fabrican</span><b class="mono">' + cop(TT.fabricado) + '</b></div><div><span>8 productos que se compran</span><b class="mono">' + cop(P.comprado) + '</b></div></div>' +
-      '<p class="lead">Versión ' + v + ', ' + esc(vi.nombre.toLowerCase()) + ': ' + esc(vi.titulo.toLowerCase()) + '. El mobiliario cuesta ' + cop(Math.abs(dif)) + (dif > 0 ? ' más' : ' menos') + ' que en la versión A (' + (dif > 0 ? '+' : '−') + Math.round(Math.abs(dif) / P.fabricado * 100) + ' %). Los productos que se compran, impresoras incluidas, no cambian. Sin mano de obra, transporte ni instalación eléctrica.</p>' +
+      '<p class="lead">' + esc(vi.nombre) + ': ' + esc(vi.titulo.toLowerCase()) + '. ' + (TT.fabricado === minFab ? 'Es la versión de mobiliario más económica de las tres. ' : 'El mobiliario cuesta ' + cop(TT.fabricado - minFab) + ' más que en la versión más económica. ') + 'Los ocho productos que se compran, impresoras incluidas, son los mismos en las tres versiones. Sin mano de obra, transporte ni instalación eléctrica.</p>' +
       '<div class="cols"><section><h3>Se fabrica <small>materiales por mueble</small></h3>' + barList(fab.map(row), fab[0].total, 'is-click') + '</section>' +
       '<section><h3>Se compra <small>igual en las tres versiones</small></h3>' + barList(buy.map(row), buy[0].total, 'is-click') + '</section></div>' +
       '<div class="cols"><section><h3>Por tipo de insumo</h3>' + barList(cats.map((r) => ({ label: r.r, v: r.c, sub: r.n + (r.n === 1 ? ' insumo' : ' insumos') })), cats[0].c) + '</section>' +
@@ -1011,14 +1032,14 @@
       compras.map((c) => '<tr><td>' + (c.u ? '<a href="' + esc(c.u) + '" target="_blank" rel="noopener">' + esc(c.m) + '</a>' : esc(c.m)) + '</td><td>' + esc(c.texto) + '</td><td class="mono">' + esc(precioTxt(c.precio)) + '</td><td>' + esc(c.prov) + '</td><td class="r mono">' + cop(c.costo) + '</td></tr>').join('') +
       '<tr class="tot"><td>Total de insumos</td><td></td><td></td><td></td><td class="r mono">' + cop(C.total) + '</td></tr></tbody></table></div>' +
       '<div class="cols"><section><h3>Supuestos de las cifras</h3><ul class="plain">' +
-      ['Precios publicados en línea por cada tienda el ' + VS.fecha + ', en pesos colombianos con IVA.',
+      ['Precios publicados en línea por cada tienda entre el 9 y el 15 de octubre de 2026, en pesos colombianos con IVA; la fecha va en la nota de cada precio.',
         'Tableros: se compran láminas completas con un aprovechamiento del 72 %; su costo se reparte entre los muebles por área de piezas.',
         'Tubos y perfiles: se compran barras completas con un 8 % de desperdicio de corte; cintas LED y cantos con un 5 %.',
         'Pinturas y barnices: galones según el área, las manos y el rendimiento de la ficha técnica; filamento en carretes de 1 kg.',
         'El vidrio templado se paga por metro cuadrado con un mínimo de 3 m² por pedido.',
-        'El perfil de aluminio 30 × 30 se cotizó en tramos de 1 m con el descuento por volumen de la tienda; los tramos largos se cotizan con un distribuidor industrial.',
-        'No incluye mano de obra, corte en la tienda, transporte, instalación eléctrica ni plantas.'].map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></section>' +
-      '<section><h3>Antes de comprar</h3><ul class="plain check">' + ['Confirmar precios y existencias: cambian cada semana.', 'Verificar en sitio las medidas del local y de cada mueble.', 'Pedir el despiece al carpintero o al taller metálico antes de comprar láminas y barras.', 'Para la versión C, imprimir primero una unión de prueba y comprobar el ajuste con el perfil real.'].map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></section></div>';
+        keys.has('perfil3030') ? 'El perfil de aluminio 30 × 30 se cotizó en tramos de 1 m con el descuento por volumen de la tienda; los tramos largos se cotizan con un distribuidor industrial.' : '',
+        'No incluye mano de obra, corte en la tienda, transporte, instalación eléctrica ni plantas.'].filter(Boolean).map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></section>' +
+      '<section><h3>Antes de comprar</h3><ul class="plain check">' + ['Confirmar precios y existencias: cambian cada semana.', 'Verificar en sitio las medidas del local y de cada mueble.', 'Pedir el despiece al carpintero o al taller metálico antes de comprar láminas y barras.', ({ A: 'Confirmar con la administración del centro comercial que la losa admite los anclajes de la repisa colgante.', B: 'Pedir una muestra de la laca sobre MDF y aprobar el blanco antes de lacar todo.', C: 'Imprimir primero una unión de prueba y comprobar el ajuste con el perfil real.' })[v]].map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></section></div>';
   }
   const precioTxt = (P) => '$' + String(Math.round(P.precio)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' · ' + String(P.pres || '').toLowerCase();
 
@@ -1188,7 +1209,7 @@
     $('#mont').addEventListener('click', (e) => {
       if (e.target.closest('#mont-exit')) return exitMontaje();
       if (e.target.closest('#mont-play')) {
-        const st = S.mont, n = DATA.montaje.pasos.length;
+        const st = S.mont, n = MT().pasos.length;
         if (st.playing) { st.playing = false; S.gen++; stopTweens(); montState(st.step); $('#mont-play').textContent = 'Continuar'; E.shadowDirty = true; E.invalidate(); }
         else playMontaje(st.step >= n - 1 ? 0 : st.step + 1);
         return;
@@ -1227,13 +1248,14 @@
       $('#intro-msg').textContent = 'Este navegador no pudo iniciar el modelo 3D (WebGL).';
       return;
     }
-    FABN.forEach((n) => { baseItems[n] = F.items[n]; });
+    const hm0 = /^#(?:m\d+|plano)?([abc])?$/i.exec(location.hash || '') || [];
+    setVersion(hm0[1] ? hm0[1].toUpperCase() : 'A', { quiet: true, force: true });
     buildInventory(); buildLabels(); bindUI(); syncVerUI();
     const redraw = () => { L.redraws.forEach((f) => f()); E.invalidate(3); };
     if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('300 80px Jost'), document.fonts.load('600 80px Jost'), document.fonts.load('400 40px Jost')]).then(redraw, () => {});
     const hm = /^#(?:m(\d+)|(plano))?([abc])?$/i.exec(location.hash || '') || [];
     const start = hm[1] ? [null, hm[1]] : null, startPlan = !!hm[2];
-    if (hm[3] && hm[3].toUpperCase() !== 'A') setVersion(hm[3].toUpperCase(), { quiet: true });
+
     if (E.size.w >= 1280 && !start) { S.inv = true; $('#inv').hidden = false; $('#btn-inv').setAttribute('aria-pressed', 'true'); }
     S.view = 'fachada';
     layout();

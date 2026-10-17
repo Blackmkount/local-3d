@@ -1,6 +1,7 @@
 /* ============================================================================
-   MOBILIARIO DE LAS VERSIONES B Y C — los 12 muebles que se fabrican, modelados
-   pieza por pieza según el despiece de versions.js. Cada pieza guarda su
+   MOBILIARIO DE LA VERSIÓN C (modular) — los 12 muebles que se fabrican, modelados
+   pieza por pieza según el despiece de versions.js, y las utilidades que usan
+   también las versiones A y B (furniture-ab.js). Cada pieza guarda su
    material (mk = clave del precio en versions.js), su paso de armado (step,
    en el orden de seq) y hacia dónde se separa al explosionar (ex).
 
@@ -145,284 +146,6 @@
   }
   /* figuras de exhibición sobre una superficie */
   function figs(dec, defs, y) { defs.forEach((f) => G.fig(dec, f[2], f[0], y, f[1], f[3], f[4], f[5] || 0.2)); }
-
-  /* ============================================================= VERSIÓN B */
-  const B = {};
-  B[2] = function (tgt) {
-    G.reseed(2202);
-    const o = h.inst(2, 0, 0, 1.60, PI / 2), t = 0.0254, dec = [];
-    const xm = [0, 1.2 - t / 2, 2.4 - t], Ls = [0.10, 0.62, 1.02, 1.42, 1.82, 2.22];
-    xm.forEach((x, i) => {
-      const dx = (i - 1) * 0.36, ex = [dx, 0, 0.5];
-      tubo(o, 'Paral', 'tubo1', x, 0.02, 0, t, 2.38, t, 0, ex); tubo(o, 'Paral', 'tubo1', x, 0.02, 0.4 - t, t, 2.38, t, 0, ex);
-      Ls.forEach((y) => tubo(o, 'Travesaño', 'tubo1', x, y - t, t, t, t, 0.4 - 2 * t, 0, ex));
-    });
-    for (let m = 0; m < 2; m++) {
-      const x0 = xm[m] + t, w = xm[m + 1] - x0, dx = m ? 0.18 : -0.18;
-      [0.60, 2.30].forEach((y) => tubo(o, 'Larguero trasero', 'tubo1', x0, y, 0, w, t, t, 1, [dx, 0, -0.35]));
-      tri(o, 'Fondo del gabinete', 'triplex3', x0, 0.10, t, w, 0.52, 0.0032, 3, [dx, 0, -0.3]);
-      for (let i = 0; i < 2; i++) {
-        tri(o, 'Puerta', 'triplex15', x0 + 0.002 + i * (w / 2), 0.102, 0.4 - 0.002, w / 2 - 0.004, 0.516, 0.015, 3, [dx + (i ? 0.08 : -0.08), 0, 0.9], { grain: 1 });
-        h.PM(o, 'Manija', 'acero', [{ g: new T.BoxGeometry(0.008, 0.14, 0.008), m: G.mat(x0 + (i ? 0.05 : w - 0.05), 0.5, 0.428), c: ACERO }, { g: new T.BoxGeometry(0.008, 0.008, 0.026), m: G.mat(x0 + (i ? 0.05 : w - 0.05), 0.436, 0.418), c: ACERO }, { g: new T.BoxGeometry(0.008, 0.008, 0.026), m: G.mat(x0 + (i ? 0.05 : w - 0.05), 0.564, 0.418), c: ACERO }], 3, [dx + (i ? 0.08 : -0.08), 0, 1.0], { mk: 'manija', noShadow: true });
-      }
-      Ls.forEach((y) => tri(o, 'Entrepaño', 'triplex18', x0, y, t, w, 0.018, 0.4 - 2 * t, 4, [dx, 0.04, 0.85]));
-      Ls.slice(2).forEach((y) => led(o, 'Perfil LED bajo entrepaño', 'perfilLed', x0 + 0.01, y - 0.012, 0.4 - t - 0.03, w - 0.02, 0.012, 0.016, 5, [dx, -0.06, 0.6]));
-      Ls.slice(1).forEach((y, k) => h.fila(dec, x0 + 0.06, x0 + w - 0.06, y + 0.018, 0.2, 3 + ((k + m) % 2), 0.15, 0.27));
-    }
-    xm.forEach((x, i) => tri(o, 'Costado del gabinete', 'triplex15', x + (i === 2 ? -0.015 : t), 0.118, t, 0.015, 0.50, 0.4 - 2 * t, 3, [(i - 1) * 0.4, 0, 0.3]));
-    h.chazos(o, xm.flatMap((x) => [[x + t / 2, 0.7, 0.03], [x + t / 2, 2.2, 0.03]]), 1, [0, 0, 0.3], { exA: [0, 0, 0.4] });
-    niveladores(o, xm.flatMap((x) => [[x + t / 2, t / 2], [x + t / 2, 0.4 - t / 2]]), 0.02, 2, [0, 0, 0.5]);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.5, 0.122, 0.06, 0.16, 0.04, 0.06, 5, [-0.16, 0, 1.05], { mk: 'fuente12' });
-    h.D(o, dec); h.sombra(o, 0, 0, 2.4, 0.4);
-    return h.add(2, [o], { th: 0.85 }, tgt);
-  };
-
-  /* isla con bastidor de tubo y chaflanes (B3 y B4) */
-  function islaB(n, X, D, Lx, Fz, ch, hTop, nRuedas, seed, decDefs, tgt, extra) {
-    G.reseed(seed);
-    const o = h.inst(n, X, 0, D, 0), s = 0.0381, yb = 0.085, yTop = hTop - 0.036;
-    const out = chamferPts(Lx, Fz, ch), inn = chamferPts(Lx, Fz, ch, 0.02 + s / 2);
-    const lr = []; ring(lr, inn, yb, s, ACERO, true); ring(lr, inn, yTop - s, s, ACERO, true);
-    inn.forEach((p) => lr.push({ g: new T.BoxGeometry(s, yTop - s - yb - s, s), m: G.mat(p[0], (yb + s + yTop - s) / 2, p[1]), c: ACERO }));
-    h.PM(o, 'Bastidor de tubo 1-1/2"', 'acero', lr, 0, [0, 0.35, 0], { mk: 'tubo15' });
-    const rp = []; for (let i = 0; i < nRuedas / 2; i++) { const x = 0.15 + i * (Lx - 0.3) / (nRuedas / 2 - 1); rp.push([x, 0.15], [x, Fz - 0.15]); }
-    ruedas(o, rp, 1, [0, 0, 0]);
-    const ll = []; ring(ll, chamferPts(Lx, Fz, ch, 0.03), yb - 0.008, 0.008, 0xffffff, true);
-    h.PM(o, 'Tira LED COB', 'led', ll, 2, [0, 0, 0], { mk: 'cob', noShadow: true, exA: [0, -0.3, 0] });
-    glow(o, Lx, Fz, 0.1, Lx / 2, Fz / 2);
-    for (let i = 0; i < out.length; i++) {
-      const a = out[i], b = out[(i + 1) % out.length];
-      if (extra.open && Math.abs(a[1] - Fz) < 1e-6 && Math.abs(b[1] - Fz) < 1e-6) continue;   // cara que se acopla a la otra isla
-      const len = Math.hypot(b[0] - a[0], b[1] - a[1]), diag = Math.abs(b[0] - a[0]) > 1e-6 && Math.abs(b[1] - a[1]) > 1e-6;
-      const mx = (a[0] + b[0]) / 2 - Lx / 2, mz = (a[1] + b[1]) / 2 - Fz / 2, k = 0.7 / Math.max(0.3, Math.hypot(mx, mz));
-      panelSeg(o, diag ? 'Chaflán' : 'Paño de triplex', M.triplex, 'triplex15', a, b, yb, yTop - yb, 0.015, 3, [mx * k, 0.3, mz * k]);
-      void len;
-    }
-    const shp = chamferShape(Lx, Fz, ch);
-    h.P(o, 'Tapa inferior', M.triplex, 0, yTop, 0, 0, 0, 0, 4, [0, 0.9, 0], { geo: G.slab(shp, 0.018, true), mk: 'triplex18' });
-    h.P(o, 'Tapa superior', M.triplex, 0, yTop + 0.018, 0, 0, 0, 0, 4, [0, 1.3, 0], { geo: G.slab(shp, 0.018, true), mk: 'triplex18' });
-    if (extra.fuente) h.P(o, 'Fuente 12 V', 'equipo', Lx * 0.6, yb + s, 0.05, 0.2, 0.05, 0.06, 5, [0, 0, -0.4], { mk: 'fuente12' });
-    const dec = []; figs(dec, decDefs, hTop); if (extra.tablet) G.pushBox(dec, 1.42, hTop, 0.72, 0.03, 0.2, 0.26, 0x16171a, 0.5);
-    h.D(o, dec);
-    return h.add(n, [o], extra.cfg, tgt);
-  }
-  B[3] = (tgt) => islaB(3, 1.5, 1.9, 2.0, 1.1, { bl: 0.12, fl: 0.12, fr: 0.12, br: 0 }, 0.95, 6, 3303,
-    [[0.3, 0.75, 'jarron', 0.2, 0xf4f2ee], [0.62, 0.42, 'conejo', 0.34, 0xf7d9c8], [0.95, 0.72, 'conejo', 0.4, 0xf4f2ee], [1.28, 0.36, 'torre', 0.42, 0x232326], [1.6, 0.74, 'facetado', 0.2, 0xf4f2ee], [1.78, 0.4, 'gema', 0.16, 0xf08a24], [0.3, 0.3, 'nudo', 0.17, 0xf4f2ee]], tgt,
-    { fuente: true, tablet: true, cfg: { th: 0.55, ph: 1.0 } });
-  B[4] = (tgt) => islaB(4, 2.3, 2.5, 1.2, 0.6, { bl: 0.10, br: 0.10, fl: 0, fr: 0 }, 0.80, 4, 4404,
-    [[0.25, 0.3, 'busto', 0.24, 0xf4f2ee], [0.6, 0.26, 'torre', 0.3, 0x232326], [0.93, 0.32, 'aro', 0.2, 0xf4f2ee]], tgt,
-    { open: true, cfg: { th: -0.55, ph: 1.0 } });
-
-  B[5] = function (tgt) {
-    const o = h.inst(5, 1.5, 0, 4.2, 0), w = 0.05, d = 0.025;
-    [0.15, 1.6].forEach((x, i) => {
-      const ex = [(i ? 1 : -1) * 0.5, 0, 0], l = [];
-      // dos patas inclinadas en el plano y-z: del piso (z 0.06 / 0.64) a la tapa (z 0.17 / 0.53)
-      [[0.06, 0.17], [0.64, 0.53]].forEach((zz) => {
-        const z0 = zz[0], z1 = zz[1], ln = Math.hypot(1.0, z1 - z0), ang = Math.atan2(z1 - z0, 1.0);
-        l.push({ g: new T.BoxGeometry(w, ln, d), m: G.mat(x + w / 2, 0.5, (z0 + z1) / 2, ang, 0, 0), c: ACERO });
-      });
-      l.push({ g: new T.BoxGeometry(w, d, 0.62), m: G.mat(x + w / 2, 1.0, 0.35), c: ACERO });
-      l.push({ g: new T.BoxGeometry(w, d, 0.56), m: G.mat(x + w / 2, 0.3, 0.35), c: ACERO });
-      h.PM(o, 'Caballete', 'acero', l, 0, ex, { mk: 'tuboRect' });
-    });
-    [0.17, 0.53].forEach((z) => tubo(o, 'Reposapiés', 'tubo1', 0.2, 0.29, z - 0.0127, 1.4, 0.0254, 0.0254, 1, [0, 0, z < 0.3 ? -0.35 : 0.35]));
-    niveladores(o, [[0.175, 0.07], [0.175, 0.63], [1.625, 0.07], [1.625, 0.63]], 0.012, 2, [0, 0, 0]);
-    tri(o, 'Tapa inferior', 'triplex18', 0, 1.0125, 0, 1.8, 0.018, 0.7, 3, [0, 0.38, 0]);
-    tri(o, 'Tapa superior', 'triplex18', 0, 1.0305, 0, 1.8, 0.018, 0.7, 4, [0, 0.66, 0]);
-    const dec = []; G.pushBox(dec, 0.5, 1.05, 0.22, 0.3, 0.012, 0.21, 0x1a1b1e, 0.15); G.pushBox(dec, 0.9, 1.05, 0.3, 0.2, 0.008, 0.14, 0xe9e7e2, -0.2);
-    h.D(o, dec); h.sombra(o, 0, 0, 1.8, 0.7, 0.16);
-    return h.add(5, [o], { th: 0.6, ph: 1.05 }, tgt);
-  };
-
-  B[7] = function (tgt) {
-    const o = h.inst(7, 0.6, 0, 5.5, 0), s = 0.0381, pc = [], dec = [];
-    const xs = [0, 0.8, 1.6, 2.4, 3.2 - s];
-    xs.forEach((x, i) => {
-      const ex = [(i - 2) * 0.22, 0, 0.5];
-      tubo(o, 'Paral', 'tubo15', x, 0.02, 0, s, 0.844, s, 0, ex); tubo(o, 'Paral', 'tubo15', x, 0.02, 0.6 - s, s, 0.844, s, 0, ex);
-      [0.10, 0.864 - s].forEach((y) => tubo(o, 'Travesaño', 'tubo15', x, y, s, s, s, 0.6 - 2 * s, 0, ex));
-    });
-    [[0.10, 0], [0.10, 0.6 - s], [0.864 - s, 0], [0.864 - s, 0.6 - s]].forEach((p, i) => tubo(o, 'Larguero', 'tubo15', s, p[0], p[1], 3.2 - 2 * s, s, s, 1, [0, i > 1 ? 0.2 : -0.1, p[1] ? 0.4 : -0.4]));
-    niveladores(o, xs.flatMap((x) => [[x + s / 2, s / 2], [x + s / 2, 0.6 - s / 2]]), 0.02, 2, [0, 0, 0.4]);
-    for (let m = 0; m < 4; m++) {
-      const x0 = xs[m] + s, w = (m === 3 ? xs[4] : xs[m + 1]) - x0, dx = (m - 1.5) * 0.2;
-      tri(o, 'Entrepaño', 'triplex18', x0, 0.10 + s, s, w, 0.018, 0.6 - 2 * s, 3, [dx, 0, 0.9]);
-      for (let i = 0; i < 2; i++) {
-        const gx = x0 + 0.01 + i * (w / 2), gw = w / 2 - 0.02, l = [];
-        G.pushBox(l, gx, 0.157, 0.06, gw, 0.26, 0.015); G.pushBox(l, gx, 0.157, 0.06 + 0.465, gw, 0.26, 0.015);
-        G.pushBox(l, gx, 0.157, 0.075, 0.015, 0.26, 0.45); G.pushBox(l, gx + gw - 0.015, 0.157, 0.075, 0.015, 0.26, 0.45);
-        h.P(o, 'Gaveta', M.triplex, 0, 0, 0, 0, 0, 0, 5, [dx + (i ? 0.06 : -0.06), 0, 1.1], { geo: G.merge(l), mk: 'triplex15' });
-        G.spool(dec, gx + gw / 2, 0.157 + 0.1, 0.3, 0.09, 0.06, [0x2f6fd0, 0xd9412e, 0x232326, 0x3f9b57, 0xf2c230, 0xf4f2ee, 0x8a4fd0, 0xf08a24][(m * 2 + i) % 8], 'x');
-      }
-      pc.push({ g: G.cyl(), m: h.cylM(x0 + w / 2, 0.901, 0.1, 0.03, 0.004), c: 0x111113 });
-    }
-    [0, 1].forEach((i) => {
-      const dx = i ? 0.3 : -0.3;
-      tri(o, 'Tapa inferior', 'triplex18', i * 1.6, 0.864, 0, 1.6, 0.018, 0.6, 4, [dx, 0.36, 0.5]);
-      tri(o, 'Tapa superior', 'triplex18', i * 1.6, 0.882, 0, 1.6, 0.018, 0.6, 4, [dx, 0.58, 0.5]);
-    });
-    h.PM(o, 'Pasacables', 'plastico', pc, 4, [0, 0.8, 0.5], { mk: 'pasacable', noShadow: true });
-    h.D(o, dec, 'decor'); h.sombra(o, 0, 0, 3.2, 0.6);
-    return h.add(7, [o], { th: 0.45, ph: 1.05 }, tgt);
-  };
-
-  B[9] = function (tgt) {
-    G.reseed(9909);
-    const o = h.inst(9, 0.6, 1.6, 5.5, 0), t = 0.0254, l = [];
-    [0.1, 0.85, 1.6, 2.35, 3.1].forEach((x) => {
-      l.push({ g: new T.BoxGeometry(t, 0.2, t), m: G.mat(x, -0.1, t / 2), c: ACERO });
-      l.push({ g: new T.BoxGeometry(t, t, 0.22), m: G.mat(x, -t / 2, 0.11), c: ACERO });
-      const ln = Math.hypot(0.17, 0.17); l.push({ g: new T.BoxGeometry(t, ln, t), m: G.mat(x, -0.105, 0.105, PI / 4, 0, 0), c: ACERO });
-    });
-    h.PM(o, 'Escuadras de tubo 1"', 'acero', l, 0, [0, 0, 0.3], { mk: 'tubo1' });
-    h.chazos(o, [0.1, 0.85, 1.6, 2.35, 3.1].flatMap((x) => [[x, -0.05, 0.01], [x, -0.17, 0.01]]), 0, [0, 0, 0.4], { exA: [0, 0, 0.5] });
-    [0, 1].forEach((i) => tri(o, 'Tramo de repisa', 'triplex18', i * 1.6, 0, 0, 1.6, 0.018, 0.25, 1, [i ? 0.22 : -0.22, 0.13, 0.62]));
-    const dec = [], cs = [0x232326, 0x232326, 0x2f6fd0, 0x232326, 0xf4f2ee, 0x232326, 0xd9412e, 0x232326, 0x232326, 0xf08a24, 0x232326, 0x3f9b57];
-    for (let i = 0; i < 12; i++) { if (i === 5) continue; G.spool(dec, 0.2 + i * 0.255, 0.118, 0.13, 0.1, 0.07, cs[i], 'z'); }
-    G.fig(dec, 'jarron', 1.47, 0.018, 0.13, 0.2, 0x8f9094, 0);
-    h.D(o, dec, 'decor');
-    return h.add(9, [o], { th: 0.4, ph: 1.1, lp: [-1.35, 0] }, tgt);
-  };
-
-  B[10] = function (tgt) {
-    G.reseed(10010);
-    const o = h.inst(10, 6, 0, 5.0, -PI / 2), t = 0.0254, dec = [];
-    const xs = [0, 0.6, 1.2, 1.8, 2.4, 3.0 - t];
-    xs.forEach((x, i) => {
-      const ex = [(i - 2.5) * 0.18, 0, 0.45];
-      tubo(o, 'Paral', 'tubo1', x, 0.02, 0, t, 0.844, t, 0, ex); tubo(o, 'Paral', 'tubo1', x, 0.02, 0.48 - t, t, 0.844, t, 0, ex);
-      [0.10, 0.864 - t].forEach((y) => tubo(o, 'Travesaño', 'tubo1', x, y, t, t, t, 0.48 - 2 * t, 0, ex));
-    });
-    [[0.10, 0], [0.10, 0.48 - t], [0.864 - t, 0], [0.864 - t, 0.48 - t]].forEach((p, i) => tubo(o, 'Larguero', 'tubo1', t, p[0], p[1], 3.0 - 2 * t, t, t, 1, [0, i > 1 ? 0.15 : -0.1, p[1] ? 0.35 : -0.35]));
-    niveladores(o, xs.flatMap((x) => [[x + t / 2, t / 2], [x + t / 2, 0.48 - t / 2]]), 0.02, 1, [0, 0, 0.3]);
-    tri(o, 'Tapa lateral', 'triplex15', -0.015, 0.02, 0, 0.015, 0.844, 0.5, 1, [-0.6, 0, 0.45], { grain: 1 });
-    tri(o, 'Tapa lateral', 'triplex15', 3.0, 0.02, 0, 0.015, 0.844, 0.5, 1, [0.6, 0, 0.45], { grain: 1 });
-    for (let m = 0; m < 5; m++) {
-      const x0 = xs[m] + t, dx = (m - 2) * 0.17, rl = [];
-      for (let j = 0; j < 3; j++) {
-        const y = 0.125 + j * 0.246, bx = [];
-        G.pushBox(rl, x0 + 0.002, y + 0.09, 0.03, 0.012, 0.036, 0.43, ALU); G.pushBox(rl, x0 + 0.56, y + 0.09, 0.03, 0.012, 0.036, 0.43, ALU);
-        G.pushBox(bx, x0 + 0.016, y + 0.03, 0.03, 0.015, 0.18, 0.43); G.pushBox(bx, x0 + 0.545, y + 0.03, 0.03, 0.015, 0.18, 0.43);
-        G.pushBox(bx, x0 + 0.031, y + 0.03, 0.03, 0.514, 0.18, 0.015); G.pushBox(bx, x0 + 0.031, y + 0.03, 0.445, 0.514, 0.18, 0.015);
-        h.P(o, 'Caja de cajón', M.triplex, 0, 0, 0, 0, 0, 0, 3, [dx, 0, 0.95], { geo: G.merge(bx), mk: 'triplex15' });
-        tri(o, 'Frente de cajón', 'triplex15', xs[m] + 0.002 + (m ? 0 : t), y, 0.48, 0.596 - (m ? 0 : t) - 0.004, 0.24, 0.015, 4, [dx, 0, 1.4]);
-        h.PM(o, 'Manija', 'acero', [{ g: new T.BoxGeometry(0.14, 0.008, 0.008), m: G.mat(xs[m] + 0.3, y + 0.19, 0.523), c: ACERO }, { g: new T.BoxGeometry(0.008, 0.008, 0.028), m: G.mat(xs[m] + 0.236, y + 0.19, 0.509), c: ACERO }, { g: new T.BoxGeometry(0.008, 0.008, 0.028), m: G.mat(xs[m] + 0.364, y + 0.19, 0.509), c: ACERO }], 4, [dx, 0, 1.5], { mk: 'manija', noShadow: true });
-      }
-      h.PM(o, 'Rieles de extensión total', 'alu', rl, 2, [dx, 0, 0.45], { mk: 'riel45', noShadow: true, exA: [0, 0, 0.5] });
-    }
-    [0, 1].forEach((i) => {
-      const dx = i ? 0.3 : -0.3;
-      tri(o, 'Tapa inferior', 'triplex18', i * 1.5, 0.864, 0, 1.5, 0.018, 0.5, 5, [dx, 0.34, 0.45]);
-      tri(o, 'Tapa superior', 'triplex18', i * 1.5, 0.882, 0, 1.5, 0.018, 0.5, 5, [dx, 0.5, 0.45]);
-    });
-    G.fig(dec, 'jarron', 0.35, 0.9, 0.25, 0.22, 0xf4f2ee, 0); G.fig(dec, 'gema', 0.62, 0.9, 0.3, 0.12, 0x232326, 0.4);
-    G.pushBox(dec, 1.9, 0.9, 0.12, 0.3, 0.1, 0.24, 0xc9a579, 0.1); G.fig(dec, 'conejo', 1.35, 0.9, 0.26, 0.24, 0xf4f2ee, 0.3);
-    h.D(o, dec); h.sombra(o, 0, 0, 3.0, 0.5);
-    return h.add(10, [o], { th: -0.95, ph: 1.05 }, tgt);
-  };
-
-  /* carretes y accesorios colgados de un panel (B11 y C11) */
-  function colgados(l, rnd) {
-    const cs = [0x2f6fd0, 0xf2c230, 0xd9412e, 0x3f9b57, 0xf08a24, 0x232326, 0xf4f2ee, 0x8a4fd0, 0x2aa3a0, 0xe96aa6];
-    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {
-      const x = 0.2 + c * 0.24, y = 1.03 - r * 0.33;
-      G.spool(l, x, y, 0.065, 0.098, 0.062, cs[(r * 4 + c * 3) % cs.length], 'z');
-      l.push({ g: G.cyl(), m: h.cylM(x, y, 0.06, 0.006, 0.09, 'z'), c: 0x9a9da1 });
-    }
-    for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) {
-      const x = 1.2 + c * 0.2, y = 1.08 - r * 0.27, w = 0.07 + rnd() * 0.05, hh = 0.1 + rnd() * 0.07;
-      l.push({ g: G.cyl(), m: h.cylM(x, y + hh / 2 + 0.01, 0.04, 0.004, 0.05, 'z'), c: 0x9a9da1 });
-      G.pushBox(l, x - w / 2, y - hh / 2, 0.03, w, hh, 0.03, rnd() > 0.35 ? 0x26272a : 0xe9e7e2);
-    }
-  }
-  B[11] = function (tgt) {
-    G.reseed(11011);
-    const o = h.inst(11, 6, 1.0, 4.95, -PI / 2);
-    [0, 0.585, 1.17].forEach((y, i) => tri(o, 'Listón horizontal', 'triplex15', 0, y, 0, 2.2, 0.05, 0.015, 0, [0, (i - 1) * 0.18, 0.22]));
-    h.chazos(o, [0.15, 0.75, 1.45, 2.05].flatMap((x) => [[x, 0.025, 0.03], [x, 1.195, 0.03]]), 0, [0, 0, 0.4]);
-    [0.3, 0.83, 1.32, 1.85].forEach((x) => tri(o, 'Listón vertical', 'triplex15', x, 0.05, 0, 0.05, 1.12, 0.0145, 1, [0, 0, 0.52]));
-    const sheet = h.P(o, 'Tablero de triplex perforado', M.perforado, 0, 0, 0.015, 2.2, 1.22, 0.0065, 2, [0, 0, 0.9], { bev: 0, mk: 'triplex65' });
-    const uv = sheet.geometry.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, (i % 4 === 1 || i % 4 === 3 ? 1 : 0) * 21.6, (i % 4 < 2 ? 1 : 0) * 12);
-    const l = []; colgados(l, G.rand);
-    h.PM(o, 'Ganchos, carretes y accesorios', 'decor', l, 3, [0, 0, 1.32], { mk: 'ganchos' });
-    return h.add(11, [o], { th: -1.0, ph: 1.2 }, tgt);
-  };
-
-  B[12] = function (tgt) {
-    G.reseed(12012);
-    const o = h.inst(12, 6, 1.05, 2.5, -PI / 2);
-    tri(o, 'Lateral', 'triplex15', 0, 0, 0, 0.015, 1.2, 0.15, 0, [-0.2, 0, 0.26]);
-    tri(o, 'Lateral', 'triplex15', 0.385, 0, 0, 0.015, 1.2, 0.15, 0, [0.2, 0, 0.26]);
-    tri(o, 'Piso', 'triplex15', 0.015, 0, 0, 0.37, 0.015, 0.15, 0, [0, -0.2, 0.26]);
-    tri(o, 'Fondo', 'triplex3', 0.005, 0.005, 0, 0.39, 1.19, 0.0032, 0, [0, 0, 0], { exA: [0, 0, -0.2] });
-    [0.3, 0.6, 0.9].forEach((y) => tri(o, 'Entrepaño', 'triplex15', 0.015, y, 0.004, 0.37, 0.015, 0.13, 1, [0, 0, 0.55]));
-    h.P(o, 'Frente de acrílico', 'acrilico', 0.002, 0.002, 0.139, 0.396, 1.196, 0.003, 2, [0, 0, 0.85], { noShadow: true, order: 4, mk: 'acril3' });
-    tri(o, 'Techo', 'triplex15', 0.015, 1.185, 0, 0.37, 0.015, 0.15, 2, [0, 0.24, 0.26]);
-    led(o, 'Perfil LED bajo el techo', 'perfilLed', 0.02, 1.173, 0.09, 0.36, 0.012, 0.016, 3, [0, -0.1, 0.5]);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.14, 1.2, 0.04, 0.12, 0.03, 0.05, 3, [0, 0.4, 0.26], { mk: 'fuente3' });
-    h.chazos(o, [[0.1, 1.1, 0.03], [0.3, 1.1, 0.03]], 4, [0, 0, 0.2], { exA: [0, 0, 0.3] });
-    const dec = [];
-    [0.015, 0.315, 0.615, 0.915].forEach((y, i) => { G.fig(dec, ['torre', 'conejo', 'busto', 'jarron'][i], 0.13, y, 0.075, 0.2, [0x232326, 0xf4f2ee, 0x232326, 0x2f6fd0][i], 0.3); G.fig(dec, ['gema', 'nudo', 'aro', 'facetado'][i], 0.28, y, 0.075, 0.13, [0xf4f2ee, 0x232326, 0xf4f2ee, 0x232326][i], 0); });
-    h.D(o, dec);
-    return h.add(12, [o], { th: -0.9, ph: 1.25 }, tgt);
-  };
-
-  B[13] = function (tgt) {
-    G.reseed(13013);
-    const o = h.inst(13, 6, 0, 1.5, -PI / 2), t = 0.0254, dec = [];
-    const xs = [0, 1.2 - t], Ls = [0.10, 0.52, 0.94, 1.36, 1.78, 2.20];
-    xs.forEach((x, i) => {
-      const ex = [(i ? 1 : -1) * 0.32, 0, 0.5];
-      tubo(o, 'Paral', 'tubo1', x, 0.02, 0, t, 2.38, t, 0, ex); tubo(o, 'Paral', 'tubo1', x, 0.02, 0.35 - t, t, 2.38, t, 0, ex);
-      Ls.forEach((y) => tubo(o, 'Travesaño', 'tubo1', x, y - t, t, t, t, 0.35 - 2 * t, 0, ex));
-    });
-    [0.6, 2.3].forEach((y) => tubo(o, 'Larguero trasero', 'tubo1', t, y, 0, 1.2 - 2 * t, t, t, 1, [0, 0, -0.35]));
-    h.chazos(o, xs.flatMap((x) => [[x + t / 2, 0.7, 0.03], [x + t / 2, 2.2, 0.03]]), 1, [0, 0, 0.3], { exA: [0, 0, 0.4] });
-    niveladores(o, xs.flatMap((x) => [[x + t / 2, t / 2], [x + t / 2, 0.35 - t / 2]]), 0.02, 2, [0, 0, 0.5]);
-    Ls.forEach((y) => tri(o, 'Entrepaño', 'triplex18', t, y, t, 1.2 - 2 * t, 0.018, 0.35 - 2 * t, 3, [0, 0.04, 0.8]));
-    Ls.slice(1).forEach((y) => led(o, 'Perfil LED bajo entrepaño', 'perfilLed', t + 0.01, y - 0.012, 0.35 - t - 0.03, 1.2 - 2 * t - 0.02, 0.012, 0.016, 4, [0, -0.06, 0.6]));
-    h.P(o, 'Fuente 12 V', 'equipo', 0.5, 2.218, 0.08, 0.16, 0.04, 0.06, 4, [0, 0.4, 0.5], { mk: 'fuente8' });
-    const pal = [0x232326, 0x232326, 0xf4f2ee, 0xf4f2ee, 0x2f6fd0, 0x232326, 0xf4f2ee];
-    Ls.forEach((y, k) => h.fila(dec, 0.1, 1.1, y + 0.018, 0.17, 2 + (k % 2), 0.17, 0.3, pal));
-    h.D(o, dec); h.sombra(o, 0, 0, 1.2, 0.35);
-    return h.add(13, [o], { th: -0.85 }, tgt);
-  };
-
-  B[15] = function (tgt) {
-    const o = h.inst(15, 3.9, 0, 5.6, 0), w = 0.025, d = 0.05, z = 0.03;
-    const frame = (x0, y0, W, H, hs) => {
-      const l = [];
-      G.pushBox(l, x0, y0, z, W, w, d, ACERO); G.pushBox(l, x0, y0 + H - w, z, W, w, d, ACERO);
-      G.pushBox(l, x0, y0 + w, z, w, H - 2 * w, d, ACERO); G.pushBox(l, x0 + W - w, y0 + w, z, w, H - 2 * w, d, ACERO);
-      hs.forEach((y) => G.pushBox(l, x0 + w, y - w / 2, z, W - 2 * w, w, d, ACERO));
-      return l;
-    };
-    h.PM(o, 'Marco del fijo', 'acero', frame(0, 0, 1.05, 2.4, [0.8, 1.6]), 0, [-0.25, 0, 0.5], { mk: 'tuboRect' });
-    h.chazos(o, [[0.5, 0.01, 0.055], [0.5, 2.39, 0.055]], 0, [-0.25, 0, 0.5]);
-    h.PM(o, 'Marco de la puerta', 'acero', frame(1.065, 0.02, 0.86, 2.36, [0.8, 1.6]), 1, [0.1, 0, 1.0], { mk: 'tuboRect' });
-    h.PM(o, 'Bisagras de pistón', 'inox', [0.3, 1.2, 2.1].map((y) => ({ g: G.cyl(), m: h.cylM(1.94, y, z + d / 2, 0.009, 0.1), c: 0xb9bbbe })), 1, [0.15, 0, 1.0], { mk: 'bisagraSold', noShadow: true });
-    const pane = (x, y, W, H, step, ex) => h.P(o, 'Paño de vidrio de 6 mm', 'vidrio', x, y, z + d / 2 - 0.003, W, H, 0.006, step, ex, { noShadow: true, order: 3, mk: 'vidrio6' });
-    [[0.025, 0.8], [0.8125, 0.8], [1.6125, 0.7625]].forEach((r, i) => pane(0.025, r[0], 1.0, r[1] - (i < 2 ? 0.0125 : 0), 2, [-0.25, 0, 1.3 + i * 0.15]));
-    [[0.045, 0.7675], [0.8125, 0.775], [1.6125, 0.7425]].forEach((r, i) => pane(1.09, r[0], 0.81, r[1], 2, [0.1, 0, 1.7 + i * 0.15]));
-    h.PM(o, 'Manija', 'acero', [{ g: new T.BoxGeometry(0.008, 0.14, 0.008), m: G.mat(1.12, 1.1, z + d + 0.03), c: ACERO }, { g: new T.BoxGeometry(0.008, 0.14, 0.008), m: G.mat(1.12, 1.1, z - 0.03), c: ACERO }], 3, [0.1, 0, 1.9], { mk: 'manija', noShadow: true });
-    return h.add(15, [o], { th: 0.1, ph: 1.25 }, tgt);
-  };
-
-  B[17] = function (tgt) {
-    const o = h.inst(17, 0.2, 0, 7.0, 0);
-    tri(o, 'Costado', 'triplex18', 0, 0, 0, 0.018, 0.732, 0.6, 0, [-0.3, 0, 0], { grain: 1 });
-    tri(o, 'Costado', 'triplex18', 1.182, 0, 0, 0.018, 0.732, 0.6, 0, [0.3, 0, 0], { grain: 1 });
-    tri(o, 'Faldón trasero', 'triplex15', 0.018, 0.432, 0.02, 1.164, 0.3, 0.015, 0, [0, 0, -0.3]);
-    tri(o, 'Tapa', 'triplex18', 0, 0.732, 0, 1.2, 0.018, 0.6, 1, [0, 0.55, 0]);
-    h.PM(o, 'Pasacable', 'plastico', [{ g: G.cyl(), m: h.cylM(1.1, 0.751, 0.08, 0.03, 0.004), c: 0x111113 }], 1, [0, 0.62, 0], { mk: 'pasacable', noShadow: true });
-    const dec = [];
-    G.pushBox(dec, 0.33, 0.75, 0.1, 0.24, 0.012, 0.14, 0x1a1b1e); G.pushBox(dec, 0.44, 0.76, 0.14, 0.03, 0.12, 0.03, 0x1a1b1e);
-    G.pushBox(dec, 0.15, 0.86, 0.13, 0.6, 0.34, 0.018, 0x1a1b1e); G.pushBox(dec, 0.165, 0.875, 0.149, 0.57, 0.31, 0.002, 0x4f79b8);
-    G.pushBox(dec, 0.26, 0.75, 0.36, 0.38, 0.012, 0.13, 0xdedcd7);
-    h.D(o, dec, 'decorMate'); h.sombra(o, 0, 0, 1.2, 0.6, 0.16);
-    return h.add(17, [o], { th: 0.35, ph: 0.6, zone: 'trastienda' }, tgt);
-  };
 
   /* ============================================================= VERSIÓN C */
   const C = {};
@@ -709,12 +432,16 @@
     return h.add(17, [o], { th: 0.35, ph: 0.6, zone: 'trastienda' }, tgt);
   };
 
-  const BUILD = { B, C };
+  const BUILD = { C };
+  /* las versiones A y B (furniture-ab.js) se registran aquí con sus constructores */
+  A.register = function (vid, builders) { BUILD[vid] = builders; };
+  A.kit = { prof, tubo, tri, pvc, mdfHpl, impreso, boxL, niveladores, ruedas, escuadras, led, glow, panelSeg, ring, chamferPts, chamferShape, figs, mats: () => materials(), h: () => F.h };
   A.built = {};
   /* construye (una vez) los muebles de una versión; devuelve { n: item } */
   A.build = function (vid) {
     if (A.built[vid]) return A.built[vid];
     materials(); h = F.h;
+    if (A.prepare) A.prepare();
     const tgt = { _ver: vid };
     Object.keys(BUILD[vid]).forEach((n) => BUILD[vid][n](tgt));
     delete tgt._ver;
