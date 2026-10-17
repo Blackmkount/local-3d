@@ -7,13 +7,21 @@ costos, fabricación, ensamble y la razón de cada material.
 ## Qué se puede hacer en la página
 
 - **Recorrer el local**: arrastrar gira, la rueda acerca, el clic derecho desplaza. Hay cuatro vistas listas: Fachada, Interior, Aérea y Planta.
-- **Tres versiones del mobiliario** (selector *A · B · C* de la barra superior, o las teclas <kbd>A</kbd>, <kbd>B</kbd>, <kbd>C</kbd>):
-  el mismo local con tres juegos de los doce muebles que se fabrican. Cada versión tiene su propio diseño, despiece,
-  costos con precios reales de tienda, fabricación, armado animado y explosionado:
-  - **A · Original**: melamina RH y MDF lacado (la del documento del proyecto).
-  - **B · Industrial**: tubo de acero negro y triplex barnizado, islas sobre ruedas, mampara en cuadrícula.
-  - **C · Modular**: perfil de aluminio 30 × 30, uniones y accesorios impresos en PETG, PVC espumado y acrílico opal.
-  *Versiones* compara las tres: concepto, materiales, ventajas, desventajas y costo de cada mueble.
+- **Tres versiones del local** (selector *A · B · C* de la barra superior, o las teclas <kbd>A</kbd>, <kbd>B</kbd>, <kbd>C</kbd>):
+  el mismo local ordenado de tres maneras. Cada versión tiene su propia distribución y sus doce muebles fabricados, con
+  diseño, despiece, costos con precios reales de tienda, fabricación, armado animado y explosionado propios. Los ocho
+  productos que se compran son los mismos; en A y B cambian de lugar, y las lámparas de techo siguen al mobiliario.
+  - **A · Taller a la vista**: las impresoras salen a la fachada en una vitrina de impresión, de frente al pasillo, con
+    los carretes colgados encima; barra de diseño mirando la vitrina, taller en el muro izquierdo y exhibición en el
+    derecho. Acero negro, Rovere y lámina perforada.
+  - **B · Galería**: recorrido en U con un muro de nichos iluminados, pedestales en el eje de la entrada y una isla
+    escultórica de tres alturas que sube hasta la barra de encuentro; las impresoras trabajan en un nicho del muro
+    derecho y el servicio queda al fondo. MDF lacado blanco, Rovere y luz.
+  - **C · Modular**: la distribución del plano original con perfil de aluminio 30 × 30, uniones y accesorios impresos en
+    PETG, PVC espumado y acrílico opal.
+  *Versiones* compara las tres: concepto, distribución, materiales, ventajas, desventajas y costo de cada mueble.
+  El diseño original del documento del proyecto ya no se muestra; sus datos siguen en `js/data.js` como base de los
+  productos comprados y de la versión C.
 - **Plano 2D**: la planta de arquitectura a escala 1:50 en lámina A3, en líneas negras sobre blanco, con cotas, pasos
   libres, números, cuadro de mobiliario y cajetín. Cambia con la versión, se acerca y desplaza, cada mueble abre su
   ficha y se puede imprimir a escala (A3 horizontal) o descargar en SVG.
@@ -218,9 +226,10 @@ así los navegadores descargan la versión nueva en lugar de usar la guardada en
 | `assets/video/` | Videos en bucle de la pantalla de 75" y de las dos pantallas exteriores (MP4 y WebM) |
 | `js/brand.js` | Trazos del logotipo, para la barra superior, la pantalla de inicio y las letras de la fachada |
 | `js/data.js` | **Datos del proyecto**: 20 elementos, catálogo de precios, presupuesto, montaje |
-| `js/furniture.js` | Los muebles modelados pieza por pieza: medidas, material y paso de armado de cada una (versión A) |
-| `js/versions.js` | **Versiones B y C y requisitos**: precios de tienda con enlace, despiece, fabricación, armado y razones de cada mueble; requisitos generales y por mueble, y el cálculo de costos de cada versión |
-| `js/furniture-alt.js` | Los muebles de las versiones B y C modelados pieza por pieza; se construyen la primera vez que se elige la versión |
+| `js/furniture.js` | Los productos comprados (pantallas, impresoras, taburetes…) y el diseño original del documento, que ya no se muestra |
+| `js/versions.js` | **Versiones y requisitos**: precios de tienda con enlace, despiece, fabricación, armado y razones de cada mueble; distribución de cada versión (`LAYOUT`), lámparas (`FIXTURES`), montaje, requisitos y el cálculo de costos |
+| `js/furniture-ab.js` | Los muebles de las versiones A (Taller a la vista) y B (Galería) modelados pieza por pieza |
+| `js/furniture-alt.js` | Los muebles de la versión C (Modular) y las utilidades de modelado que comparten las versiones |
 | `js/plan.js` | El plano 2D a escala 1:50 (SVG), con los muebles de cada versión |
 | `js/room.js` | Muros, fachada, cielo, luces y cotas |
 | `js/engine.js` | Motor: texturas PBR procedurales, materiales, luces, postproceso HDR, refinamiento progresivo, cámara, reflejo del piso y animaciones |
@@ -242,16 +251,16 @@ colombianos. El total ($38.788.078) no incluye mano de obra, transporte, instala
 perimetral de la mampara. Las medidas del plano se estimaron desde la imagen del local y deben
 verificarse en sitio antes de pedir el corte.
 
-Las versiones B y C usan precios publicados el 15 de octubre de 2026 en Homecenter, Madecentro, Vistronica, Sign
-Colombia, Asia Colombia y El Ruso Shop, con el enlace de cada producto en la ficha y en el plan de compras. Láminas,
+Las tres versiones usan precios publicados entre el 9 y el 15 de octubre de 2026 en Homecenter, Madecentro, Vistronica,
+Sign Colombia, Asia Colombia y El Ruso Shop, con el enlace de cada producto en la ficha y en el plan de compras. Láminas,
 barras, galones y carretes se compran completos para toda la versión (72 % de aprovechamiento en tableros, 8 % de
-desperdicio en barras) y su costo se reparte entre los muebles. Mobiliario fabricado: A $12.200.678, B $11.173.778 y
-C $17.893.900; los ocho productos que se compran son los mismos en las tres. El perfil de aluminio 30 × 30 se cotizó en
-tramos de 1 m; los tramos largos se cotizan con un distribuidor industrial.
+desperdicio en barras) y su costo se reparte entre los muebles. Mobiliario fabricado: A $12.110.338, B $10.107.926 y
+C $17.893.900; los ocho productos que se compran son los mismos en las tres ($26.587.400). El perfil de aluminio
+30 × 30 se cotizó en tramos de 1 m; los tramos largos se cotizan con un distribuidor industrial.
 
 ## Qué es fiel al documento y qué es interpretación del modelo
 
-- Medidas, ubicación, despiece, materiales, costos y textos vienen de los dos documentos.
+- El programa del local (los 20 elementos, sus medidas generales, la trastienda y los productos comprados) viene de los dos documentos. Las tres versiones son propuestas de diseño hechas a partir de ese programa: sus distribuciones, muebles, despieces y costos no vienen del documento.
 - El orden de la animación de armado sigue los pasos de fabricación y ensamble de cada ficha.
 - Son interpretación del modelo: la altura del cielo (3.00 m), el diseño de la fachada y de las luces de techo, las figuras de exhibición y la forma exacta de los productos comprados. Se dibujaron para parecerse a las imágenes de referencia.
 - El panel perforado se muestra blanco, como en la imagen; la lámina cotizada viene en negro.

@@ -201,7 +201,7 @@
     G.pushBox(dec, 0.72, yT + 0.18, 0.6, 0.62, 0.36, 0.02, 0x1a1b1e); G.pushBox(dec, 0.735, yT + 0.195, 0.598, 0.59, 0.33, 0.002, 0x4f79b8);
     G.pushBox(dec, 1.5, yT + 0.03, 0.2, 0.26, 0.012, 0.19, 0x16171a, 0.2); G.fig(dec, 'gema', 0.35, yT + 0.03, 0.25, 0.12, 0xf08a24, 0.3);
     h.D(o, dec, 'decorMate'); h.sombra(o, 0, 0, Lx, Fz, 0.16);
-    return h.add(5, [o], { th: 0.15, ph: 1.05 }, tgt);
+    return h.add(5, [o], { th: Math.PI - 0.45, ph: 1.05 }, tgt);
   };
 
   // 7 · Vitrina de impresión: el mesón mira al pasillo; frente de lámina perforada y tapa doble
@@ -451,7 +451,7 @@
     fig(dec, [[0.35, 0.86, 'busto', 0.34, 0xf4f2ee], [0.75, 0.84, 'nudo', 0.2, 0xf08a24]], 0.70);
     fig(dec, [[0.45, 1.36, 'facetado', 0.26, 0xf4f2ee], [0.68, 1.3, 'gema', 0.15, 0x232326]], 0.46);
     h.D(o, dec);
-    return h.add(3, [o], { th: 0.45, ph: 1.0 }, tgt);
+    return h.add(3, [o], { th: -0.75, ph: 1.0 }, tgt);
   };
 
   // 4 · Pedestales: tres cilindros lacados de distinta altura en el eje de la entrada
