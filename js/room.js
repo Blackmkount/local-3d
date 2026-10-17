@@ -177,27 +177,42 @@
       }
     };
     rail(1.45); rail(4.55);
-    // lámpara lineal rectangular sobre la mesa alta
-    const pc = { X: 2.4, D: 3.85, y: 2.12, w: 1.6, d: 0.5 };
-    const bar = (X0, D0, sx, sd) => ceil.add(box(blk, X0, pc.y, D0, sx, 0.05, sd));
-    bar(pc.X - pc.w / 2, pc.D - pc.d / 2, pc.w, 0.035); bar(pc.X - pc.w / 2, pc.D + pc.d / 2 - 0.035, pc.w, 0.035);
-    bar(pc.X - pc.w / 2, pc.D - pc.d / 2, 0.035, pc.d); bar(pc.X + pc.w / 2 - 0.035, pc.D - pc.d / 2, 0.035, pc.d);
-    const und = (X0, D0, sx, sd) => { const m = new T.Mesh(new T.BoxGeometry(sx, 0.006, sd), M.ledBlanco); m.position.set(wx(X0) + sx / 2, pc.y - 0.003, wz(D0) - sd / 2); ceil.add(m); };
-    und(pc.X - pc.w / 2 + 0.04, pc.D - pc.d / 2 + 0.008, pc.w - 0.08, 0.02); und(pc.X - pc.w / 2 + 0.04, pc.D + pc.d / 2 - 0.028, pc.w - 0.08, 0.02);
+    // lámpara lineal rectangular sobre la mesa alta (o la barra) y dos colgantes sobre la isla:
+    // cada versión del mobiliario los lleva a su sitio con R.setFixtures, sin crear luces nuevas
+    const pc = { y: 2.12, w: 1.6, d: 0.5 };
+    const lin = new T.Group(); lin.name = 'Lámpara lineal'; ceil.add(lin);
+    const lbox = (mat, x0, y0, z0, sx, sy, sz) => { const m = new T.Mesh(G.box(sx, sy, sz, null, 0), mat); m.position.set(x0 + sx / 2, y0 + sy / 2, z0 + sz / 2); m.receiveShadow = true; lin.add(m); return m; };
+    lbox(blk, -pc.w / 2, pc.y, -pc.d / 2, pc.w, 0.05, 0.035); lbox(blk, -pc.w / 2, pc.y, pc.d / 2 - 0.035, pc.w, 0.05, 0.035);
+    lbox(blk, -pc.w / 2, pc.y, -pc.d / 2, 0.035, 0.05, pc.d); lbox(blk, pc.w / 2 - 0.035, pc.y, -pc.d / 2, 0.035, 0.05, pc.d);
+    [-1, 1].forEach((k) => { const m = new T.Mesh(new T.BoxGeometry(pc.w - 0.08, 0.006, 0.02), M.ledBlanco); m.position.set(0, pc.y - 0.003, k * (pc.d / 2 - 0.018)); lin.add(m); });
     [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach((s) => {
       const wire = new T.Mesh(new T.CylinderGeometry(0.003, 0.003, HC - pc.y - 0.05, 5), blk);
-      wire.position.set(wx(pc.X + s[0] * (pc.w / 2 - 0.02)), (HC + pc.y + 0.05) / 2, wz(pc.D + s[1] * (pc.d / 2 - 0.02))); ceil.add(wire);
+      wire.position.set(s[0] * (pc.w / 2 - 0.02), (HC + pc.y + 0.05) / 2, s[1] * (pc.d / 2 - 0.02)); lin.add(wire);
     });
-    // dos colgantes sobre la isla
-    [[2.15, 1.3], [2.85, 1.45]].forEach((p, i) => {
-      const h = 0.7 + i * 0.14;
-      const wire = new T.Mesh(new T.CylinderGeometry(0.003, 0.003, h, 5), blk); wire.position.set(wx(p[0]), HC - h / 2, wz(p[1])); ceil.add(wire);
-      const lamp = new T.Mesh(new T.CylinderGeometry(0.028, 0.028, 0.2, 12), blk); lamp.position.set(wx(p[0]), HC - h - 0.1, wz(p[1])); ceil.add(lamp);
-      const tip = new T.Mesh(new T.CircleGeometry(0.024, 12), M.ledBlanco); tip.rotation.x = Math.PI / 2; tip.position.set(wx(p[0]), HC - h - 0.201, wz(p[1])); ceil.add(tip);
-      E.spot(new T.Vector3(wx(p[0]), HC - h - 0.21, wz(p[1])), new T.Vector3(wx(p[0]) + 0.02, 0, wz(p[1])), 4.2, 0.62, 0.9, true);
+    const linSpot = E.spot(new T.Vector3(0, pc.y - 0.02, 0), new T.Vector3(0, 0, 0), 3.2, 1.05, 1.0, false, 0xfff0dc);
+    // dos colgantes sobre la isla: cable de largo variable, cuerpo y lente
+    const pends = [0, 1].map(() => {
+      const g = new T.Group(); ceil.add(g);
+      const wire = new T.Mesh(new T.CylinderGeometry(0.003, 0.003, 1, 5), blk); g.add(wire);
+      const lamp = new T.Mesh(new T.CylinderGeometry(0.028, 0.028, 0.2, 12), blk); g.add(lamp);
+      const tip = new T.Mesh(new T.CircleGeometry(0.024, 12), M.ledBlanco); tip.rotation.x = Math.PI / 2; g.add(tip);
+      const spot = E.spot(new T.Vector3(), new T.Vector3(), 4.2, 0.62, 0.9, true);
+      return { g, wire, lamp, tip, spot };
     });
-    // la lámpara lineal baña la mesa alta
-    E.spot(new T.Vector3(wx(pc.X), pc.y - 0.02, wz(pc.D)), new T.Vector3(wx(pc.X), 0, wz(pc.D)), 3.2, 1.05, 1.0, false, 0xfff0dc);
+    R.setFixtures = function (f) {
+      lin.position.set(wx(f.lineal[0]), 0, wz(f.lineal[1]));
+      linSpot.position.set(wx(f.lineal[0]), pc.y - 0.02, wz(f.lineal[1])); linSpot.target.position.set(wx(f.lineal[0]), 0, wz(f.lineal[1]));
+      f.pend.forEach((p, i) => {
+        const q = pends[i], h = p[2], x = wx(p[0]), z = wz(p[1]);
+        q.wire.scale.y = h; q.wire.position.set(x, HC - h / 2, z);
+        q.lamp.position.set(x, HC - h - 0.1, z); q.tip.position.set(x, HC - h - 0.201, z);
+        q.spot.position.set(x, HC - h - 0.21, z); q.spot.target.position.set(x + 0.02, 0, z);
+        q.spot.target.updateMatrixWorld(); q.spot.shadow.needsUpdate = true;
+      });
+      linSpot.target.updateMatrixWorld();
+      E.shadowDirty = true; E.invalidate(3);
+    };
+    R.setFixtures({ lineal: [2.4, 3.85], pend: [[2.15, 1.3, 0.7], [2.85, 1.45, 0.84]] });
     // luz de trabajo de la trastienda
     const tl = new T.Mesh(new T.BoxGeometry(1.2, 0.02, 0.22), M.ledBlanco); tl.position.set(wx(2.6), HC - 0.012, wz(6.3)); ceil.add(tl);
     E.addShell(ceil, (c) => c.y < 2.92);
