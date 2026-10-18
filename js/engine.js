@@ -1126,6 +1126,8 @@
     } else jitterFrame(P.n);
     if (E.reflect.on) renderReflection();
     if (P.on) renderPost(); else E.renderer.render(E.scene, E.camera);
+    E.busy = active || moving || sh;
+    if (E.capture) E.capture(P.n, P.max, P.on);              // captura de render (Nota 1, elemento I): el lienzo aún tiene el cuadro
     P.n++;
     if (changed && E.afterRender) E.afterRender(moving || active || sh);
   }
