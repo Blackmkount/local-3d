@@ -132,7 +132,7 @@
     posts.forEach((x, i) => st(o, 'Cremallera de tubo 50 × 25', 'tuboRect', x, 0.62, 0.0015, 0.05, 1.78, 0.025, 0, [(i - 1) * 0.3, 0, 0.25]));
     posts.forEach((x, i) => Ls.forEach((y) => st(o, 'Ménsula de tubo 1"', 'tubo1', x + 0.025 - t1 / 2, y - t1, 0.0265, t1, t1, 0.34, 0, [(i - 1) * 0.3, 0, 0.45])));
     h.chazos(o, posts.flatMap((x) => [[x + 0.025, 0.8, 0.03], [x + 0.025, 2.3, 0.03]]), 0, [0, 0, 0.3], { exA: [0, 0, 0.4] });
-    h.P(o, 'Fuente 12 V', 'equipo', 0.5, 0.11, 0.06, 0.16, 0.04, 0.06, 4, [-0.16, 0, 1.05], { mk: 'fuente12' });
+    h.P(o, 'Fuente 12 V', 'equipo', 0.5, 0.11, 0.06, 0.187, 0.019, 0.055, 4, [-0.16, 0, 1.05], { mk: 'fuente12' });
     h.D(o, dec); h.sombra(o, 0, 0, 2.4, 0.4);
     return h.add(2, [o], { th: -0.85 }, tgt);
   };
@@ -321,7 +321,7 @@
     [0.3, 0.6, 0.9].forEach((y) => h.P(o, 'Entrepaño de acrílico', 'acrilico', s, y, 0.016, W - 2 * s, 0.003, Fz - 0.02, 2, [0, 0, 0.55], { noShadow: true, order: 3, mk: 'acril3' }));
     h.P(o, 'Frente de acrílico', 'acrilico', 0, 0.002, Fz, W, H - 0.004, 0.003, 2, [0, 0, 0.85], { noShadow: true, order: 4, mk: 'acril3' });
     led(o, 'Perfil LED (retal)', 'perfilLed', s + 0.002, 0.03, Fz - 0.025, 0.012, H - 0.06, 0.012, 3, [-0.12, 0, 0.6]);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.14, H, 0.04, 0.12, 0.03, 0.05, 3, [0, 0.4, 0.26], { mk: 'fuente3' });
+    h.P(o, 'Fuente 12 V', 'equipo', 0.14, H, 0.04, 0.187, 0.019, 0.055, 3, [0, 0.4, 0.26], { mk: 'fuente3' });
     const dec = [];
     [0.015, 0.303, 0.603, 0.903].forEach((y, i) => { G.fig(dec, ['torre', 'conejo', 'busto', 'jarron'][i], 0.14, y, 0.075, 0.2, [0x232326, 0xf4f2ee, 0xf08a24, 0x2f6fd0][i], 0.3); G.fig(dec, ['gema', 'nudo', 'aro', 'facetado'][i], 0.28, y, 0.075, 0.13, [0xf4f2ee, 0x232326, 0xf4f2ee, 0x232326][i], 0); });
     h.D(o, dec);
@@ -345,7 +345,7 @@
     Ls.forEach((y) => rv(o, 'Entrepaño de Rovere', t1 + 0.002, y, 0.006, W - 2 * t1 - 0.004, 0.015, Fz - 0.012, 2, [0, 0.05, 0.85]));
     led(o, 'Perfil LED vertical', 'perfilLed', t1 + 0.003, 0.12, Fz - 0.03, 0.012, H - 0.25, 0.014, 3, [-0.15, 0, 0.7]);
     led(o, 'Perfil LED vertical', 'perfilLed', W - t1 - 0.015, 0.12, Fz - 0.03, 0.012, H - 0.25, 0.014, 3, [0.15, 0, 0.7]);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.5, H, 0.1, 0.16, 0.04, 0.06, 3, [0, 0.5, 0.5], { mk: 'fuente8' });
+    h.P(o, 'Fuente 12 V', 'equipo', 0.5, H, 0.1, 0.187, 0.019, 0.055, 3, [0, 0.5, 0.5], { mk: 'fuente8' });
     Ls.forEach((y, k) => h.fila(dec, 0.12, 1.08, y + 0.015, 0.2, 2 + (k % 2), 0.17, 0.3, [0x232326, 0xf4f2ee, 0xf4f2ee, 0x2f6fd0, 0xf08a24, 0xf4f2ee]));
     h.D(o, dec); h.sombra(o, 0, 0, W, Fz);
     return h.add(13, [o], { th: -0.85 }, tgt);
@@ -426,8 +426,8 @@
         segs.forEach((sg) => h.fila(dec, sg[0], sg[1], yb, Fz / 2, Math.max(1, Math.round((sg[1] - sg[0]) / 0.38)), Math.min(0.32, (yTop - yb) * 0.55), Math.min(0.42, (yTop - yb) * 0.75), [0xf4f2ee, 0xf4f2ee, 0x232326, 0xc9a579, 0xf08a24, 0xf4f2ee]));
       }
     });
-    h.P(o, 'Fuente 12 V', 'equipo', 0.6, yZ + t + 0.01, 0.08, 0.2, 0.05, 0.06, 4, [0, 0, 1.0], { mk: 'fuente12' });
-    h.P(o, 'Fuente 12 V', 'equipo', 3.2, yZ + t + 0.01, 0.08, 0.2, 0.05, 0.06, 4, [0, 0, 1.0], { mk: 'fuente12' });
+    h.P(o, 'Fuente 12 V', 'equipo', 0.6, yZ + t + 0.01, 0.08, 0.187, 0.019, 0.055, 4, [0, 0, 1.0], { mk: 'fuente12' });
+    h.P(o, 'Fuente 12 V', 'equipo', 3.2, yZ + t + 0.01, 0.08, 0.187, 0.019, 0.055, 4, [0, 0, 1.0], { mk: 'fuente12' });
     h.D(o, dec); h.sombra(o, 0, 0, W, Fz);
     return h.add(2, [o], { th: 0.95, ph: 1.12 }, tgt);
   };
@@ -445,7 +445,7 @@
     const ll = []; tiers.forEach((tr) => { const pts = G.planShape(tr.Lx, tr.Fz, tr.r, 0.057).getPoints(8); for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], len = Math.hypot(b.x - a.x, b.y - a.y); if (len < 1e-4) continue; ll.push({ g: new T.BoxGeometry(len, 0.004, 0.008), m: G.mat(tr.x0 + (a.x + b.x) / 2, 0.075, tr.z0 - (a.y + b.y) / 2, 0, -Math.atan2(-(b.y - a.y), b.x - a.x), 0), c: 0xffffff }); } });
     h.PM(o, 'Tira COB en el zócalo', 'led', ll, 3, [0, -0.3, 0], { mk: 'cob', noShadow: true });
     K.glow(o, 1.2, 1.6, 0.25, 0.6, 0.8);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.5, 0.1, 0.1, 0.2, 0.05, 0.06, 3, [0, 0, -0.5], { mk: 'fuente5' });
+    h.P(o, 'Fuente 12 V', 'equipo', 0.5, 0.1, 0.1, 0.187, 0.019, 0.055, 3, [0, 0, -0.5], { mk: 'fuente8' });
     const dec = [];
     fig(dec, [[0.3, 0.3, 'conejo', 0.36, 0xf4f2ee], [0.62, 0.22, 'torre', 0.46, 0x232326], [0.92, 0.36, 'jarron', 0.24, 0xc9a579]], 0.92);
     fig(dec, [[0.35, 0.86, 'busto', 0.34, 0xf4f2ee], [0.75, 0.84, 'nudo', 0.2, 0xf08a24]], 0.70);
@@ -586,7 +586,7 @@
     h.chazos(o, [[0.1, 1.1, 0.03], [0.3, 1.1, 0.03]], 0, [0, 0, 0.2], { exA: [0, 0, 0.3] });
     h.P(o, 'Fondo de acrílico opal', X.opal, t, t, 0.03, W - 2 * t, H - 2 * t, 0.003, 1, [0, 0, -0.25], { noShadow: true, mk: 'opal3' });
     for (let k = 0; k < 2; k++) led(o, 'Tira COB tras el opal', 'cob', t + 0.08 + k * 0.2, t + 0.03, 0.012, 0.008, H - 2 * t - 0.06, 0.003, 1, [0, 0, -0.35]);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.14, H, 0.04, 0.12, 0.03, 0.05, 1, [0, 0.4, 0.26], { mk: 'fuente3' });
+    h.P(o, 'Fuente 12 V', 'equipo', 0.14, H, 0.04, 0.187, 0.019, 0.055, 1, [0, 0.4, 0.26], { mk: 'fuente3' });
     [0.3, 0.6, 0.9].forEach((y) => h.P(o, 'Entrepaño de acrílico', 'acrilico', t, y, 0.035, W - 2 * t, 0.004, Fz - 0.04, 2, [0, 0, 0.55], { noShadow: true, order: 3, mk: 'acril3' }));
     h.P(o, 'Frente de acrílico', 'acrilico', 0, 0.002, Fz, W, H - 0.004, 0.003, 2, [0, 0, 0.85], { noShadow: true, order: 4, mk: 'acril3' });
     const dec = [];
@@ -615,7 +615,7 @@
       for (let k = 0; k < 2; k++) led(o, 'Tira COB tras el opal', 'cob', nc[0] + (k + 0.5) * (nc[1] - nc[0]) / 2, nc[2] + 0.03, 0.012, 0.008, nc[3] - nc[2] - 0.06, 0.003, 2, [0, 0, -0.45]);
       G.fig(dec, ['torre', 'conejo', 'busto'][i], (nc[0] + nc[1]) / 2, nc[2], Fz / 2 + 0.03, [0.62, 0.36, 0.38][i], [0x232326, 0xf4f2ee, 0xf08a24][i], 0.4);
     });
-    h.P(o, 'Fuente 12 V', 'equipo', 0.5, H, 0.1, 0.16, 0.04, 0.06, 2, [0, 0.5, 0.5], { mk: 'fuente8' });
+    h.P(o, 'Fuente 12 V', 'equipo', 0.5, H, 0.1, 0.187, 0.019, 0.055, 2, [0, 0.5, 0.5], { mk: 'fuente8' });
     for (let i = 0; i < 2; i++) lq(o, 'Puerta lacada', t + 0.002 + i * (W - 2 * t) / 2, yZ + t + 0.003, Fz, (W - 2 * t) / 2 - 0.004, yC - yZ - t - 0.006, t, 3, [i ? 0.12 : -0.12, 0, 0.9]);
     h.D(o, dec); h.sombra(o, 0, 0, W, Fz);
     return h.add(13, [o], { th: -0.85 }, tgt);

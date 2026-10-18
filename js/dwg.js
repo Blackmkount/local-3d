@@ -607,6 +607,73 @@
     s += rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.2', contenido: 'Despiece explosionado', escala: 'Sin escala', version: v + ' · ' + I.vi.nombre, fecha: L.nota1 ? L.nota1.fechaCorta : '17 oct. 2026' });
     return s + '</svg>';
   };
+
+  /* ------------------------------------------------ láminas de piezas: cada pieza fabricada con sus medidas de corte */
+  const SEC = { tubo1: [25.4, 25.4, 1.2], tubo15: [38.1, 38.1, 1.1], tuboRect: [50, 25, 1.1], perfil3030: [30, 30, 0], cob: [8, 2, 0] };
+  function espesor(P) {
+    const m = /(\d+(?:\.\d+)?) mm/.exec(P.m); if (m) return +m[1];
+    if (/calibre 20/.test(P.m)) return 0.9;
+    return null;
+  }
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  function piezasDe(v, n) {
+    const it = L.versions.items[v] && L.versions.items[v][n]; if (!it) return [];
+    const P = L.versions.precios;
+    return it.piezas.filter((p) => { const t = P[p[0]].tipo; return t === 'lamina' || t === 'm2' || t === 'barra' || (t === 'm' && !/^canto/.test(p[0])); })
+      .map((p, i) => ({ i: i + 1, mk: p[0], P: P[p[0]], name: cap(p[1]), cant: p[2], a: p[3], b: p[4] || null }));
+  }
+  DW.nPiezas = function (v, n) { return Math.max(1, Math.ceil(piezasDe(v, n).length / 6)); };
+  function celda(pz, x, y, w, h) {
+    const P = pz.P, e = espesor(P), lam = P.tipo === 'lamina' || P.tipo === 'm2';
+    let s = '<rect class="cell-b" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"/>';
+    s += '<text class="pz-m" x="' + (x + 3) + '" y="' + (y + 6) + '">P' + pz.i + '</text><text class="pz-n" x="' + (x + 13) + '" y="' + (y + 6) + '">' + esc(pz.name.length > 46 ? pz.name.slice(0, 45) + '…' : pz.name) + '</text>';
+    s += '<text class="pz-s" x="' + (x + 13) + '" y="' + (y + 10.2) + '">' + esc((P.m.length > 62 ? P.m.slice(0, 61) + '…' : P.m)) + ' · cantidad ' + pz.cant + '</text>';
+    const ax = x + 14, ay = y + 17, aw = w - 40, ah = h - 30;            // zona del dibujo (deja sitio a las cotas)
+    if (lam) {
+      const A = Math.max(pz.a, pz.b) * 1000, Bm = Math.min(pz.a, pz.b) * 1000, T = e || 10;
+      let den = SCALES.concat([100]).find((d) => A / d <= aw && Bm / d <= ah) || 100;
+      const k = 1 / den, W = A * k, H = Bm * k, ox = ax + (aw - W) / 2, oy = ay + (ah - H) / 2;
+      s += '<rect class="pz-f" x="' + ox.toFixed(2) + '" y="' + oy.toFixed(2) + '" width="' + W.toFixed(2) + '" height="' + H.toFixed(2) + '"/>';
+      // canto (vista de espesor) a la derecha
+      const tw = Math.max(0.6, T * k * 4), tx = ox + W + 9;
+      s += '<rect class="pz-f" x="' + tx.toFixed(2) + '" y="' + oy.toFixed(2) + '" width="' + tw.toFixed(2) + '" height="' + H.toFixed(2) + '"/>';
+      s += '<text class="pz-s" x="' + (tx + tw + 1.5).toFixed(2) + '" y="' + (oy + 3).toFixed(2) + '">e = ' + String(T).replace('.', ',') + '</text>';
+      s += dimH(ox, ox + W, oy + H + 5.5, oy + H, String(Math.round(A)));
+      s += dimV(oy, oy + H, ox - 5.5, ox, String(Math.round(Bm)));
+      s += '<text class="pz-e" x="' + (x + w - 3) + '" y="' + (y + h - 3) + '">Esc. 1:' + den + (/Rovere|blanc|Plomo/i.test(P.m) ? ' · veta a lo largo' : '') + '</text>';
+    } else {
+      const Lm = pz.a * 1000, sec = SEC[pz.mk];
+      const den = SCALES.concat([100]).find((d) => Lm / d <= aw - 30) || 100, k = 1 / den;
+      const W = Lm * k, Hh = Math.max(2.2, (sec ? sec[1] : 10) * k * 3), ox = ax, oy = ay + ah / 2 - Hh / 2;
+      s += '<rect class="pz-f" x="' + ox.toFixed(2) + '" y="' + oy.toFixed(2) + '" width="' + W.toFixed(2) + '" height="' + Hh.toFixed(2) + '"/>';
+      s += dimH(ox, ox + W, oy + Hh + 6, oy + Hh, String(Math.round(Lm)));
+      if (sec) {                                                    // sección a escala 1:2
+        const sx = x + w - 31, sy = ay + ah / 2 - 8, sw = sec[0] / 2, sh = sec[1] / 2;
+        s += sec[2] ? '<path class="pz-st" fill-rule="evenodd" d="M' + sx + ' ' + sy + 'h' + sw + 'v' + sh + 'h' + (-sw) + 'zM' + (sx + sec[2] / 2 + 0.25) + ' ' + (sy + sec[2] / 2 + 0.25) + 'v' + (sh - sec[2] - 0.5) + 'h' + (sw - sec[2] - 0.5) + 'v' + (-(sh - sec[2] - 0.5)) + 'z"/>'
+          : '<rect class="pz-al" x="' + sx + '" y="' + sy + '" width="' + sw + '" height="' + sh + '"/>';
+        s += '<text class="pz-s" x="' + sx + '" y="' + (sy + sh + 4) + '">' + String(sec[0]).replace('.', ',') + ' × ' + String(sec[1]).replace('.', ',') + (sec[2] ? ' × ' + String(sec[2]).replace('.', ',') : '') + '</text><text class="pz-s" x="' + sx + '" y="' + (sy + sh + 7.4) + '">Sección 1:2</text>';
+      }
+      s += '<text class="pz-e" x="' + (x + w - 3) + '" y="' + (y + h - 3) + '">Esc. 1:' + den + ' · corte a 90°</text>';
+    }
+    return s;
+  }
+  DW.piezas = function (v, n, page) {
+    page = page || 1;
+    const all = piezasDe(v, n), I = info(v, n), tot = Math.max(1, Math.ceil(all.length / 6));
+    const list = all.slice((page - 1) * 6, page * 6);
+    let s = sheetOpen('Planos de piezas, mueble ' + n + ', versión ' + v + ', hoja ' + page);
+    s += '<text class="title" x="20" y="22">' + esc(n + ' · ' + I.name) + '</text>';
+    s += '<text class="subtitle" x="20" y="28">Piezas fabricadas: medidas de corte · versión ' + v + ' · ' + esc(I.vi.nombre) + ' · hoja ' + page + ' de ' + tot + '</text>';
+    const cw = 128, ch = 99, x0 = 20, y0 = 34;
+    list.forEach((pz, i) => {
+      const r = Math.floor(i / 3), c = i % 3;
+      s += celda(pz, x0 + c * (cw + 2), y0 + r * (ch + 2), cw, ch);
+    });
+    s += '<text class="c-note" x="20" y="283">Medidas de corte en milímetros. Los tableros se piden cortados y enchapados al proveedor; los tubos se cortan a 90° en el taller. Perforaciones de herrajes según el plano de conjunto.</text>';
+    s += rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.' + (2 + page), contenido: 'Piezas · hoja ' + page + ' de ' + tot, escala: 'Indicada en cada pieza', version: v + ' · ' + I.vi.nombre, fecha: L.nota1 ? L.nota1.fechaCorta : '17 oct. 2026' });
+    return s + '</svg>';
+  };
+
   /* isometría suelta (para bocetos y miniaturas), en un SVG de w × h */
   DW.isoSVG = function (v, n, w, h, opt) {
     opt = opt || {};
@@ -634,7 +701,8 @@
     '.proj path,.proj circle{fill:none;stroke:#111;stroke-width:.22}',
     '.balloon line{stroke:#111;stroke-width:.13}.balloon circle{fill:#fff;stroke:#111;stroke-width:.22}.balloon .dot{fill:#111;stroke:none}.balloon text{font-size:2.8px;font-weight:600;text-anchor:middle}',
     '.h2{font-size:3.6px;font-weight:600}.th{font-size:1.9px;fill:#666;letter-spacing:.06em}.td{font-size:2.45px}.td.sm{font-size:1.9px;fill:#666}.td.mono{font-variant-numeric:tabular-nums}.num-c{text-anchor:middle;font-weight:600}',
-    '.rule{stroke:#111;stroke-width:.25}.rule-t{stroke:#ccc;stroke-width:.12}'
+    '.rule{stroke:#111;stroke-width:.25}.rule-t{stroke:#ccc;stroke-width:.12}',
+    '.cell-b{fill:none;stroke:#bbb;stroke-width:.2}.pz-m{font-size:3.6px;font-weight:700}.pz-n{font-size:3.1px;font-weight:600}.pz-s{font-size:2.2px;fill:#555}.pz-e{font-size:2.2px;fill:#555;text-anchor:end}.pz-f{fill:#fff;stroke:#111;stroke-width:.3}.pz-st{fill:#111}.pz-al{fill:url(#hA);stroke:#111;stroke-width:.25}'
   ].join('')
     .replace(/(^|\})([^{}]+)\{/g, (m, b, sel) => b + sel.split(',').map((x) => '.dwg ' + x.trim()).join(',') + '{');
 })();

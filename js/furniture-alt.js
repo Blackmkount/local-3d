@@ -196,7 +196,7 @@
     niveladores(o, xm.flatMap((x) => [[x + s3 / 2, s3 / 2], [x + s3 / 2, Fz - s3 / 2]]), 0.02, 2, [0, 0, 0.5]);
     const lt = []; xm.forEach((x) => [0, Fz - s3].forEach((z) => boxL(lt, x - 0.001, 2.40, z - 0.001, s3 + 0.002, 0.006, s3 + 0.002)));
     impreso(o, 'Tapas impresas', lt, 1, [0, 0.4, 0]);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.5, yTop, 0.08, 0.16, 0.04, 0.06, 3, [0, 0.4, 0.5], { mk: cfg.fuente });
+    h.P(o, 'Fuente 12 V', 'equipo', 0.5, yTop, 0.08, 0.187, 0.019, 0.055, 3, [0, 0.4, 0.5], { mk: cfg.fuente });
     h.D(o, dec); h.sombra(o, 0, 0, W, Fz);
     return h.add(n, [o], cfg.cfg, tgt);
   }
@@ -227,7 +227,7 @@
     const shp = G.planShape(Lx, Fz, rr);
     h.P(o, 'Tapa de MDF', 'mdf15', 0, yTop, 0, 0, 0, 0, 4, [0, 1.2, 0], { geo: G.slab(shp, 0.015), mk: 'mdf15' });
     h.P(o, 'Laminado blanco', M.hpl, 0, yTop + 0.015, 0, 0, 0, 0, 4, [0, 1.3, 0], { geo: G.slab(shp, 0.0012), mk: 'hpl', noShadow: true });
-    if (extra.fuente) h.P(o, 'Fuente 12 V', 'equipo', Lx * 0.6, yb + s3, 0.06, 0.2, 0.05, 0.06, 5, [0, 0, -0.4], { mk: 'fuente12' });
+    if (extra.fuente) h.P(o, 'Fuente 12 V', 'equipo', Lx * 0.6, yb + s3, 0.06, 0.187, 0.019, 0.055, 5, [0, 0, -0.4], { mk: 'fuente12' });
     const dec = []; figs(dec, decDefs, hTop); if (extra.tablet) G.pushBox(dec, 1.42, hTop, 0.72, 0.03, 0.2, 0.26, 0x16171a, 0.5);
     h.D(o, dec);
     return h.add(n, [o], extra.cfg, tgt);
@@ -384,7 +384,7 @@
     h.P(o, 'Frente de acrílico', 'acrilico', 0, 0.01, 0.15, 0.4, 1.18, 0.003, 2, [0, 0, 0.85], { noShadow: true, order: 4, mk: 'acril3' });
     pvc(o, 'Techo de PVC 10 mm', 'pvc10', 0, 1.19, 0, 0.4, 0.01, 0.153, 2, [0, 0.24, 0.26]);
     led(o, 'Tira COB en el techo', 'cob', 0.02, 1.186, 0.07, 0.36, 0.004, 0.008, 2, [0, 0.2, 0.26]);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.14, 1.2, 0.04, 0.12, 0.03, 0.05, 2, [0, 0.4, 0.26], { mk: 'fuente3' });
+    h.P(o, 'Fuente 12 V', 'equipo', 0.14, 1.2, 0.04, 0.187, 0.019, 0.055, 2, [0, 0.4, 0.26], { mk: 'fuente3' });
     h.chazos(o, [[0.1, 1.1, 0.03], [0.3, 1.1, 0.03]], 3, [0, 0, 0.2], { exA: [0, 0, 0.3] });
     const dec = [];
     [0.01, 0.303, 0.603, 0.903].forEach((y, i) => { G.fig(dec, ['torre', 'conejo', 'busto', 'jarron'][i], 0.13, y, 0.075, 0.2, [0x232326, 0xf4f2ee, 0x232326, 0xf08a24][i], 0.3); G.fig(dec, ['gema', 'nudo', 'aro', 'facetado'][i], 0.28, y, 0.075, 0.13, [0xf4f2ee, 0x232326, 0xf4f2ee, 0x232326][i], 0); });

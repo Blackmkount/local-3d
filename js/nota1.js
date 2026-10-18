@@ -16,6 +16,7 @@
   const FABN = DATA.items.filter((i) => i.origen === 'fabrica').map((i) => i.n);
   const base = {}; DATA.items.forEach((i) => { base[i.n] = i; });
   const VER = ['A', 'B', 'C'];
+  const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
   const ST = { open: false, sec: 'A', ver: 'A', n: 2, from: null };
 
   const SECS = [
@@ -23,15 +24,15 @@
     { id: 'B', t: 'Plano a escala', d: 'Plano del local acotado y referencia de escalado', st: 'ok' },
     { id: 'C', t: 'Requisitos', d: 'Requisitos de cada mueble con su fuente', st: 'ok' },
     { id: 'D', t: 'Alternativas', d: 'Tres alternativas por mueble y matriz de selección', st: 'ok' },
-    { id: 'E', t: 'Planos técnicos', d: 'Planos de conjunto y despiece explosionado', st: 'parcial' },
-    { id: 'F', t: 'Despiece', d: 'Despiece y lista de materiales', st: 'parcial' },
-    { id: 'G', t: 'Materiales y uniones', d: 'Materiales con su formato comercial y detalle de las uniones', st: 'pendiente' },
-    { id: 'H', t: 'Iluminación y equipo', d: 'Fichas, alojamiento, cableado y mantenimiento', st: 'pendiente' },
-    { id: 'I', t: 'Renders', d: 'Cada mueble en su espacio, con la luz y el equipo', st: 'pendiente' },
+    { id: 'E', t: 'Planos técnicos', d: 'Planos de conjunto, despiece explosionado y piezas', st: 'ok' },
+    { id: 'F', t: 'Despiece', d: 'Despiece y lista de materiales', st: 'ok' },
+    { id: 'G', t: 'Materiales y uniones', d: 'Materiales con su formato comercial y detalle de las uniones', st: 'ok' },
+    { id: 'H', t: 'Iluminación y equipo', d: 'Fichas, alojamiento, cableado y mantenimiento', st: 'ok' },
+    { id: 'I', t: 'Renders', d: 'Cada mueble en su espacio, con la luz y el equipo', st: 'ok' },
     { id: 'K', t: 'Lista de chequeo', d: 'Lista de chequeo de la guía (numeral 10)', st: '' }
   ];
   const ST_TXT = { ok: 'Listo', parcial: 'En avance', pendiente: 'Pendiente' };
-  const SHORT = { acopla: 'Acopla95', ntc4140: 'NTC 4140', nsr10k: 'NSR-10, K.3', nsr10k4: 'NSR-10, K.4', d1538: 'Decreto 1538', retie: 'RETIE 2026', ccohs: 'CCOHS', ntp242: 'NTP 242', nicolas: 'Nicolás (2011)', ntc6047: 'NTC 6047', ada: 'ADA 2010', plano: 'Documento del proyecto', catalogo: 'Catálogos', fichaP1S: 'Ficha Bambu Lab P1S', criterio: 'Criterio del grupo' };
+  const SHORT = { acopla: 'Acopla95', ntc4140: 'NTC 4140', nsr10k: 'NSR-10, K.3', nsr10k4: 'NSR-10, K.4', d1538: 'Decreto 1538', retie: 'RETIE 2026', ccohs: 'CCOHS', ntp242: 'NTP 242', nicolas: 'Nicolás (2011)', ntc6047: 'NTC 6047', ada: 'ADA 2010', plano: 'Documento del proyecto', catalogo: 'Catálogos', fichaP1S: 'Ficha Bambu Lab P1S', criterio: 'Criterio del grupo', iec60228: 'IEC 60228', igor: "Igor's Lab" };
   const TIPO = { fuente: 'Fuente', secundaria: 'Fuente secundaria', estimado: 'Estimado', encargo: 'Encargo', no: 'No obtenido' };
 
   /* nombre de cada mueble por su función: es el mismo en las tres alternativas */
@@ -180,9 +181,9 @@
       '<p class="n1-lead">Cada mueble tiene un plano de conjunto (alzado, vista lateral, corte A–A, planta e isometría, con cotas generales y de niveles en escala normalizada) y un despiece explosionado con la marca y la medida de cada pieza. Se dibujan desde el modelo 3D: lo que se ve en el visor es lo que dice el plano.</p>' +
       pickN(ST.n) +
       '<div class="n1-sheets">' +
-      ['conjunto', 'explosion'].map((k, i) => '<figure class="n1-fig"><div class="n1-sheet" data-dwg="' + k + '"><span class="n1-load">Dibujando la lámina…</span></div><figcaption><b>' + ST.ver + '-' + (ST.n < 10 ? '0' : '') + ST.n + '.' + (i + 1) + '</b> ' + (i ? 'Despiece explosionado' : 'Plano de conjunto') + ' · ' + esc(it.short) +
-        '<span><button type="button" class="btn btn-sm" data-n1zoom="' + k + '">Ampliar</button><button type="button" class="btn btn-sm" data-n1svg="' + k + '">Descargar SVG</button></span></figcaption></figure>').join('') +
-      '</div><p class="n1-note">Pendiente para el H2 (28 de octubre): planos de cada pieza fabricada con sus perforaciones y cantos, y los detalles de las uniones (elemento G).</p>';
+      ['conjunto', 'explosion'].concat(Array.from({ length: L.dwg.nPiezas(ST.ver, ST.n) }, (_, j) => 'piezas:' + (j + 1))).map((k, i) => '<figure class="n1-fig"><div class="n1-sheet" data-dwg="' + k + '"><span class="n1-load">Dibujando la lámina…</span></div><figcaption><b>' + ST.ver + '-' + (ST.n < 10 ? '0' : '') + ST.n + '.' + (i + 1) + '</b> ' + (i > 1 ? 'Piezas, hoja ' + (i - 1) : i ? 'Despiece explosionado' : 'Plano de conjunto') + ' · ' + esc(it.short) +
+        '<span><button type="button" class="btn btn-sm" data-n1zoom="' + k + '">Ampliar</button>' + (inFrame ? '' : '<button type="button" class="btn btn-sm" data-n1svg="' + k + '">Descargar SVG</button>') + '</span></figcaption></figure>').join('') +
+      '</div><p class="n1-note">Las láminas de piezas dan la medida de corte de cada tablero, lámina, tubo y perfil, con su espesor o su sección; las perforaciones de los herrajes se toman del plano de conjunto. Los detalles de las uniones están en el elemento G.</p>';
   }
   function secF() {
     const it = VS.items[ST.ver][ST.n], P = VS.precios, I = itemOf(ST.ver, ST.n);
@@ -209,25 +210,150 @@
       '<h4 class="n1-h4">Piezas</h4><div class="n1-tbl"><table><thead><tr><th>Pieza</th><th class="r">Cant.</th><th>Material</th><th>Medidas (mm)</th><th>Formato comercial</th><th>Origen</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<h4 class="n1-h4">Herrajes, tornillería e iluminación</h4><div class="n1-tbl"><table><thead><tr><th>Elemento</th><th class="r">Cant.</th><th>Uso</th><th>Unidad de venta</th><th>Origen</th></tr></thead><tbody>' + herr + '</tbody></table></div>' +
       (acab ? '<h4 class="n1-h4">Acabados e insumos</h4><div class="n1-tbl"><table><thead><tr><th>Insumo</th><th class="r">Área × manos</th><th>Uso</th><th>Unidad de venta</th><th>Origen</th></tr></thead><tbody>' + acab + '</tbody></table></div>' : '') +
-      '<p class="n1-note">Medidas de corte: largo × ancho × espesor para tableros y láminas; largo para tubos y perfiles. El costo de cada material está en el presupuesto de la versión. Pendiente: cableado (calibre y metros) en el elemento H, y los insumos de taller (lija, discos, brocas) en la lista de compras de la Nota 3.</p>';
+      '<p class="n1-note">Medidas de corte: largo × ancho × espesor para tableros y láminas; largo para tubos y perfiles. El costo de cada material está en el presupuesto de la versión. El cable de la luz (sección y caída de tensión) está en el elemento H; los insumos de taller (lija, discos, brocas) van en la lista de compras de la Nota 3.</p>';
+  }
+
+  /* G · materiales y uniones */
+  function secG() {
+    const UN = L.uniones, P = VS.precios, V = VS.items[ST.ver];
+    // regla: dos materiales por mueble, tres en el conjunto
+    const fams = {}; const all = new Set();
+    FABN.forEach((k) => { fams[k] = UN.familias(ST.ver, k); fams[k].forEach((f) => all.add(f)); });
+    const regla = '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Materiales</th><th>Regla</th></tr></thead><tbody>' +
+      FABN.map((k) => '<tr><td><b>' + k + '</b> ' + esc(itemOf(ST.ver, k).short) + '</td><td>' + fams[k].map((f) => '<span class="n1-chip">' + esc(UN.famT[f].split(' (')[0]) + '</span>').join(' ') + '</td><td class="rq-' + (fams[k].length >= 2 ? 'si' : 'no') + '">' + stIcon(fams[k].length >= 2 ? 'si' : 'no') + (fams[k].length >= 2 ? fams[k].length + ' materiales' : 'Un solo material') + '</td></tr>').join('') +
+      '<tr class="n1-tot"><td><b>Conjunto</b></td><td>' + Array.from(all).map((f) => '<span class="n1-chip">' + esc(UN.famT[f]) + '</span>').join(' ') + '</td><td class="rq-' + (all.size >= 3 ? 'si' : 'no') + '">' + stIcon(all.size >= 3 ? 'si' : 'no') + all.size + ' materiales</td></tr></tbody></table></div>';
+    // materiales de la versión
+    const uso = {};
+    FABN.forEach((k) => { const it = V[k]; it.piezas.concat(it.acabados).forEach((p) => { (uso[p[0]] = uso[p[0]] || new Set()).add(k); }); });
+    const mats = '<div class="n1-tbl"><table><thead><tr><th>Material</th><th>Formato comercial</th><th>Proveedor y precio</th><th>Muebles</th><th>Por qué</th></tr></thead><tbody>' +
+      Object.keys(uso).filter((k) => P[k]).sort((a, b) => P[a].cat.localeCompare(P[b].cat)).map((k) => { const p = P[k]; return '<tr><td><b>' + esc(p.m) + '</b><small>' + esc(p.cat) + '</small></td><td>' + esc(p.pres) + '</td><td>' + esc(p.prov) + '<small>' + esc(VS.precioTxt(p)) + (p.u ? ' · <a href="' + esc(p.u) + '" target="_blank" rel="noopener">enlace</a>' : '') + '</small></td><td>' + Array.from(uso[k]).sort((a, b) => a - b).join(', ') + '</td><td>' + esc(N.matj[k] || '') + '</td></tr>'; }).join('') +
+      '</tbody></table></div>';
+    const un = UN.of(ST.ver, ST.n);
+    const her = (ids) => ids.filter((h) => P[h]).map((h) => esc(P[h].m)).join(' · ');
+    const det = '<div class="n1-uns">' + un.map((x) => '<article class="n1-un"><div class="n1-udr">' + x.u.draw() + '</div><div><h4>' + esc(x.u.t) + '</h4><small>' + esc(x.why) + ' · detalle a escala 1:2, medidas en mm</small><p>' + esc(x.u.como) + '</p>' + (x.u.herr.length ? '<p class="n1-uh"><b>Herraje:</b> ' + her(x.u.herr) + '</p>' : '') + '</div></article>').join('') + '</div>';
+    return secHead('G', pickV()) +
+      '<p class="n1-lead">Con qué se hace cada mueble, en qué formato se compra cada material y cómo se une un material con otro. La guía pide al menos dos materiales por mueble y tres en el conjunto.</p>' +
+      '<h3>Regla de los materiales · versión ' + ST.ver + '</h3>' + regla +
+      '<h3>Materiales de la versión ' + ST.ver + '</h3>' + mats +
+      '<h3>Uniones de cada mueble</h3>' + pickN(ST.n) + '<p class="n1-note" style="margin:0 0 10px">' + ST.n + ' · ' + esc(itemOf(ST.ver, ST.n).name) + ': ' + un.length + ' uniones.</p>' + det;
+  }
+  /* H · iluminación y equipo */
+  function luzDe(v, n) {
+    const it = VS.items[v][n], Z = N.luz;
+    let m = 0, W = 0, run = 0;
+    it.piezas.forEach((p) => { const wm = Z.wm[p[0]]; if (wm) { m += p[2] * p[3]; W += p[2] * p[3] * wm; run = Math.max(run, p[3] * wm); } });
+    const fu = it.herrajes.filter((h) => Z.fuenteW[h[0]]);
+    return { m, W, run, fu, cap: fu.reduce((a, h) => a + Z.fuenteW[h[0]] * h[2], 0) };
+  }
+  function secH() {
+    const Z = N.luz, P = VS.precios, est = { v: 'Verificado', np: 'No publicado', inf: 'Inferido', d: 'Discrepancia' };
+    const fichas = '<div class="n1-fichas">' + N.fichas.map((f) => '<article class="n1-ficha"><header><span class="n1-tipo t-' + (f.tipo === 'luz' ? 'fuente' : 'encargo') + '">' + (f.tipo === 'luz' ? 'Iluminación' : 'Equipo') + '</span><h4>' + esc(f.t) + '</h4><small>' + esc(f.ref) + ' · ' + esc(f.prov) + ' · <a href="' + esc(f.u) + '" target="_blank" rel="noopener">ficha</a></small></header><table>' +
+      f.rows.map((r) => '<tr><th>' + esc(r[0]) + '</th><td>' + esc(r[1]) + ' <span class="n1-es e-' + r[2] + '">' + est[r[2]] + '</span></td></tr>').join('') + '</table></article>').join('') + '</div>';
+    // cálculo por mueble
+    const rows = [];
+    FABN.forEach((k) => {
+      const d = luzDe(ST.ver, k); if (!d.m) return;
+      const key = ST.ver + k, host = N.comparte[key];
+      let load = d.W, cap = d.cap, nota = '';
+      FABN.forEach((j) => { if (N.comparte[ST.ver + j] === key) { const o = luzDe(ST.ver, j); load += o.W; nota = 'Incluye la luz del mueble ' + j + '.'; } });
+      if (host) { nota = 'Se conecta a la fuente del mueble ' + host.slice(1) + '.'; cap = 0; }
+      const dims = (itemOf(ST.ver, k).dims.match(/\d+\.\d+/g) || ['1']).map(Number), Lc = Math.max.apply(null, dims) + 0.5;
+      const I = d.run / 12, sec = Z.cable.find((c) => 2 * Lc * c[1] / 1000 * I / 12 <= Z.caida) || Z.cable[Z.cable.length - 1], drop = 2 * Lc * sec[1] / 1000 * I / 12;
+      const pct = cap ? load / cap : null, ok = cap ? pct <= Z.margen : true;
+      const where = (VS.items[ST.ver][k].ens.concat(VS.items[ST.ver][k].fab).find((t) => /fuente/i.test(t)) || (d.fu[0] ? 'Dentro del mueble: ' + d.fu[0][1].charAt(0).toLowerCase() + d.fu[0][1].slice(1) : '')).replace(/\.$/, '');
+      rows.push('<tr><td><b>' + k + '</b> ' + esc(itemOf(ST.ver, k).short) + '</td><td class="mono nw">' + d.m.toFixed(2).replace('.', ',') + ' m · ' + Math.round(d.W) + ' W</td><td>' + (cap ? d.fu.map((h) => h[2] + ' × ' + Z.fuenteW[h[0]] + ' W').join(' + ') : '—') + '</td>' +
+        '<td class="' + (cap ? 'rq-' + (ok ? 'si' : 'no') : '') + '">' + (cap ? stIcon(ok ? 'si' : 'no') + Math.round(pct * 100) + ' %' : '') + (nota ? '<small>' + esc(nota) + '</small>' : '') + '</td>' +
+        '<td class="mono nw">' + String(sec[0]).replace('.', ',') + ' mm² · ' + (drop * 100).toFixed(1).replace('.', ',') + ' %<small>tramo de ' + Lc.toFixed(1).replace('.', ',') + ' m</small></td><td>' + esc(where) + '</td></tr>');
+    });
+    const calc = '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>LED</th><th>Fuente</th><th>Carga de la fuente</th><th>Cable y caída</th><th>Dónde va la fuente</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
+      '<p class="n1-note">Carga: metros de LED por su potencia (perfil 7 W/m y tira COB 4.4 W/m, ver fichas), frente a la fuente instalada; se acepta hasta el 80 % (criterio del grupo). Cable: cada tramo va en estrella hasta la fuente, con par de cobre flexible; se elige la sección con caída de tensión de 3 % o menos para el tramo más cargado, con un recorrido igual al largo del mueble más 0.50 m (estimado). Resistencia del cobre: ' + fuenteRef('iec60228') + '. Las fuentes van en un compartimento seco y registrable, con una toma propia; su carcasa es de plástico y no tiene IP publicado, así que no se encierran sin ventilación.</p>';
+    const cam = N.cambios.filter((c) => c.v === ST.ver && c.el === 'H');
+    const camb = cam.length ? '<div class="n1-box n1-chg"><b>Cambios al mueble por este cálculo</b><ul>' + cam.map((c) => '<li><b>' + c.n + ' · ' + esc(itemOf(c.v, c.n).short) + ':</b> ' + esc(c.antes) + ' → ' + esc(c.despues) + '. ' + esc(c.causa) + '</li>').join('') + '</ul></div>' : '';
+    const IM = N.impresoras[ST.ver], it7 = itemOf(ST.ver, 7), fondo = (it7.dims.match(/\d+\.\d+/g) || [0, 0.6])[1];
+    const imp = '<div class="n1-tbl"><table><tbody>' +
+      [['Mueble', '7 · ' + esc(it7.name) + ' (' + esc(it7.dims) + ')', ''], ['Orientación', esc(IM.frente), ''], ['Espacio sobre el AMS', esc(IM.sobre), IM.est], ['Ventilación', 'Cámara cerrada con filtro de carbón. Tapa de ' + String(fondo).replace('.', ',') + ' m de fondo para una impresora de 0.389 m: quedan ' + Math.round((fondo - 0.389) * 100) + ' cm detrás para el aire y los cables (las holguras no están publicadas: estimado).', 'si'],
+        ['Alimentación', 'Cuatro impresoras de 350 W como máximo a 110 V: 1400 W, unos 12.7 A. Van en un circuito propio de 20 A, cargado al 64 % (criterio de 80 % como máximo, estimado). Imprimiendo PLA consumen unos 120 W cada una (' + fuenteRef('igor') + ').', 'si'], ['Cables', 'Un pasacable en el eje de cada impresora; la regleta va bajo la tapa, dentro del mueble, con el cable de cada equipo en su canaleta.', 'si'], ['Mantenimiento', esc(IM.acceso), IM.est === 'no' ? 'si' : IM.est]]
+        .map((r) => '<tr><th>' + r[0] + '</th><td class="' + (r[2] ? 'rq-' + r[2] : '') + '">' + (r[2] ? stIcon(r[2]) : '') + r[1] + '</td></tr>').join('') + '</tbody></table></div>';
+    return secHead('H', pickV()) +
+      '<p class="n1-lead">La iluminación (perfil LED, tira COB y sus fuentes) y el equipo (las cuatro impresoras Bambu Lab P1S) se compran y se integran al mueble. Cada dato de ficha dice si se verificó, si no está publicado, si es un cálculo o si las fuentes no coinciden.</p>' +
+      '<h3>Fichas técnicas</h3>' + fichas +
+      '<h3>Luz de cada mueble · versión ' + ST.ver + '</h3>' + calc + camb +
+      '<h3>Impresoras integradas al mueble 7 · versión ' + ST.ver + '</h3>' + imp +
+      '<p class="n1-note">Las pantallas de 75" y 55" van en muro y en pilares, no dentro de un mueble: su ficha está arriba y su soporte se confirma con la referencia exacta (no se encontró la página del soporte de 32"–75").</p>';
+  }
+  /* I · renders: el modelo 3D iluminado, capturado mueble por mueble */
+  function secI() {
+    const R = (ST.renders = ST.renders || {}), have = FABN.filter((k) => R[ST.ver + k]).length;
+    return secHead('I', pickV()) +
+      '<p class="n1-lead">Cada mueble en su sitio del local, con la iluminación general, la luz del propio mueble, el producto exhibido y el equipo. Las imágenes se capturan del modelo 3D en este navegador: con la tarjeta de video del equipo salen con sombras y luz suave.</p>' +
+      '<div class="n1-ract"><button type="button" class="btn btn-led" id="n1-rgo">' + (have ? 'Volver a capturar' : 'Capturar los ' + FABN.length + ' renders') + ' de la versión ' + ST.ver + '</button><span id="n1-rst">' + (have ? have + ' de ' + FABN.length + ' listos' : '') + '</span></div>' +
+      '<div class="n1-renders">' + FABN.map((k) => '<figure class="n1-rend"><div class="n1-rimg">' + (R[ST.ver + k] ? '<img alt="Render del mueble ' + k + ' en el local, versión ' + ST.ver + '" src="' + R[ST.ver + k] + '">' : '<span class="n1-load">Sin capturar</span>') + '</div><figcaption><b>' + k + '</b> ' + esc(itemOf(ST.ver, k).short) + '<button type="button" class="link" data-n1go="' + k + '">Ver en 3D</button></figcaption></figure>').join('') + '</div>';
+  }
+  function captureAll() {
+    const api = L.api, E = L.engine, Rm = L.room, T = THREE, v = ST.ver, R = (ST.renders = ST.renders || {});
+    const prev = { ver: api.state.ver, goal: Object.assign({}, E.cam.goal) };
+    const btn = $('#n1-rgo'), st = $('#n1-rst'); if (btn) btn.disabled = true;
+    if (api.state.sel) api.deselect(true);
+    if (api.state.ver !== v) api.setVersion(v, { quiet: true });
+    document.body.classList.add('n1-capturing');
+    E.setViewOffset(0, 0, true);
+    const shot = (k) => new Promise((res) => {
+      const it = L.furn.items[k], box = it.insts[0].box, c = box.getCenter(new T.Vector3()), rad = Math.max(0.6, box.getSize(new T.Vector3()).length() / 2);
+      const vf = T.MathUtils.degToRad(E.camera.fov), asp = E.size.w / E.size.h, f = Math.min(vf, 2 * Math.atan(Math.tan(vf / 2) * asp));
+      Rm.hideDiv = it.zone === 'trastienda';
+      // la cámara se queda dentro de la sala (o de la trastienda), sin atravesar la mampara ni los muros
+      const th = it.th, ph = Math.min(it.ph, 1.3), tr = it.zone === 'trastienda';
+      let r = E.clamp(rad / Math.sin(f / 2) * 1.35, 1.8, 14);
+      const inside = (rr) => { const x = c.x + rr * Math.sin(ph) * Math.sin(th), z = c.z + rr * Math.sin(ph) * Math.cos(th); return x > -2.9 && x < 2.9 && (tr ? z < -2.1 && z > -3.4 : z > -1.9 && z < 3.3); };
+      while (r > 1.8 && !inside(r)) r -= 0.1;
+      E.flyTo({ target: c, theta: th, phi: ph, radius: r }, 0);
+      E.shadowDirty = true; E.invalidate(6);
+      let n = 0;
+      const t0 = performance.now();
+      E.capture = (pn, max, on) => {
+        n++;
+        if (E.busy && performance.now() - t0 < 8000) { E.invalidate(2); return; }            // paredes que todavía se desvanecen
+        if (n >= 3 && (!on || pn >= max - 1 || performance.now() - t0 > 9000)) { E.capture = null; res(E.renderer.domElement.toDataURL('image/jpeg', 0.88)); } else E.invalidate(2);
+      };
+    });
+    let i = 0;
+    const next = () => {
+      if (i >= FABN.length) {
+        E.capture = null; Rm.hideDiv = false; document.body.classList.remove('n1-capturing');
+        if (prev.ver !== v) api.setVersion(prev.ver, { quiet: true });
+        E.flyTo({ target: new T.Vector3(prev.goal.tx, prev.goal.ty, prev.goal.tz), theta: prev.goal.th, phi: prev.goal.ph, radius: prev.goal.r }, 0);
+        api.layout(); if (ST.open && ST.sec === 'I') { const top = $('#n1-body').scrollTop; render(); $('#n1-body').scrollTop = top; }
+        return;
+      }
+      const k = FABN[i++];
+      if (st) st.textContent = 'Capturando ' + i + ' de ' + FABN.length + '…';
+      shot(k).then((url) => { R[v + k] = url; const im = $$('.n1-rend .n1-rimg')[i - 1]; if (im) im.innerHTML = '<img alt="Render del mueble ' + k + '" src="' + url + '">'; setTimeout(next, 30); });
+    };
+    next();
   }
   function secPend(id, what) {
     return secHead(id) + '<div class="n1-empty"><p>Se entrega para el hito H2, el 28 de octubre.</p><ul>' + what.map((w) => '<li>' + esc(w) + '</li>').join('') + '</ul></div>';
+  }
+  function rastreo() {
+    const rows = [];
+    N.cambios.forEach((c) => rows.push('<tr><td>' + vtag(c.v) + ' <b>' + c.n + '</b> ' + esc(itemOf(c.v, c.n).short) + '</td><td>' + esc(c.causa) + '</td><td>' + esc(c.antes) + ' → ' + esc(c.despues) + '</td><td class="rq-si">' + stIcon('si') + 'Corregido</td></tr>'));
+    N.normas.forEach((r) => VER.forEach((v) => { const st = r.v[v][0]; if (st !== 'si') rows.push('<tr><td>' + vtag(v) + ' ' + esc(r.t) + '</td><td>' + esc(r.v[v][1]) + ' (' + esc(SHORT[r.f]) + ')</td><td>Por decidir con el grupo</td><td class="rq-' + st + '">' + stIcon(st) + 'Pendiente</td></tr>'); }));
+    VER.forEach((v) => { const im = N.impresoras[v]; if (im.est !== 'si') rows.push('<tr><td>' + vtag(v) + ' <b>7</b> ' + esc(itemOf(v, 7).short) + '</td><td>' + esc(im[im.pend || 'sobre']) + '</td><td>Por decidir con el grupo</td><td class="rq-' + im.est + '">' + stIcon(im.est) + 'Pendiente</td></tr>'); });
+    return '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Causa</th><th>Cambio</th><th>Estado</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
   }
   function secK() {
     const st = (s) => SECS.find((x) => x.id === s).st;
     return secHead('K') +
       '<p class="n1-lead">Lista de chequeo de la Nota 1 (guía, numeral 10). Cada punto se marca cuando la evidencia está en la carpeta del grupo; aquí se marca cuando está en el visor.</p>' +
       '<ul class="n1-check">' + N.check.map((c) => '<li class="c-' + st(c.s) + '"><i></i><span>' + esc(c.t) + '</span><button type="button" class="link" data-n1sec="' + c.s + '">' + c.s + ' · ' + esc(SECS.find((x) => x.id === c.s).t) + '</button><em>' + ST_TXT[st(c.s)] + '</em></li>').join('') + '</ul>' +
+      '<h3>Tabla de rastreo <small>lo que la revisión le cambió al mueble y lo que queda por corregir</small></h3>' + rastreo() +
       '<h3>Hitos de la guía</h3><div class="n1-tbl"><table><thead><tr><th>Hito</th><th>Fecha</th><th>Qué debe estar listo</th></tr></thead><tbody>' +
       [['H0', 'mié 21 oct.', 'Proyecto y espacios escogidos; plano empezado (A)'], ['H1', 'vie 23 oct.', 'Plano a escala, requisitos y tres alternativas por mueble (B a D)'], ['H2', 'mié 28 oct.', 'Planos, despiece, uniones e integración, en avance (E a I)'], ['H3', 'vie 30 oct.', 'Diseño completo del mobiliario (A a I) · Nota 1']].map((r) => '<tr><td><b>' + r[0] + '</b></td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody></table></div>';
   }
   function render() {
     const id = ST.sec;
     const html = id === 'A' ? secA() : id === 'B' ? secB() : id === 'C' ? secC() : id === 'D' ? secD() : id === 'E' ? secE() : id === 'F' ? secF() : id === 'K' ? secK()
-      : id === 'G' ? secPend('G', ['Tabla de materiales con su justificación y su formato comercial (tablero, perfil, placa)', 'Detalle de cada unión entre materiales distintos: acero con tablero, vidrio con perfil, aluminio con PVC, piezas impresas', 'Comprobación de la regla: dos materiales por mueble, tres en el conjunto'])
-        : id === 'H' ? secPend('H', ['Referencia exacta y ficha técnica de cada luminaria (perfil LED, tira COB, fuentes) y de cada equipo (impresoras Bambu Lab P1S, pantallas Hisense)', 'Detalle del alojamiento, recorrido del cable, ventilación y acceso para mantenimiento'])
-          : secPend('I', ['Render de cada mueble en su espacio del local, con la iluminación y el equipo en su sitio']);
+      : id === 'G' ? secG() : id === 'H' ? secH() : secI();
     const body = $('#n1-body');
     body.innerHTML = '<div class="n1-sec" data-sec="' + id + '">' + html + '</div>';
     body.scrollTop = 0;
@@ -236,11 +362,12 @@
     const on = $('.n1-pick .is-on', body); if (on) { const pk = on.parentNode; pk.scrollLeft = on.offsetLeft - pk.clientWidth / 2 + on.offsetWidth / 2; }
     lazy();
   }
+  const sheet = (k) => { const p = k.split(':'); return L.dwg[p[0]](ST.ver, ST.n, p[1] ? +p[1] : undefined); };
   /* dibujos que tardan: después de pintar la sección, uno por cuadro */
   function lazy() {
     const jobs = [];
     $$('[data-thumb]').forEach((el) => jobs.push(() => { const p = el.dataset.thumb.split('-'); el.innerHTML = L.dwg.isoSVG(p[0], +p[1], 160, 120); }));
-    $$('[data-dwg]').forEach((el) => jobs.push(() => { el.innerHTML = L.dwg[el.dataset.dwg](ST.ver, ST.n); }));
+    $$('[data-dwg]').forEach((el) => jobs.push(() => { el.innerHTML = sheet(el.dataset.dwg); }));
     const gen = (ST.gen = (ST.gen || 0) + 1);
     const run = () => { if (gen !== ST.gen || !jobs.length) return; const j = jobs.shift(); try { j(); } catch (e) { console.error(e); } requestAnimationFrame(() => setTimeout(run, 0)); };
     requestAnimationFrame(() => setTimeout(run, 30));
@@ -253,7 +380,7 @@
     el.id = 'nota'; el.hidden = true; el.setAttribute('aria-label', 'Nota 1 · Diseño del mobiliario');
     el.innerHTML = '<header class="pl-bar n1-bar"><button type="button" class="btn" id="n1-back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver al 3D</button>' +
       '<div class="pl-title"><b>Nota 1 · Diseño del mobiliario</b><span>Diseño VIII · Producción · guía «Del mueble a la planta» · entrega del 30 de octubre</span></div>' +
-      '<div class="pl-tools"><button type="button" class="btn" id="n1-print"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 7.5V3.5h8v4M6 13.5H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5h12A1.5 1.5 0 0 1 17.5 9v3a1.5 1.5 0 0 1-1.5 1.5h-2M6 11h8v5.5H6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Imprimir sección</button></div></header>' +
+      '<div class="pl-tools"' + (inFrame ? ' hidden' : '') + '><button type="button" class="btn" id="n1-print"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 7.5V3.5h8v4M6 13.5H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5h12A1.5 1.5 0 0 1 17.5 9v3a1.5 1.5 0 0 1-1.5 1.5h-2M6 11h8v5.5H6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Imprimir sección</button></div></header>' +
       '<div class="n1-wrap"><nav id="n1-nav" aria-label="Elementos de la Nota 1">' + SECS.map((s) => '<button type="button" data-n1sec="' + s.id + '"><span class="n1-letter">' + (s.id === 'K' ? '✓' : s.id) + '</span><span class="n1-nt">' + esc(s.t) + '</span>' + (s.st ? '<i class="n1-dot d-' + s.st + '" title="' + ST_TXT[s.st] + '"></i>' : '') + '</button>').join('') + '</nav>' +
       '<div id="n1-body" tabindex="-1"></div></div>' +
       '<div id="n1-view" hidden><div class="n1-vbar"><b id="n1-vt"></b><button type="button" class="btn" id="n1-vx">Cerrar</button></div><div class="n1-vs" id="n1-vs"></div></div>';
@@ -268,15 +395,17 @@
     const s = t.closest('[data-n1sec]'); if (s) { ST.sec = s.dataset.n1sec; render(); setHash(); return; }
     const nb = t.closest('[data-n1n]'); if (nb) { ST.n = +nb.dataset.n1n; const top = $('#n1-body').scrollTop; render(); $('#n1-body').scrollTop = top; return; }
     const vb = t.closest('[data-n1v]'); if (vb) { ST.ver = vb.dataset.n1v; const top = $('#n1-body').scrollTop; render(); $('#n1-body').scrollTop = top; return; }
+    if (t.closest('#n1-rgo')) return captureAll();
+    const go = t.closest('[data-n1go]'); if (go) { close(true); if (L.api.state.ver !== ST.ver) L.api.setVersion(ST.ver); L.api.select(+go.dataset.n1go, null, { force: true }); return; }
     if (t.closest('[data-n1plan]')) { close(true); L.api.setVersion(ST.ver); L.api.openPlan(); return; }
-    const z = t.closest('[data-n1zoom]'); if (z) { const k = z.dataset.n1zoom; $('#n1-vs').innerHTML = L.dwg[k](ST.ver, ST.n); $('#n1-vt').textContent = (k === 'conjunto' ? 'Plano de conjunto' : 'Despiece explosionado') + ' · ' + ST.n + ' · ' + itemOf(ST.ver, ST.n).short + ' · versión ' + ST.ver; $('#n1-view').hidden = false; return; }
+    const z = t.closest('[data-n1zoom]'); if (z) { const k = z.dataset.n1zoom; $('#n1-vs').innerHTML = sheet(k); $('#n1-vt').textContent = (k === 'conjunto' ? 'Plano de conjunto' : k === 'explosion' ? 'Despiece explosionado' : 'Piezas, hoja ' + k.split(':')[1]) + ' · ' + ST.n + ' · ' + itemOf(ST.ver, ST.n).short + ' · versión ' + ST.ver; $('#n1-view').hidden = false; return; }
     const d = t.closest('[data-n1svg]'); if (d) return download(d.dataset.n1svg);
     const a = t.closest('a[href^="#n1-f-"]'); if (a) { e.preventDefault(); const el = $(a.getAttribute('href')); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('is-flash'); setTimeout(() => el.classList.remove('is-flash'), 1600); } }
   }
   function download(k) {
-    const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' + L.dwg[k](ST.ver, ST.n);
+    const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' + sheet(k);
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-    const a = document.createElement('a'); a.href = url; a.download = 'blackforge-' + ST.ver.toLowerCase() + '-' + (ST.n < 10 ? '0' : '') + ST.n + (k === 'conjunto' ? '-1-conjunto' : '-2-despiece') + '.svg';
+    const a = document.createElement('a'); a.href = url; a.download = 'blackforge-' + ST.ver.toLowerCase() + '-' + (ST.n < 10 ? '0' : '') + ST.n + (k === 'conjunto' ? '-1-conjunto' : k === 'explosion' ? '-2-despiece' : '-' + (2 + +k.split(':')[1]) + '-piezas') + '.svg';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
     L.ui.toast('Lámina descargada', a.download + ' · A3 horizontal, vectorial.', 'ok', 4500);
   }

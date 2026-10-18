@@ -42,6 +42,36 @@ Un enlace que termina en `#m7` abre directamente la ficha del elemento 7 (sirve 
 el botón de compartir de cada ficha copia ese enlace. Una letra al final elige la versión (`#m7b`, `#c`) y `#plano`
 abre el plano 2D (`#planob` lo abre en la versión B).
 
+## Nota 1 · Diseño del mobiliario (Diseño VIII · Producción)
+
+El botón **Nota 1** de la barra de herramientas abre la entrega del primer hito de la guía «Del mueble a la planta» (UPTC,
+2026-2), con sus elementos A a I y la lista de chequeo. También se abre con un enlace que termina en `#nota1` (o
+`#nota1-d`, por ejemplo, para ir al elemento D). El encargo está adaptado: en lugar de un apartamento, el local comercial,
+con autorización del director del curso.
+
+- **A · Ficha del proyecto**: local, áreas, espacios con sus muebles, fuente del plano, fecha y declaración de uso de IA.
+- **B · Plano a escala**: la lámina 1:50 de cada versión y las referencias con que se escaló el plano.
+- **C · Requisitos con su fuente**: medidas del cuerpo de Acopla95 (población laboral colombiana), requisitos que salen de
+  las normas (NTC 4140, NSR-10 títulos K.3 y K.4, Decreto 1538, RETIE 2026) y, para cada mueble, quién lo usa, para qué,
+  el espacio alrededor, las medidas que lo condicionan y la fuente de cada requisito, con cómo lo cumple cada alternativa.
+- **D · Alternativas y matriz de selección**: las variantes A, B y C de cada mueble, con su isometría y una matriz de seis
+  criterios ponderados (requisitos, costo, oficios y piezas, durabilidad, montaje y coherencia).
+- **E · Planos técnicos**: por mueble y versión, lámina A3 de conjunto (alzado, lateral, corte A-A, planta e isometría,
+  con cotas y rótulo, proyección ISO E), despiece explosionado con marcas y lista de piezas, y láminas de piezas con las
+  medidas de corte. Todo se dibuja en vectores desde el modelo 3D (`js/dwg.js`): aristas vistas y ocultas con un mapa de
+  profundidad calculado en el procesador, y la sección rayada donde el plano corta las piezas.
+- **F · Despiece**: piezas con cantidad, material, medidas, formato comercial y origen (se fabrica, se compra o se encarga),
+  herrajes, tornillería y acabados.
+- **G · Materiales y uniones**: regla de dos materiales por mueble y tres en el conjunto, materiales con su formato y su
+  justificación, y el detalle a escala 1:2 de cada unión entre materiales distintos (`js/uniones.js`).
+- **H · Iluminación y equipo**: fichas técnicas con el estado de cada dato (verificado, no publicado, inferido o con
+  discrepancia), carga de cada fuente LED, sección del cable por caída de tensión e integración de las impresoras.
+- **I · Renders**: captura cada mueble en su sitio desde el modelo 3D iluminado.
+- **Lista de chequeo y tabla de rastreo**: lo que la revisión le cambió al mueble y lo que queda por decidir.
+
+Datos de la Nota 1: `js/nota1-data.js` (fuentes, antropometría, requisitos, criterios, fichas). Cada dato dice si sale de
+una fuente, si es estimado o si no se pudo obtener, como pide la guía (numeral 4.2).
+
 ## Fachada
 
 Fascia y pilares en panel de aluminio compuesto negro satinado, con juntas alineadas a los pilares. El logotipo de

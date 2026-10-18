@@ -32,6 +32,8 @@
     plano: { t: 'BlackForge (9 de octubre de 2026). Planta de distribución y mobiliario del local, y documento «Taller Impresión 3D — Mobiliario, materiales y fabricación».', u: '', d: 'Documento del proyecto: medidas del local, programa, equipos y lista de mobiliario.', tipo: 'encargo' },
     catalogo: { t: 'Catálogos en línea de Madecentro, Homecenter, Vistronica, Asia Colombia, Sign Colombia, El Ruso Shop y Electronilab (consultados entre el 9 y el 16 de octubre de 2026).', u: '', d: 'Formato comercial y precio de cada material; el enlace de cada uno está en la tabla de materiales.', tipo: 'fuente' },
     fichaP1S: { t: 'Bambu Lab. P1S Combo, especificaciones; makeR, distribuidor en Colombia.', u: 'https://somosmaker.com/producto/bambu-lab-p1s-combo-ams/', d: '389 × 389 × 458 mm y 12.95 kg por impresora (dato del documento del proyecto).', tipo: 'fuente' },
+    iec60228: { t: 'IEC 60228:2004. Conductors of insulated cables. Tabla 3: resistencia máxima de conductores de cobre flexibles, clase 5.', u: 'https://webstore.iec.ch/en/publication/1316', d: '0.75 mm²: 26.0 Ω/km; 1.0 mm²: 19.5; 1.5 mm²: 13.3; 2.5 mm²: 7.98 (a 20 °C).', tipo: 'fuente' },
+    igor: { t: "Igor's Lab. Bambu Lab P1S + AMS Combo 3D printer in test.", u: 'https://www.igorslab.de/en/bambu-lab-p1s-ams-combo-3d-printer-in-test-setting-the-bar-a-bit-higher-again/6/', d: 'Consumo medido imprimiendo PLA y nivel de ruido.', tipo: 'secundaria' },
     criterio: { t: 'Criterio de diseño del grupo, escrito antes de dibujar (requisitos generales del visor).', u: '', d: 'Decisión de diseño: imagen de marca, uso de la luz y del material. No es una norma.', tipo: 'encargo' }
   };
 
@@ -205,6 +207,71 @@
     C: [5, 'Perfil de impresora y piezas impresas: el mueble es producto del taller']
   };
 
+
+  /* ------------------------------------------------------ H · fichas de iluminación y equipo
+     estado: v verificado en la fuente · np no publicado · inf inferido (cálculo con datos publicados) · d discrepancia entre fuentes */
+  const FICHAS = [
+    { id: 'perfilLed', t: 'Perfil de aluminio con cinta LED integrada', ref: 'Bonuit HIL338-02 (negro, luz cálida)', prov: 'Madecentro', u: 'https://madecentro.com/products/perfil-en-aluminio-con-iluminacion-led-multicorte-empotrable-o-de-sobre-poner-negro-anodizado', tipo: 'luz',
+      rows: [['Tramo', '3 m, se corta', 'v'], ['Tensión', '12 V DC', 'v'], ['Potencia', '7 W (la página no dice si es por metro); se usa 7 W/m', 'inf'], ['LED por metro', '132', 'v'], ['Temperatura de color', '3000 K', 'v'], ['Difusor', 'Plástico, incluido', 'v'], ['Montaje', 'Sobrepuesto o empotrado', 'v'], ['Sección del perfil', 'No publicada: se mide en una muestra antes de fresar la ranura', 'np'], ['Flujo, CRI e IP', 'No publicados', 'np'], ['Garantía', '1 año', 'v']] },
+    { id: 'cob', t: 'Tira LED COB 12 V, luz cálida, 5 m', ref: 'Dairu 33220-1 (Homecenter 902920)', prov: 'Homecenter', u: 'https://www.homecenter.com.co/homecenter-co/product/902920/tira-led-cob-12v-5m-luz-calida-dairu/902920/', tipo: 'luz',
+      rows: [['Medidas', '5000 × 8 × 2 mm', 'v'], ['Tensión', '12 V DC, clase III', 'v'], ['Potencia', 'Ficha PDF: 22 W (1.5 A); página: 10 W. Se usa 22 W en 5 m, 4.4 W/m, el valor más alto', 'd'], ['Flujo', 'Ficha PDF: 2200 lm (440 lm/m); página: 1400 lm', 'd'], ['CRI', '80', 'v'], ['Temperatura de color', '3000 K', 'v'], ['Grado IP', 'IP20, solo interior', 'v'], ['Atenuable', 'No', 'v'], ['Vida útil', '20.000 h', 'v'], ['Temperatura de operación', '−20 a 45 °C', 'v'], ['Intervalo de corte y adhesivo', 'No publicados: se pega con cinta doble faz', 'np']] },
+    { id: 'fuente', t: 'Fuente de poder 12 V atenuable', ref: 'Bonuit HIL492-20 (3 m), -30 (5 m), -50 (8 m) y -83 (12 m)', prov: 'Madecentro', u: 'https://madecentro.com/products/fuente-de-poder-cinco-metros-dimerizable', tipo: 'luz',
+      rows: [['Salida', '12 V DC', 'v'], ['Potencia de la familia', 'De 24 a 100 W (2 a 8.3 A)', 'v'], ['Potencia por variante', '24, 36, 60 y 100 W, según el sufijo de la referencia (la de 5 m publica 36 W)', 'inf'], ['Medidas', '187 × 55 × 19 mm (variante de 5 m)', 'v'], ['Carcasa', 'Plástico negro', 'v'], ['Tensión de entrada, IP, tipo de atenuación y certificación', 'No publicados', 'np']] },
+    { id: 'p1s', t: 'Impresora 3D con sistema multicolor', ref: 'Bambu Lab P1S Combo (con AMS)', prov: 'makeR, distribuidor en Colombia', u: 'https://wiki.bambulab.com/en/p1/manual/unboxing-p1s', tipo: 'equipo',
+      rows: [['Medidas de la impresora', '389 × 389 × 457 mm', 'v'], ['Peso', '12.95 kg; AMS 2.5 kg', 'v'], ['Medidas del AMS', '368 × 283 × 224 mm', 'v'], ['Alto con el AMS encima', 'Unos 681 mm (457 + 224), sin el tubo de filamento', 'inf'], ['Alimentación', '100–240 V AC, 50/60 Hz', 'v'], ['Potencia máxima', '350 W a 110 V', 'v'], ['Consumo imprimiendo PLA', 'Unos 120 W (medición de Igor\'s Lab, no del fabricante)', 'v'], ['Cámara y filtro', 'Cerrada, con filtro de carbón activado', 'v'], ['Ruido', '64.7 dB(A) a 40 cm (medición de Igor\'s Lab)', 'v'], ['Holguras y entorno de operación', 'No publicados', 'np']] },
+    { id: 'tv75', t: 'Televisor de 75" (pantalla del local)', ref: 'Hisense 75Q6QV', prov: 'Homecenter', u: 'https://hisense.com.co/product/televisor-hisense-hi-qled-4k-q6qv-75/', tipo: 'equipo',
+      rows: [['Medidas sin base', '1676 × 964 × 79 mm (Homecenter publica 1669 × 952 × 79)', 'd'], ['Peso sin base', '18.5 kg', 'v'], ['Montaje VESA', '200 × 300, tornillo M6 (dato del modelo regional 75Q6Q): se comprueba en el equipo', 'np'], ['Alimentación', '110 V (Homecenter)', 'v'], ['Consumo, montaje vertical y holguras', 'No publicados', 'np']] },
+    { id: 'tv55', t: 'Televisor de 55" (pantallas de los pilares)', ref: 'Hisense 55Q6QV', prov: 'Homecenter', u: 'https://hisense.cl/productos/tv/smart-tv-55q6qv/', tipo: 'equipo',
+      rows: [['Medidas sin base', '1234 × 715 × 73 mm', 'v'], ['Peso sin base', '9.3 kg', 'v'], ['Montaje VESA', '200 × 400, tornillo M6 (dato del modelo 55Q6Q)', 'np'], ['Consumo', '70.5 W encendido, 0.4 W en espera (SoloTodo, fuente secundaria)', 'np'], ['Montaje vertical y holguras', 'No publicados', 'np']] }
+  ];
+  /* cálculo eléctrico de la iluminación de cada mueble */
+  const LUZ = {
+    wm: { perfilLed: 7, cob: 4.4 },                                  // W por metro (ver fichas)
+    fuenteW: { fuente3: 24, fuente5: 36, fuente8: 60, fuente12: 100 }, // W por variante (inferido)
+    margen: 0.8,                                                     // carga máxima de la fuente: 80 % de su potencia (criterio del grupo)
+    cable: [[0.75, 26.0], [1.0, 19.5], [1.5, 13.3], [2.5, 7.98]],      // mm² y Ω/km de cobre flexible, clase 5 (IEC 60228)
+    caida: 0.03                                                      // caída de tensión máxima en 12 V: 3 % (criterio del grupo)
+  };
+
+  /* G · por qué se eligió cada material (justificación del grupo) */
+  const MATJ = {
+    blanca15: 'Llega con acabado de fábrica, resiste la humedad (RH) y es el tablero más barato: cuerpos y entrepaños que no se ven de cerca.',
+    rovere15: 'Mismo tablero RH con acabado madera: se usa solo donde se ve y se toca (tapas, puertas, entrepaños vistos).',
+    fondo6: 'Rigidiza el mueble atornillado por detrás con la mitad del peso de un tablero de 15 mm.',
+    mdf15: 'Se maquina, se curva en costillas y toma bien la laca; es la base de los muebles lacados y de las tapas con laminado.',
+    mdf55: 'Se curva en dos capas sobre costillas: así salen las esquinas redondeadas sin piezas macizas.',
+    hpl: 'Resiste rayado y calor mejor que la melamina: va en las tapas de trabajo.',
+    perforada: 'Es el tablero de herramientas de cualquier taller; deja colgar ganchos y cuenta lo que hace el local.',
+    tubo1: 'Estructura delgada y rígida; se suelda en el taller y se retoca con pintura.',
+    tubo15: 'Patas y bastidores que cargan las tapas de 30 mm y las impresoras sin vibrar.',
+    tuboRect: 'Cremallera de muro: el lado de 50 mm da rigidez contra el voladizo de las ménsulas.',
+    perfil3030: 'Mismo perfil de las impresoras y de las CNC: el mueble se desarma y se reconfigura con una llave allen.',
+    pvc10: 'Liviano, blanco y fácil de cortar en CNC; cierra el mueble modular sin carpintería.',
+    pvc5: 'Fondos y tapas livianos detrás de la luz.',
+    opal3: 'Difunde la luz de la tira COB en toda la superficie: caja de luz sin puntos.',
+    acril3: 'Transparente y liviano para entrepaños y frentes de vitrina; no se rompe en esquirlas.',
+    vidrio10: 'Templado de seguridad (NSR-10, K.4) en la mampara sin marco: el espesor la sostiene sola.',
+    vidrio6: 'Templado en paños pequeños dentro de un marco de acero.',
+    petg: 'Lo imprime el propio taller: uniones, esquinas y accesorios que además muestran lo que se vende.',
+    perfilLed: 'Perfil con difusor: oculta los puntos de luz y protege la cinta del polvo y de las manos.',
+    cob: 'Línea de luz continua de 8 mm sin puntos: cabe en una ranura y no necesita difusor.',
+    canto: 'Sella el canto del aglomerado contra la humedad y los golpes.', cantoRovere: 'Sella el canto del aglomerado contra la humedad y los golpes.',
+    anticorr: 'Protege el acero de la oxidación y deja el negro mate de la versión.',
+    laca: 'Acabado continuo y lavable sobre el MDF; se retoca por zonas.',
+    contacto: 'Pega el laminado sobre el MDF sin prensa industrial.'
+  };
+
+  /* tabla de rastreo: cambios que la revisión de los requisitos y de la integración le hizo al mueble */
+  const IMPRESORAS = {
+    A: { frente: 'La puerta de cada impresora mira al pasillo, detrás del vidrio de la vitrina.', sobre: 'Repisa de carretes a 1.95 m: quedan 37 cm sobre el AMS (que llega a unos 1.58 m).', acceso: 'Para abrir la puerta y sacar la pieza, el operario tiene que girar la impresora o pasar al frente: queda en revisión (base giratoria o girar la impresora hacia el taller).', est: 'parcial', pend: 'acceso' },
+    B: { frente: 'La puerta de cada impresora mira a la sala, dentro del nicho.', sobre: 'Repisa del nicho a 1.75 m: quedan 17 cm sobre el AMS. Hay que confirmar en el equipo que la tapa del AMS abre en ese espacio.', acceso: 'Puerta y AMS a la mano desde la sala; la parte trasera se alcanza deslizando la impresora hacia adelante.', est: 'parcial', pend: 'sobre' },
+    C: { frente: 'La puerta de cada impresora mira a la sala, sobre el mesón del muro del fondo.', sobre: 'El riel bajo de carretes está a 1.60 m, sobre el mesón: quedan unos 2 cm sobre el AMS (1.58 m). La tapa del AMS no abre: hay que subir el riel a 1.95 m o más.', acceso: 'Puerta a la mano desde la sala; la parte trasera se alcanza deslizando la impresora hacia adelante.', est: 'no', pend: 'sobre' }
+  };
+  const CAMBIOS = [
+    { v: 'B', n: 3, el: 'H', antes: 'Fuente de 12 V de 36 W (variante de 5 m)', despues: 'Fuente de 60 W (variante de 8 m)', causa: 'Los 8 m de tira COB consumen 35 W: la fuente quedaba al 97 %, por encima del 80 % que se fijó como límite.', f: 'cob' },
+    { v: 'B', n: 7, el: 'H', antes: 'Fuente de 24 W (variante de 3 m) para el perfil del dintel', despues: 'Fuente de 60 W (variante de 8 m)', causa: 'La repisa de filamentos (9) se conecta a la misma fuente: 6 m de perfil a 7 W/m suman 42 W, el 175 % de la fuente anterior.', f: 'perfilLed' }
+  ];
+
   /* lista de chequeo de la guía (numeral 10, Nota 1) */
   const CHECK = [
     { t: 'Ficha del proyecto con enlace y fecha', s: 'A' },
@@ -219,5 +286,5 @@
     { t: 'Renders de cada mueble en su espacio', s: 'I' }
   ];
 
-  L.nota1 = { fuentes: FUENTES, antro: ANTRO, ficha: FICHA, escalado: ESCALADO, muebles: MUEBLES, normas: NORMAS, criterios: CRITERIOS, dura: DURA, marca: MARCA, check: CHECK, fecha: '17 de octubre de 2026', fechaCorta: '17 oct. 2026' };
+  L.nota1 = { fuentes: FUENTES, antro: ANTRO, ficha: FICHA, escalado: ESCALADO, muebles: MUEBLES, normas: NORMAS, criterios: CRITERIOS, dura: DURA, marca: MARCA, check: CHECK, fichas: FICHAS, luz: LUZ, cambios: CAMBIOS, impresoras: IMPRESORAS, matj: MATJ, comparte: { B9: 'B7', C4: 'C3' }, fecha: '17 de octubre de 2026', fechaCorta: '17 oct. 2026' };
 })();
