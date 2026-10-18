@@ -44,7 +44,7 @@ abre el plano 2D (`#planob` lo abre en la versión B).
 
 ## Nota 1 · Diseño del mobiliario (Diseño VIII · Producción)
 
-El botón **Nota 1** de la barra de herramientas abre la entrega del primer hito de la guía «Del mueble a la planta» (UPTC,
+El botón **Notas** de la barra de herramientas abre la entrega del primer hito de la guía «Del mueble a la planta» (UPTC,
 2026-2), con sus elementos A a I y la lista de chequeo. También se abre con un enlace que termina en `#nota1` (o
 `#nota1-d`, por ejemplo, para ir al elemento D). El encargo está adaptado: en lugar de un apartamento, el local comercial,
 con autorización del director del curso.
@@ -71,6 +71,30 @@ con autorización del director del curso.
 
 Datos de la Nota 1: `js/nota1-data.js` (fuentes, antropometría, requisitos, criterios, fichas). Cada dato dice si sale de
 una fuente, si es estimado o si no se pudo obtener, como pide la guía (numeral 4.2).
+
+## Nota 2 · Sistema de producción
+
+En el mismo visor, la pestaña **Nota 2 · Producción** (o un enlace que termina en `#nota2`, `#nota2-11`…) presenta la planta
+que fabrica los muebles: **12 juegos de la versión B · Galería en 2027** (una cadena de 12 locales, uno por mes), en una
+bodega de Villanueva (Casanare), Carrera 11 N.º 3-36.
+
+- **J, K, N, O**: ficha de la empresa; volumen, plazo y ritmo (días hábiles de 2027 con festivos de la Ley 51 de 1983 y
+  jornada de 42 h de la Ley 2101: 172,2 h por juego); fabricar, comprar o encargar cada pieza; tipo de producción.
+- **2 · Hipótesis** escrita antes de calcular, y **17 · Coherencia**, que la contrasta con el resultado.
+- **3 · Localización**: mapa de planta, proveedores y obra, y tabla de factores ponderados.
+- **5 · Distribución**: matriz de relaciones (planeación sistemática de la distribución), plano A3 a 1:100 con el
+  recorrido del material y del operario, y distancias (`js/planta.js`).
+- **6 · Máquinas** con su ficha, precio y carga frente al ritmo.
+- **7 · Análisis del producto**: tabla de piezas, análisis del valor y planes de corte por tablero (`js/corte.js`,
+  guillotina con sierra de 4 mm; el Rovere no gira por la veta).
+- **8 · Proceso**, **9 · Métodos** y **10 · Movimientos**: diagramas de operaciones, cursogramas con VA/NVA, bimanual y
+  la mesa de lijado con topes (`js/proceso.js`).
+- **11 · Tiempos**: tabla de datos tipo con la fuente o el supuesto de cada valor, suplementos, carga por estación,
+  cuello de botella y número de operarios.
+- **12 a 16**: almacenamiento, 5S, matriz de peligros GTC 45, fichas de puesto (NTP-ISO 6385) y plan de inspección.
+
+Datos de la Nota 2: `js/nota2-data.js`. Los tiempos son estimados: se validan con el ebanista y cronometrando el primer
+juego.
 
 ## Fachada
 

@@ -541,8 +541,9 @@
       h.P(o, 'Fondo de MDF 5.5 mm', 'laca', x0 + t, 0.1, 0, 0.6 - 2 * t, yT - 0.1, 0.0055, 0, [dx, 0, -0.3], { mk: 'mdf55' });
       for (let j = 0; j < 3; j++) {
         const y = 0.103 + j * 0.2555, bx = [];
-        G.pushBox(bx, x0 + 0.03, y + 0.04, 0.03, 0.015, 0.17, 0.43, 0xece9e3); G.pushBox(bx, x0 + 0.555, y + 0.04, 0.03, 0.015, 0.17, 0.43, 0xece9e3);
-        G.pushBox(bx, x0 + 0.045, y + 0.04, 0.03, 0.51, 0.17, 0.015, 0xece9e3); G.pushBox(bx, x0 + 0.045, y + 0.04, 0.445, 0.51, 0.17, 0.015, 0xece9e3);
+        // costados de 150 mm (antes 170): así los 60 costados salen de los retazos y el juego ahorra un tablero (Nota 2, ítem 7)
+        G.pushBox(bx, x0 + 0.03, y + 0.04, 0.03, 0.015, 0.15, 0.43, 0xece9e3); G.pushBox(bx, x0 + 0.555, y + 0.04, 0.03, 0.015, 0.15, 0.43, 0xece9e3);
+        G.pushBox(bx, x0 + 0.045, y + 0.04, 0.03, 0.51, 0.15, 0.015, 0xece9e3); G.pushBox(bx, x0 + 0.045, y + 0.04, 0.445, 0.51, 0.15, 0.015, 0xece9e3);
         G.pushBox(bx, x0 + 0.031, y + 0.034, 0.03, 0.538, 0.006, 0.43, 0xf2f0eb);
         h.PM(o, 'Caja de cajón', 'decor', bx, 1, [dx, 0, 0.95], { mk: 'mdf15' });
         G.pushBox(rl, x0 + 0.019, y + 0.09, 0.03, 0.012, 0.036, 0.43, 0xc6c8cb); G.pushBox(rl, x0 + 0.569, y + 0.09, 0.03, 0.012, 0.036, 0.43, 0xc6c8cb);

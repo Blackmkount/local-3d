@@ -17,7 +17,9 @@
   const base = {}; DATA.items.forEach((i) => { base[i.n] = i; });
   const VER = ['A', 'B', 'C'];
   const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
-  const ST = { open: false, sec: 'A', ver: 'A', n: 2, from: null };
+  const ST = { open: false, sec: 'A', ver: 'A', n: 2, from: null, nota: 1, secs: { 1: 'A', 2: 'J' } };
+  /* otras notas (nota2.js…) se registran aquí: { titulo, sub, secs, render(id), click(e) } */
+  const MODS = (L.notaMods = L.notaMods || {});
 
   const SECS = [
     { id: 'A', t: 'Proyecto', d: 'Ficha del proyecto', st: 'ok' },
@@ -350,8 +352,30 @@
       '<h3>Hitos de la guía</h3><div class="n1-tbl"><table><thead><tr><th>Hito</th><th>Fecha</th><th>Qué debe estar listo</th></tr></thead><tbody>' +
       [['H0', 'mié 21 oct.', 'Proyecto y espacios escogidos; plano empezado (A)'], ['H1', 'vie 23 oct.', 'Plano a escala, requisitos y tres alternativas por mueble (B a D)'], ['H2', 'mié 28 oct.', 'Planos, despiece, uniones e integración, en avance (E a I)'], ['H3', 'vie 30 oct.', 'Diseño completo del mobiliario (A a I) · Nota 1']].map((r) => '<tr><td><b>' + r[0] + '</b></td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody></table></div>';
   }
+  function navHTML() {
+    const secs = ST.nota === 1 ? SECS : MODS[ST.nota].secs;
+    return secs.map((s) => '<button type="button" data-n1sec="' + s.id + '"><span class="n1-letter">' + (s.id === 'K' && ST.nota === 1 || s.id === 'X' ? '✓' : s.id) + '</span><span class="n1-nt">' + esc(s.t) + '</span>' + (s.st ? '<i class="n1-dot d-' + s.st + '" title="' + ST_TXT[s.st] + '"></i>' : '') + '</button>').join('');
+  }
+  function syncBar() {
+    const M = ST.nota === 1 ? { titulo: 'Nota 1 · Diseño del mobiliario', sub: 'Diseño VIII · Producción · guía «Del mueble a la planta» · entrega del 30 de octubre' } : MODS[ST.nota];
+    $('#n1-tt').textContent = M.titulo; $('#n1-st').textContent = M.sub;
+    $$('#n1-notas [data-nota]').forEach((b) => { const on = +b.dataset.nota === ST.nota; b.classList.toggle('is-on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+    $('#n1-nav').innerHTML = navHTML(); $('#n1-nav').setAttribute('aria-label', 'Elementos de la ' + M.titulo.split(' · ')[0]);
+    L.ui.syncSegs && L.ui.syncSegs();
+  }
   function render() {
+    ST.sec = ST.secs[ST.nota];
     const id = ST.sec;
+    if (ST.nota !== 1) {
+      const body = $('#n1-body');
+      body.innerHTML = '<div class="n1-sec" data-sec="' + id + '">' + MODS[ST.nota].render(id) + '</div>';
+      body.scrollTop = 0;
+      $$('#n1-nav [data-n1sec]').forEach((b) => b.classList.toggle('is-on', b.dataset.n1sec === id));
+      $$('.n1-pv', body).forEach((s) => L.ui.seg(s));
+      const on = $('.n1-pick .is-on', body); if (on) { const pk = on.parentNode; pk.scrollLeft = on.offsetLeft - pk.clientWidth / 2 + on.offsetWidth / 2; }
+      if (MODS[ST.nota].after) MODS[ST.nota].after(id);
+      return;
+    }
     const html = id === 'A' ? secA() : id === 'B' ? secB() : id === 'C' ? secC() : id === 'D' ? secD() : id === 'E' ? secE() : id === 'F' ? secF() : id === 'K' ? secK()
       : id === 'G' ? secG() : id === 'H' ? secH() : secI();
     const body = $('#n1-body');
@@ -379,12 +403,14 @@
     const el = document.createElement('section');
     el.id = 'nota'; el.hidden = true; el.setAttribute('aria-label', 'Nota 1 · Diseño del mobiliario');
     el.innerHTML = '<header class="pl-bar n1-bar"><button type="button" class="btn" id="n1-back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver al 3D</button>' +
-      '<div class="pl-title"><b>Nota 1 · Diseño del mobiliario</b><span>Diseño VIII · Producción · guía «Del mueble a la planta» · entrega del 30 de octubre</span></div>' +
+      '<div class="pl-title"><b id="n1-tt">Nota 1 · Diseño del mobiliario</b><span id="n1-st"></span></div>' +
+      '<div class="seg seg-sm n1-pv n1-notas" id="n1-notas" role="radiogroup" aria-label="Nota">' + [[1, 'Nota 1 · Diseño'], [2, 'Nota 2 · Producción']].map((x) => '<button type="button" role="radio" data-nota="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
       '<div class="pl-tools"' + (inFrame ? ' hidden' : '') + '><button type="button" class="btn" id="n1-print"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 7.5V3.5h8v4M6 13.5H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5h12A1.5 1.5 0 0 1 17.5 9v3a1.5 1.5 0 0 1-1.5 1.5h-2M6 11h8v5.5H6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Imprimir sección</button></div></header>' +
-      '<div class="n1-wrap"><nav id="n1-nav" aria-label="Elementos de la Nota 1">' + SECS.map((s) => '<button type="button" data-n1sec="' + s.id + '"><span class="n1-letter">' + (s.id === 'K' ? '✓' : s.id) + '</span><span class="n1-nt">' + esc(s.t) + '</span>' + (s.st ? '<i class="n1-dot d-' + s.st + '" title="' + ST_TXT[s.st] + '"></i>' : '') + '</button>').join('') + '</nav>' +
+      '<div class="n1-wrap"><nav id="n1-nav" aria-label="Elementos de la nota"></nav>' +
       '<div id="n1-body" tabindex="-1"></div></div>' +
       '<div id="n1-view" hidden><div class="n1-vbar"><b id="n1-vt"></b><button type="button" class="btn" id="n1-vx">Cerrar</button></div><div class="n1-vs" id="n1-vs"></div></div>';
     $('#app').appendChild(el);
+    L.ui.seg($('#n1-notas'));
     el.addEventListener('click', onClick);
   }
   function onClick(e) {
@@ -392,7 +418,9 @@
     if (t.closest('#n1-back')) return close();
     if (t.closest('#n1-print')) return print();
     if (t.closest('#n1-vx') || t.id === 'n1-view') { $('#n1-view').hidden = true; return; }
-    const s = t.closest('[data-n1sec]'); if (s) { ST.sec = s.dataset.n1sec; render(); setHash(); return; }
+    const nt = t.closest('[data-nota]'); if (nt) { ST.nota = +nt.dataset.nota; syncBar(); render(); setHash(); return; }
+    const s = t.closest('[data-n1sec]'); if (s) { ST.secs[ST.nota] = s.dataset.n1sec; render(); setHash(); return; }
+    if (ST.nota !== 1 && MODS[ST.nota].click && MODS[ST.nota].click(e)) return;
     const nb = t.closest('[data-n1n]'); if (nb) { ST.n = +nb.dataset.n1n; const top = $('#n1-body').scrollTop; render(); $('#n1-body').scrollTop = top; return; }
     const vb = t.closest('[data-n1v]'); if (vb) { ST.ver = vb.dataset.n1v; const top = $('#n1-body').scrollTop; render(); $('#n1-body').scrollTop = top; return; }
     if (t.closest('#n1-rgo')) return captureAll();
@@ -415,12 +443,14 @@
     window.addEventListener('afterprint', done);
     setTimeout(() => { try { window.print(); } catch (err) { done(); } }, 80);
   }
-  function setHash() { try { history.replaceState(null, '', '#nota1' + (ST.sec !== 'A' ? '-' + ST.sec.toLowerCase() : '')); } catch (e) { /* vista previa */ } }
-  function open(sec) {
+  function setHash() { try { const first = ST.nota === 1 ? 'A' : MODS[ST.nota].secs[0].id; history.replaceState(null, '', '#nota' + ST.nota + (ST.secs[ST.nota] !== first ? '-' + ST.secs[ST.nota].toLowerCase() : '')); } catch (e) { /* vista previa */ } }
+  function open(sec, nota) {
     build();
     if (L.api.state.planOpen) L.api.closePlan(true);
     ST.ver = L.api.state.ver || 'A';
-    if (sec) ST.sec = sec;
+    if (nota && (nota === 1 || MODS[nota])) ST.nota = nota;
+    if (sec) ST.secs[ST.nota] = sec;
+    syncBar();
     if (L.api.state.sel && FABN.indexOf(L.api.state.sel.n) >= 0) ST.n = L.api.state.sel.n;
     ST.open = true; $('#nota').hidden = false; document.body.classList.add('n1-open');
     render(); setHash();
@@ -437,9 +467,9 @@
   }, true);
   function init() {
     const b = $('#btn-nota'); if (b) b.addEventListener('click', () => open());
-    const m = /^#nota1(?:-([a-ik]))?$/i.exec(location.hash || '');
-    if (m) { const go = () => (document.querySelector('#app.is-ready') ? open(m[1] ? m[1].toUpperCase() : 'A') : setTimeout(go, 200)); go(); }
+    const m = /^#nota([12])(?:-([a-z0-9]+))?$/i.exec(location.hash || '');
+    if (m) { const go = () => (document.querySelector('#app.is-ready') ? open(m[2] ? m[2].toUpperCase() : null, +m[1]) : setTimeout(go, 200)); go(); }
   }
-  L.n1 = { open, close, matrix, state: ST };
+  L.n1 = { open, close, matrix, state: ST, render, h: { esc, cop, f1, vtag, tipoTag, stIcon, pickN, pickV, itemOf, vinfo, ROLE, FABN, base, ST_TXT, TIPO, inFrame } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
