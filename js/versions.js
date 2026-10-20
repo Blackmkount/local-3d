@@ -414,7 +414,7 @@
       7: {
         short: 'Laboratorio de impresión', name: 'Laboratorio de impresión en nicho', dims: '3.20 × 0.64 × 2.37 m', cant: '1 (cuatro módulos)', ubic: 'Muro derecho, de 2.30 a 5.50 m de la fachada',
         resumen: 'Las impresoras trabajan dentro de un nicho blanco iluminado, como una obra de la galería: base lacada de cuatro módulos con tapa de Rovere de 30 mm, costados altos y un dintel con luz.',
-        piezas: [['mdf15', 'laterales', 5, 0.77, 0.58], ['mdf15', 'pisos y entrepaños', 8, 0.78, 0.57], ['mdf15', 'puertas', 8, 0.4, 0.76], ['mdf55', 'fondos', 4, 0.78, 0.77], ['mdf15', 'zócalo', 1, 3.2, 0.1], ['rovere15', 'tapa de 30 mm (dos capas), capa de arriba', 2, 1.6, 0.6], ['blanca15v', 'tapa de 30 mm (dos capas), capa de abajo', 2, 1.6, 0.6], ['mdf15', 'costados del nicho', 2, 2.25, 0.64], ['mdf15', 'dintel', 2, 3.24, 0.64], ['perfilLed', 'bajo el dintel', 2, 1.5], ['cantoRovere33', 'canto de la tapa', 1, 8]],
+        piezas: [['mdf15', 'laterales', 5, 0.77, 0.58], ['mdf15', 'pisos y entrepaños', 8, 0.78, 0.57], ['mdf15', 'puertas', 8, 0.4, 0.76], ['mdf55', 'fondos', 4, 0.78, 0.77], ['mdf15', 'zócalo', 1, 3.2, 0.1], ['rovere15', 'tapa de 30 mm (dos capas), capa de arriba', 2, 1.6, 0.6], ['blanca15v', 'tapa de 30 mm (dos capas), capa de abajo', 2, 1.6, 0.6], ['mdf15', 'costados del nicho', 2, 2.25, 0.64], ['mdf15', 'dintel', 2, 3.24, 0.64], ['perfilLed', 'bajo el dintel', 2, 1.49], ['cantoRovere33', 'canto de la tapa', 1, 8]],
         herrajes: [['bisagraCaz', 'Dos por puerta', 8], ['pataNiv', 'Dos por lateral', 10], ['pasacable', 'Uno por impresora', 4], ['fuente8', 'Para el perfil del dintel y el de la repisa de filamentos (42 W)', 1], ['chazo', 'Anclaje del nicho', 2], ['tornEns', 'Cuerpos', 2]],
         acabados: [['laca', 'Cuerpos, puertas y nicho', 19, 2]],
         fab: ['Cortar en MDF de 15 mm los cinco laterales, pisos, entrepaños y ocho puertas, y en 5.5 mm los fondos.', 'Cortar los dos costados del nicho de 2.25 m y el dintel; ranurar el dintel para el perfil LED.', 'Lijar, sellar y lacar en blanco todas las caras vistas.', 'Cortar la tapa en dos tramos por capa (arriba Rovere, abajo melamina blanca); pegarlas para dejar 30 mm, enchapar el canto Rovere de 33 mm y perforar cuatro pasacables.'],
@@ -426,7 +426,7 @@
       9: {
         short: 'Repisa de filamentos', name: 'Repisa de filamentos en el nicho', dims: '3.20 × 0.25 m, a 1.75 m', cant: '1', ubic: 'Dentro del nicho del laboratorio, sobre las impresoras',
         resumen: 'Una repisa lacada de 36 mm sobre soportes ocultos que guarda los carretes en uso y, por debajo, ilumina las impresoras con un perfil LED.',
-        piezas: [['mdf15', 'repisa (dos capas)', 4, 1.6, 0.25], ['perfilLed', 'bajo la repisa', 2, 1.5]],
+        piezas: [['mdf15', 'repisa (dos capas)', 4, 1.6, 0.25], ['perfilLed', 'bajo la repisa', 2, 1.49]],
         herrajes: [['soporteInv', 'Soportes ocultos', 8], ['chazo', 'Anclajes', 2]],
         acabados: [['laca', 'Repisa', 1.8, 2]],
         fab: ['Cortar cuatro piezas de MDF de 1600 × 250, perforarlas para los soportes y pegarlas de dos en dos.', 'Lacar en blanco y ranurar la cara de abajo para el perfil LED.'],
@@ -438,7 +438,7 @@
       10: {
         short: 'Cajonera de servicio', name: 'Cajonera de servicio', dims: '3.00 × 0.50 × 0.90 m', cant: '1 (cinco módulos)', ubic: 'Muro del fondo, de 0.60 a 3.60 m del muro izquierdo',
         resumen: 'Detrás de la barra: cinco cuerpos lacados con 15 cajones de frente liso y gola de aluminio, sobre zócalo negro y bajo una tapa doble de Rovere.',
-        piezas: [['mdf15', 'laterales', 10, 0.77, 0.48], ['mdf15', 'pisos', 5, 0.56, 0.47], ['mdf55', 'fondos', 5, 0.56, 0.77], ['mdf15', 'frentes', 15, 0.596, 0.232], ['mdf15', 'costados de las cajas', 15, 1.9, 0.15], ['mdf55', 'fondos de las cajas', 15, 0.54, 0.43], ['mdf15', 'zócalo', 1, 3.0, 0.1], ['rovere15', 'tapa de 30 mm (dos capas), capa de arriba', 2, 1.5, 0.5], ['blanca15v', 'tapa de 30 mm (dos capas), capa de abajo', 2, 1.5, 0.5], ['perfilManija', 'gola de aluminio', 15, 0.6], ['cantoRovere33', 'canto de la tapa', 1, 8]],
+        piezas: [['mdf15', 'laterales', 10, 0.77, 0.48], ['mdf15', 'pisos', 5, 0.56, 0.47], ['mdf55', 'fondos', 5, 0.56, 0.77], ['mdf15', 'frentes', 15, 0.596, 0.232], ['mdf15', 'costados de las cajas', 15, 1.9, 0.15], ['mdf55', 'fondos de las cajas', 15, 0.54, 0.43], ['mdf15', 'zócalo', 1, 3.0, 0.1], ['rovere15', 'tapa de 30 mm (dos capas), capa de arriba', 2, 1.5, 0.5], ['blanca15v', 'tapa de 30 mm (dos capas), capa de abajo', 2, 1.5, 0.5], ['perfilManija', 'gola de aluminio, al ancho del frente', 15, 0.596], ['cantoRovere33', 'canto de la tapa', 1, 8]],
         herrajes: [['riel45', 'Un par por cajón', 15], ['pataNiv', 'Ocho patas', 8], ['tornEns', 'Cuerpos', 1], ['tornAuto', 'Rieles', 2]],
         acabados: [['laca', 'Frentes, costados de los extremos y zócalo', 3.2, 2]],
         fab: ['Cortar en MDF de 15 mm los laterales, pisos, frentes y cajas, y en 5.5 mm los fondos.', 'Lacar en blanco los frentes, los laterales de los extremos y el zócalo; las cajas quedan en MDF sellado.', 'Cortar el perfil de gola de aluminio en 15 tramos de 0.60 m.', 'Cortar la tapa de Rovere y su capa de abajo en melamina blanca, pegarlas para dejar 30 mm y enchapar el canto Rovere de 33 mm.'],

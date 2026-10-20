@@ -20,7 +20,7 @@
 
   const SECS = [
     { id: 'P', t: 'Lista de compras', d: 'Lista de compras para el volumen (elemento P)', st: 'ok' },
-    { id: 'Q', t: 'Cotizaciones', d: 'Cotizaciones con su soporte (elemento Q)', st: 'ok' },
+    { id: 'Q', t: 'Cotizaciones', d: 'Cotizaciones con su soporte (elemento Q)', st: 'parcial' },
     { id: 'R', t: 'Selección', d: 'Cuadro comparativo y proveedor elegido (elemento R)', st: 'ok' },
     { id: 'MO', t: 'Mano de obra', d: 'Mano de obra directa (numeral 7.2)', st: 'ok' },
     { id: 'CI', t: 'Costos indirectos', d: 'Costos indirectos y tasa de reparto (numeral 7.2)', st: 'ok' },
@@ -178,7 +178,7 @@
   function secHC() {
     const t = CS.todo(), n = ST.n, h = t.hojas[n], mo = t.mo.mue[n], ci = t.ci;
     const mpRows = h.mpRows.slice().sort((a, b) => b.costo - a.costo);
-    const mpTxt = mpRows.slice(0, 4).map((r) => r.m.split(',')[0].toLowerCase()).join(', ') + (mpRows.length > 4 ? ' y ' + (mpRows.length - 4) + ' más' : '');
+    const mpTxt = mpRows.slice(0, 4).map((r) => r.m.split(',')[0]).join('; ') + (mpRows.length > 4 ? '; y ' + (mpRows.length - 4) + ' más' : '');
     const all = FABN().map((k) => { const x = t.hojas[k]; return '<tr' + (k === n ? ' class="is-sel"' : '') + '><td><button type="button" class="link" data-n3n="' + k + '"><b>' + k + '</b> ' + esc(short(k)) + '</button></td><td class="r mono">' + cop(x.mp) + '</td><td class="r mono">' + cop(x.mo) + '</td><td class="r mono">' + cop(x.ci) + '</td><td class="r mono"><b>' + cop(x.total) + '</b></td><td class="r mono">' + Math.round(x.total / t.juego.total * 100) + ' %</td></tr>'; });
     all.push('<tr class="n3-tot"><td><b>Juego</b></td><td class="r mono">' + cop(t.juego.mp) + '</td><td class="r mono">' + cop(t.juego.mo) + '</td><td class="r mono">' + cop(t.juego.ci) + '</td><td class="r mono"><b>' + cop(t.juego.total) + '</b></td><td class="r mono">100 %</td></tr>');
     return head('HC') +
@@ -217,8 +217,8 @@
       tbl(['Componente', '.Un juego', '.Volumen (' + nJ + ' juegos)', '.Parte'], comp.map((c) => '<tr><td><b>' + esc(c[0]) + '</b></td><td class="r mono">' + cop(c[1]) + '</td><td class="r mono">' + cop(c[1] * nJ) + '</td><td class="r mono">' + Math.round(c[1] / j.total * 100) + ' %</td></tr>').concat(['<tr class="n3-tot"><td><b>Total</b></td><td class="r mono"><b>' + cop(j.total) + '</b></td><td class="r mono"><b>' + cop(v.total) + '</b></td><td class="r mono">100 %</td></tr>'])) +
       '<p class="n1-note">Comprobación: el costo del volumen (' + cop(v.total) + ') es igual a las compras del año (' + cop(t.rows.reduce((a, r) => a + r.pv, 0)) + ') + la nómina (' + cop(t.mo.nomina) + ') + los demás costos indirectos (' + cop(t.ci.anual - t.ci.rows.find((r) => r.k === 'moi').anual) + '), con diferencias de redondeo.</p>' +
       '<h3>Capacidad ociosa: el costo de un juego según cuántos se fabriquen</h3>' +
-      tbl(['Juegos al año', '.Materias primas', '.Conversión (mano de obra + indirectos)', '.Costo de un juego', '.Frente a ' + nJ + ' juegos'], sens.map((s) => '<tr' + (s.juegos === nJ ? ' class="is-sel"' : '') + '><td><b>' + s.juegos + '</b>' + (s.juegos === nJ ? ' <span class="n1-chip">Encargo</span>' : '') + '</td><td class="r mono">' + cop(s.mp) + '</td><td class="r mono">' + cop(s.conv) + '</td><td class="r mono"><b>' + cop(s.total) + '</b></td><td class="r mono">' + (s.juegos === nJ ? '—' : nf((s.total / sens.find((x) => x.juegos === nJ).total - 1) * 100, 1) + ' %') + '</td></tr>')) +
-      '<p class="n1-box">' + esc(N3.notaCapacidad) + '</p>' +
+      tbl(['Juegos al año', '.Materias primas', '.Conversión (mano de obra + indirectos)', '.Costo de un juego', '.Frente a ' + nJ + ' juegos'], sens.map((s) => '<tr' + (s.juegos === nJ ? ' class="is-sel"' : '') + '><td><b>' + s.juegos + '</b>' + (s.juegos === nJ ? ' <span class="n1-chip">Encargo</span>' : '') + '</td><td class="r mono">' + cop(s.mp) + '</td><td class="r mono">' + cop(s.conv) + '</td><td class="r mono"><b>' + cop(s.total) + '</b></td><td class="r mono">' + (s.juegos === nJ ? '—' : ((s.total > sens.find((x) => x.juegos === nJ).total ? '+' : '') + nf((s.total / sens.find((x) => x.juegos === nJ).total - 1) * 100, 1) + ' %')) + '</td></tr>')) +
+      '<p class="n1-box">' + esc(typeof N3.notaCapacidad === 'function' ? N3.notaCapacidad(t) : N3.notaCapacidad) + '</p>' +
       '<h3>Lo que el diseño puede ahorrar</h3>' + tbl(['Dónde', 'Hoy', 'Cambio de diseño', '.Ahorro en el volumen', 'Estado'], N3.ahorros.map((a) => '<tr><td><b>' + esc(a.d) + '</b></td><td>' + esc(a.hoy) + '</td><td>' + esc(a.cambio) + '</td><td class="r mono">' + cop(typeof a.ahorro === 'function' ? a.ahorro(t) : a.ahorro) + '</td><td>' + esc(a.st) + '</td></tr>')) +
       '<p class="n1-note">Como pide la guía (7.2): si el grupo rediseña las piezas para que quepan en menos tableros, el ahorro sale del diseño. Los ahorros se calculan con los precios elegidos.</p>';
   }

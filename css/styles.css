@@ -1016,7 +1016,7 @@ body.n1-open #top, body.n1-open #dock, body.n1-open #zoom, body.n1-open #stage, 
 .n3-q td:nth-child(3) { min-width: 200px; }
 .n3-q .n1-tipo { margin-top: 4px; }
 .n3-notes { margin: 0; padding: 10px 16px 14px 32px; font-size: 12.5px; color: #3a3a3c; line-height: 1.5; border-top: 1px solid rgba(0, 0, 0, 0.06); }
-.n3-cmp { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 12px; }
+.n3-cmp { display: grid; grid-template-columns: repeat(auto-fill, minmax(600px, 1fr)); gap: 12px; }
 .n3-cmpc { padding: 14px; border-radius: 16px; background: #fff; box-shadow: 0 0 0 1px var(--line); display: flex; flex-direction: column; gap: 10px; }
 .n3-cmpc h4 { font: 600 14px var(--f-disp); }
 .n3-cmpc .n1-tbl { box-shadow: 0 0 0 1px var(--line); }
@@ -1052,3 +1052,4 @@ body.n1-open #top, body.n1-open #dock, body.n1-open #zoom, body.n1-open #stage, 
 .is-narrow .n3-bars > div { grid-template-columns: 120px minmax(0, 1fr) 40px; }
 .is-narrow .n3-lista td:first-child { min-width: 180px; }
 .is-narrow .n1-notas button { padding: 0 8px; font-size: 11.5px; }
+.n1-tbl td.r.mono { white-space: nowrap; }
