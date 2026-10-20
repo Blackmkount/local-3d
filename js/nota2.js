@@ -525,5 +525,5 @@
     return false;
   }
   L.notaMods = L.notaMods || {};
-  L.notaMods[2] = { titulo: 'Nota 2 · Sistema de producción', sub: 'Planta de Villanueva (Casanare) · 12 juegos de la versión B en 2027 · entrega del 18 de noviembre', secs: SECS, render, after, click, ritmo, festivos };
+  L.notaMods[2] = { titulo: 'Nota 2 · Sistema de producción', sub: 'Planta de Villanueva (Casanare) · 12 juegos de la versión B en 2027 · entrega del 18 de noviembre', secs: SECS, render, after, click, ritmo, festivos, tiempos, operarios };
 })();

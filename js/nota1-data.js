@@ -193,7 +193,7 @@
   ];
   /* durabilidad de la superficie de uso, de 1 a 5 (criterio del grupo) */
   const DURA = {
-    rovere15: [4, 'Melamina: resiste rayado y humedad; el canto PVC se puede cambiar'], blanca15: [4, 'Melamina blanca: igual que la Rovere; las huellas se notan más'], fondo6: [3, 'Fondo de 6 mm: solo cierra'],
+    rovere15: [4, 'Melamina: resiste rayado y humedad; el canto PVC se puede cambiar'], blanca15: [4, 'Melamina blanca: igual que la Rovere; las huellas se notan más'], blanca15v: [4, 'Melamina blanca bajo la tapa: no es superficie de uso'], fondo6: [3, 'Fondo de 6 mm: solo cierra'],
     mdf15: [3, 'MDF lacado: se marca con los golpes y hay que retocarlo'], mdf55: [3, 'Piel de MDF lacado: se marca con los golpes'], hpl: [5, 'Laminado de alta presión: el que mejor aguanta rayado y calor'],
     perforada: [4, 'Acero perforado pintado: aguanta, se retoca con pintura'], tubo1: [4, 'Acero pintado: se retoca con anticorrosivo'], tubo15: [4, 'Acero pintado: se retoca con anticorrosivo'], tuboRect: [4, 'Acero pintado: se retoca con anticorrosivo'],
     perfil3030: [5, 'Aluminio anodizado: no se oxida; se raya pero no se rompe'], pvc10: [2, 'PVC espumado: se abolla y se marca'], pvc5: [2, 'PVC espumado: se abolla y se marca'],
@@ -255,7 +255,7 @@
     petg: 'Lo imprime el propio taller: uniones, esquinas y accesorios que además muestran lo que se vende.',
     perfilLed: 'Perfil con difusor: oculta los puntos de luz y protege la cinta del polvo y de las manos.',
     cob: 'Línea de luz continua de 8 mm sin puntos: cabe en una ranura y no necesita difusor.',
-    canto: 'Sella el canto del aglomerado contra la humedad y los golpes.', cantoRovere: 'Sella el canto del aglomerado contra la humedad y los golpes.',
+    canto: 'Sella el canto del aglomerado contra la humedad y los golpes.', cantoRovere: 'Sella el canto del aglomerado contra la humedad y los golpes.', cantoRovere33: 'Cubre en una sola pasada las dos capas de la tapa de 30 mm y sella el canto contra la humedad y los golpes.', blanca15v: 'Capa de abajo de las tapas de 30 mm: no se ve, así que no tiene por qué ser Rovere. Resiste la humedad (RH) y llega terminada de fábrica.',
     anticorr: 'Protege el acero de la oxidación y deja el negro mate de la versión.',
     laca: 'Acabado continuo y lavable sobre el MDF; se retoca por zonas.',
     contacto: 'Pega el laminado sobre el MDF sin prensa industrial.'
@@ -269,7 +269,11 @@
   };
   const CAMBIOS = [
     { v: 'B', n: 3, el: 'H', antes: 'Fuente de 12 V de 36 W (variante de 5 m)', despues: 'Fuente de 60 W (variante de 8 m)', causa: 'Los 8 m de tira COB consumen 35 W: la fuente quedaba al 97 %, por encima del 80 % que se fijó como límite.', f: 'cob' },
-    { v: 'B', n: 7, el: 'H', antes: 'Fuente de 24 W (variante de 3 m) para el perfil del dintel', despues: 'Fuente de 60 W (variante de 8 m)', causa: 'La repisa de filamentos (9) se conecta a la misma fuente: 6 m de perfil a 7 W/m suman 42 W, el 175 % de la fuente anterior.', f: 'perfilLed' }
+    { v: 'B', n: 7, el: 'H', antes: 'Fuente de 24 W (variante de 3 m) para el perfil del dintel', despues: 'Fuente de 60 W (variante de 8 m)', causa: 'La repisa de filamentos (9) se conecta a la misma fuente: 6 m de perfil a 7 W/m suman 42 W, el 175 % de la fuente anterior.', f: 'perfilLed' },
+    { v: 'B', n: 5, el: 'F', antes: 'Tapa de 30 mm con dos capas de Rovere y canto Rovere de 19 mm', despues: 'Capa de arriba en Rovere, capa de abajo en melamina blanca RH y canto Rovere de 33 mm', causa: 'Nota 3: el canto de 19 mm no cubre los 30 mm de la tapa, y la capa de abajo no se ve. El Rovere baja de 4 a 2 láminas por juego.', f: 'cantoRovere33' },
+    { v: 'B', n: 7, el: 'F', antes: 'Tapa de 30 mm con dos capas de Rovere y canto Rovere de 19 mm', despues: 'Capa de arriba en Rovere, capa de abajo en melamina blanca RH y canto Rovere de 33 mm', causa: 'Nota 3: mismo cambio que en la barra (5).', f: 'cantoRovere33' },
+    { v: 'B', n: 10, el: 'F', antes: 'Tapa de 30 mm con dos capas de Rovere y canto Rovere de 19 mm', despues: 'Capa de arriba en Rovere, capa de abajo en melamina blanca RH y canto Rovere de 33 mm', causa: 'Nota 3: mismo cambio que en la barra (5).', f: 'cantoRovere33' },
+    { v: 'B', n: 17, el: 'F', antes: 'Tapa de 30 mm con dos capas de Rovere y canto Rovere de 19 mm', despues: 'Capa de arriba en Rovere, capa de abajo en melamina blanca RH y canto Rovere de 33 mm', causa: 'Nota 3: mismo cambio que en la barra (5).', f: 'cantoRovere33' }
   ];
 
   /* lista de chequeo de la guía (numeral 10, Nota 1) */

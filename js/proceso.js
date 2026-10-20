@@ -39,8 +39,8 @@
         if (ranura && /costad|divis|dintel|list|zócal|jamba|entrepa|repisa/.test(nm)) q.ranuraM += p[2] * p[3];
       } else if (p[0] === 'mdf55') {
         if (/piel/.test(nm)) { q.pieles += p[2]; q.pielesM2 += p[2] * p[3] * p[4]; } else q.piezas55 += p[2];
-      } else if (p[0] === 'rovere15') { q.rov += p[2]; q.rovM2 += p[2] * p[3] * p[4]; }
-      else if (p[0] === 'cantoRovere' || p[0] === 'canto') q.canto += p[3];
+      } else if (p[0] === 'rovere15' || p[0] === 'blanca15') { q.rov += p[2]; q.rovM2 += p[2] * p[3] * p[4]; if (p[0] === 'blanca15') q.blanca = (q.blanca || 0) + p[2]; }
+      else if (/^canto/.test(p[0])) q.canto += p[3];
       else if (p[0] === 'acril3' || p[0] === 'opal3') { q.plast += p[2]; if (/pestaña|repisas/.test(nm) || /doblada/.test(fab)) q.doblar += /repisas/.test(nm) ? p[2] : 0; }
       else if (p[0] === 'cob' || p[0] === 'perfilLed') { q.led += p[2]; q.ledM += p[2] * p[3]; }
       else if (p[0] === 'vidrio10' || p[0] === 'vidrio6') q.vidrio += p[2];
@@ -86,7 +86,7 @@
     }
     if (q.piezas55) comps.push({ lac: true, t: 'Fondos de MDF 5.5 mm', m: 'MDF 5.5 mm, ' + q.piezas55 + ' piezas', ops: [O('SIE', 'Cortar los fondos a medida', 'cortar', q.piezas55 * 2, 'cortes')] });
     if (q.pieles) comps.push({ lac: true, t: 'Pieles curvas', m: 'MDF 5.5 mm, ' + q.pieles + ' pieles', ops: [O('SIE', 'Cortar las pieles en tramos', 'cortar', q.pieles * 6, 'cortes'), O('CUR', 'Encolar y curvar dos capas sobre las costillas', 'curvar', q.pielesM2, 'm²'), D('CUR', 'Fraguado del pegante con prensas', 'fraguado', 1, 'tanda'), O('LIJ', 'Masillar y lijar las juntas', 'masillar', q.pielesM2, 'm²')] });
-    if (q.rov) comps.push({ t: 'Tapas de Rovere', m: 'Melamina Rovere RH 15 mm, ' + q.rov + ' piezas', ops: [O('SIE', 'Cortar las tapas a medida (con veta)', 'cortar', q.rov * 2, 'cortes'), O('ROV', 'Encolar las dos capas', 'encolar', q.encolados || q.rov / 2, 'tapas'), D('ROV', 'Prensado', 'prensado', 1, 'tanda'), O('ROV', 'Pegar y refilar el canto Rovere', 'canto', q.canto, 'm'), I('ROV', 'Revisar canto y caras', 'inspCanto', q.canto, 'm')] });
+    if (q.rov) comps.push({ t: 'Tapas de Rovere', m: 'Melamina RH 15 mm, ' + q.rov + ' piezas' + (q.blanca ? ' (' + (q.rov - q.blanca) + ' Rovere y ' + q.blanca + ' blancas)' : ''), ops: [O('SIE', 'Cortar las tapas a medida (con veta)', 'cortar', q.rov * 2, 'cortes'), O('ROV', 'Encolar las dos capas', 'encolar', q.encolados || q.rov / 2, 'tapas'), D('ROV', 'Prensado', 'prensado', 1, 'tanda'), O('ROV', 'Pegar y refilar el canto Rovere', 'canto', q.canto, 'm'), I('ROV', 'Revisar canto y caras', 'inspCanto', q.canto, 'm')] });
     if (q.plast) comps.push({ t: 'Acrílico y opal', m: 'Acrílico 3 mm, ' + q.plast + ' piezas', ops: [O('SIE', 'Cortar el acrílico con disco de dientes finos', 'cortarAcril', q.plast * 2, 'cortes')].concat(q.doblar ? [O('ARM', 'Termodoblar la pestaña de las repisas', 'doblar', q.doblar, 'piezas')] : []) });
     if (q.led) comps.push({ t: 'Iluminación', m: 'Tira COB o perfil LED, ' + q.ledM.toFixed(1) + ' m', ops: [O('ELE', 'Cortar los tramos de LED en sus marcas', 'cortarLed', q.led, 'tramos'), O('ELE', 'Soldar y aislar los cables de cada tramo', 'soldar', q.led, 'tramos'), I('ELE', 'Probar cada tramo con la fuente', 'probarLed', q.led, 'tramos')] });
     if (q.vidrio) comps.push({ t: 'Vidrio templado', m: 'Comprado a la vidriería', ops: [I('INS', 'Recibir y revisar el vidrio (medida, marca de templado, bordes)', 'inspVidrio', q.vidrio, 'piezas')] });
