@@ -230,6 +230,7 @@
     if (!S.ghosted) ghostOthers(it, true);
     showDecor(it, false);
     S.mode = 'asm'; S.playing = true; E.autoRotate = false; $('#act-spin').setAttribute('aria-pressed', 'false');
+    if (L.vida) L.vida.suspend(true);
     $('#actions').hidden = true; $('#stepper').hidden = false;
     $('#act-explode').setAttribute('aria-pressed', 'false'); $('#act-explode span').textContent = 'Explosionar';
     buildDots(seq.length);
@@ -297,6 +298,7 @@
     S.gen++; stopTweens(); S.done = false; S.moving = -1;
     it.insts.forEach((o) => { o.group.position.copy(o.home); o.parts.forEach((p) => { p.visible = true; p.position.copy(p.userData.home); }); });
     S.mode = 'solid'; S.playing = false; S.step = -1;
+    if (L.vida) L.vida.suspend(false);
     if (!quiet) { ghostOthers(it, false); showDecor(it, true); focus(it, S.inst, false, 1.0); }
     $('#stepper').hidden = true; $('#actions').hidden = false;
     refreshEdges(); syncPanelState(); syncLabels(); E.shadowDirty = true; E.invalidate();
@@ -683,6 +685,7 @@
       '<p class="note">' + esc(M.nota) + '</p></div>' +
       '<div class="mont-foot"><button type="button" class="btn btn-led" id="mont-play">Reproducir montaje</button><button type="button" class="btn" id="mont-exit">Cerrar</button></div>';
     $('#mont').hidden = false; S.mont = { step: -1, playing: false }; $('#hint').hidden = true;
+    if (L.vida) L.vida.suspend(true);
     syncLabels(); layout();
     const a = S.usable.w / S.usable.h;
     E.flyTo({ target: new T.Vector3(0, 0.6, 0), theta: 0.55, phi: 0.82, radius: Math.min(25, 14 * Math.max(1, 1.15 / a)) }, 1.4);
@@ -722,6 +725,7 @@
     S.gen++; stopTweens(); S.mont = null;
     F.order.forEach((n) => F.items[n].insts.forEach((o) => { o.group.visible = true; o.group.position.copy(o.home); }));
     E.setLed(1); $('#mont').hidden = true; $('#hint').hidden = !!S.sel;
+    if (L.vida) L.vida.suspend(false);
     E.shadowDirty = true; syncLabels(); layout();
     if (!quiet) goView('aerea');
   }
@@ -771,6 +775,7 @@
     });
     S.ver = v;
     placeBought(v);
+    if (L.vida) { L.vida.suspend(true); E.tween(0.01, () => {}, { delay: opt.quiet ? 0.1 : 1.6, done: () => { if (gen === S.verGen) L.vida.suspend(false); } }); }
     MOVIBLES.forEach((n) => { byN[n] = dataFor(n, v); if (VS.layout[v] && VS.layout[v][n]) F.items[n].insts.forEach((o) => fresh.push(o)); });
     if (R.setFixtures) R.setFixtures(VS.fixtures[v]);
     // los muebles nuevos (y los equipos que cambian de lugar) caen en su sitio, del fondo hacia la fachada
@@ -1075,6 +1080,7 @@
       { ic: SIC.req, t: 'Requisitos de diseño', s: 'Lo que debía cumplir cada mueble y cómo lo cumple cada versión', q: 'requisitos diseño criterios ergonomia cargas normas condiciones', run: () => openReqs(0) },
       { ic: SIC.house, t: 'Montaje del local', s: 'Orden de fabricación y montaje en seis pasos', q: 'montaje armado fabricacion orden pasos', run: () => openMontaje() },
       { ic: SIC.pin, t: 'Números del plano', s: 'Mostrar u ocultar el número de cada elemento', q: 'numeros rotulos etiquetas plano', run: () => $('#btn-labels').click() },
+      { ic: SIC.pin, t: 'Gente en el local', s: 'Mostrar u ocultar a los clientes, la dependienta y el diseñador', q: 'gente personas clientes vida operarios dependienta', run: () => $('#btn-vida').click() },
       { ic: SIC.cube, t: 'Descargar modelo 3D (.glb)', s: 'Para Unreal Engine, Blender, Twinmotion o D5', q: 'descargar exportar glb gltf unreal blender twinmotion modelo', run: () => downloadGLB() }
     ].map((a) => Object.assign({ sec: 'Acciones' }, a, { q: norm(a.q + ' ' + a.t) }));
     return (SP.all = acts.concat(views, vers, items));
@@ -1200,6 +1206,7 @@
     $('#st-sound').addEventListener('click', () => { const on = $('#st-sound').getAttribute('aria-pressed') !== 'true'; $('#st-sound').setAttribute('aria-pressed', on ? 'true' : 'false'); if (L.armado) L.armado.setSound(on); });
     $('#st-cam').addEventListener('click', () => { const on = $('#st-cam').getAttribute('aria-pressed') !== 'true'; $('#st-cam').setAttribute('aria-pressed', on ? 'true' : 'false'); if (L.armado) L.armado.setFollow(on); });
     if (L.armado) { L.armado.init({ state: S, focus, showDecor, ghostOthers, updateStepper, refreshEdges, afterFinish: () => { if (S.mode === 'asm') exitAsm(); } }); if (L.armado.state.sound) $('#st-sound').setAttribute('aria-pressed', 'true'); }
+    if (L.vida) L.vida.init();
     $('#st-dots').addEventListener('click', (e) => { const d = e.target.closest('.dot'); if (d) { S.playing = false; S.done = false; asmStep(+d.dataset.k, true); } });
     $('#st-exit').addEventListener('click', () => exitAsm());
     $('#z-in').addEventListener('click', () => E.zoomBy(0.78));

@@ -229,100 +229,185 @@
     if (r2) { const m2 = capsule(r2, Math.max(0.01, len * 0.5), mat); m2.position.y = -len * 0.7; g.add(m2); }
     g.userData.len = len; return g;
   }
-  function buildWorker() {
-    const M = mats();
-    const root = new T.Group(); root.name = 'operario';
+  /* materiales de ropa por color (compartidos entre personas) */
+  const CLOTH = {};
+  function cloth(c, r, extra) { const k = c + ':' + (r || 0.9) + ':' + (extra ? JSON.stringify(extra) : ''); if (!CLOTH[k]) { CLOTH[k] = new T.MeshStandardMaterial(Object.assign({ color: c, roughness: r || 0.9, metalness: 0 }, extra || {})); CLOTH[k].name = 'ropa'; } return CLOTH[k]; }
+  AR.cloth = cloth;
+  /* una persona: el mismo esqueleto para el operario, el equipo de la tienda y los clientes.
+     opt: { outfit: 'overol' | 'staff' | 'casual', female, scale, hair: 'cap'|'short'|'bun'|'pony'|'long',
+            sleeves: 'long'|'short', col: { top, topOsc, pants, shoes, sole, hair, skin, acc }, glasses, beard, backpack, bag, logo } */
+  function buildPerson(opt) {
+    opt = opt || {}; const M = mats();
+    const kind = opt.outfit || 'overol', fem = !!opt.female, k = opt.scale || 1;
+    const D = { shin: DIM.shin * k, thigh: DIM.thigh * k, torso: DIM.torso * k, up: DIM.up * k, fore: DIM.fore * k, hand: DIM.hand, hipW: fem ? 0.105 : 0.1, shW: fem ? 0.172 : 0.2, head: DIM.head * (fem ? 0.96 : 1) };
+    const col = Object.assign({ top: 0x8d949c, topOsc: 0x6f767e, pants: 0x2a4a80, pantsOsc: 0x1f3a66, shoes: 0x2a2522, sole: 0x15130f, hair: 0x2b1d14, skin: 0xc8976f, acc: 0xff9f0a }, opt.col || {});
+    const ov = kind === 'overol';
+    const mTop = ov ? M.camisa : cloth(col.top), mTopOsc = ov ? M.camisaOsc : cloth(col.topOsc), mPants = ov ? M.overol : cloth(col.pants), mPantsOsc = ov ? M.overolOsc : cloth(col.pantsOsc);
+    const mShoes = ov ? M.bota : cloth(col.shoes, 0.6), mSole = ov ? M.suela : cloth(col.sole, 0.85), mHair = ov ? M.pelo : cloth(col.hair, 0.8), mSkin = ov ? M.piel : cloth(col.skin, 0.7), mAcc = cloth(col.acc, 0.6);
+    const sleeves = opt.sleeves || (ov ? 'long' : 'short'), hair = opt.hair || (ov ? 'cap' : 'short');
+    const root = new T.Group(); root.name = ov ? 'operario' : 'persona';
     const pelvis = new T.Group(); root.add(pelvis);
     const spine = new T.Group(); pelvis.add(spine);
-    const TY = DIM.torso, at = (m, x, y, z, rx, ry, rz) => { m.position.set(x, y, z); if (rx || ry || rz) m.rotation.set(rx || 0, ry || 0, rz || 0); return m; };
-    // tronco: camisa de manga larga bajo el overol de peto (pantalón alto, peto con bolsillo y tirantes cruzados)
-    const torso = capsule(0.165, TY - 0.22, M.camisa); torso.position.y = TY / 2 + 0.01; torso.scale.set(1, 1, 0.62); spine.add(torso);
-    spine.add(at(box(0.014, 0.12, 0.004, M.camisaOsc), 0, TY - 0.02, 0.104));                                   // tapeta de botones
-    [0, 1, 2].forEach((i) => spine.add(at(cyl(0.006, 0.006, 0.004, M.gorra, 8), 0, TY - 0.06 + i * 0.035, 0.108, Math.PI / 2)));
-    const cuello = cyl(0.062, 0.072, 0.035, M.camisa, 16); cuello.position.set(0, TY + 0.035, 0.005); spine.add(cuello);
-    const cad = capsule(0.165, 0.1, M.overol); cad.position.y = 0.0; cad.scale.set(1, 1, 0.68); spine.add(cad);          // pantalón del overol
-    const cint = cyl(0.17, 0.168, 0.15, M.overol, 20); cint.position.y = 0.165; cint.scale.set(1, 1, 0.66); spine.add(cint);
-    [-1, 1].forEach((s) => spine.add(at(box(0.016, 0.2, 0.13, M.overol), s * 0.163, 0.3, -0.005)));                 // costados del overol
-    const peto = box(0.21, 0.25, 0.016, M.overol); peto.position.set(0, TY - 0.175, 0.104); spine.add(peto);
-    spine.add(at(box(0.12, 0.1, 0.008, M.overolOsc), 0, TY - 0.21, 0.115));                                        // bolsillo del peto
-    spine.add(at(cyl(0.005, 0.005, 0.075, M.herrAm, 6), 0.038, TY - 0.17, 0.119, 0, 0, 0.12));                    // lápiz de carpintero
-    const logo = box(0.05, 0.05, 0.004, M.naranja); logo.position.set(0, TY - 0.085, 0.114); spine.add(logo);
-    spine.add(at(box(0.026, 0.026, 0.003, M.gorra), 0, TY - 0.085, 0.117));
-    [-1, 1].forEach((s) => {                                                                                        // tirantes y hebillas
-      spine.add(at(box(0.04, 0.17, 0.012, M.overol), s * 0.07, TY - 0.005, 0.088, -0.42));
-      spine.add(at(box(0.04, 0.2, 0.012, M.overol), s * 0.072, TY - 0.08, -0.097, 0.1));
-      spine.add(at(box(0.04, 0.012, 0.13, M.overol), s * 0.07, TY + 0.052, 0.0, 0.1));
-      spine.add(at(box(0.046, 0.03, 0.01, M.metal), s * 0.07, TY - 0.09, 0.114));
-    });
-    // porta-herramientas en la cadera derecha: destornillador y flexómetro
-    const bolsa = box(0.09, 0.11, 0.05, M.guanteOsc); bolsa.position.set(-0.165, 0.09, 0.045); spine.add(bolsa);
-    spine.add(at(cyl(0.004, 0.004, 0.09, M.herr, 8), -0.185, 0.17, 0.04)); spine.add(at(cyl(0.009, 0.009, 0.045, M.herrRojo, 10), -0.185, 0.2, 0.04));
-    spine.add(at(box(0.05, 0.05, 0.03, M.herrAm), 0.165, 0.11, 0.06));
-    // cuello y cabeza: cráneo, pelo bajo la gorra, orejas, cejas, ojos, nariz y boca
+    const TY = D.torso, at = (m, x, y, z, rx, ry, rz) => { m.position.set(x, y, z); if (rx || ry || rz) m.rotation.set(rx || 0, ry || 0, rz || 0); return m; };
+    const tw = fem ? 0.9 : 1;                                                                                       // tronco más estrecho
+    // tronco
+    const torso = capsule(0.165, TY - 0.22, mTop); torso.position.y = TY / 2 + 0.01; torso.scale.set(tw, 1, 0.62); spine.add(torso);
+    const cad = capsule(0.165, 0.1, mPants); cad.position.y = 0.0; cad.scale.set(tw * 1.02, 1, 0.68); spine.add(cad);          // cadera / pantalón
+    if (ov) {
+      // camisa de manga larga bajo el overol de peto (pantalón alto, peto con bolsillo y tirantes cruzados)
+      spine.add(at(box(0.014, 0.12, 0.004, M.camisaOsc), 0, TY - 0.02, 0.104));                                   // tapeta de botones
+      [0, 1, 2].forEach((i) => spine.add(at(cyl(0.006, 0.006, 0.004, M.gorra, 8), 0, TY - 0.06 + i * 0.035, 0.108, Math.PI / 2)));
+      const cuello = cyl(0.062, 0.072, 0.035, M.camisa, 16); cuello.position.set(0, TY + 0.035, 0.005); spine.add(cuello);
+      const cint = cyl(0.17, 0.168, 0.15, M.overol, 20); cint.position.y = 0.165; cint.scale.set(1, 1, 0.66); spine.add(cint);
+      [-1, 1].forEach((s) => spine.add(at(box(0.016, 0.2, 0.13, M.overol), s * 0.163, 0.3, -0.005)));                 // costados del overol
+      const peto = box(0.21, 0.25, 0.016, M.overol); peto.position.set(0, TY - 0.175, 0.104); spine.add(peto);
+      spine.add(at(box(0.12, 0.1, 0.008, M.overolOsc), 0, TY - 0.21, 0.115));                                        // bolsillo del peto
+      spine.add(at(cyl(0.005, 0.005, 0.075, M.herrAm, 6), 0.038, TY - 0.17, 0.119, 0, 0, 0.12));                    // lápiz de carpintero
+      spine.add(at(box(0.05, 0.05, 0.004, M.naranja), 0, TY - 0.085, 0.114)); spine.add(at(box(0.026, 0.026, 0.003, M.gorra), 0, TY - 0.085, 0.117));
+      [-1, 1].forEach((s) => {                                                                                        // tirantes y hebillas
+        spine.add(at(box(0.04, 0.17, 0.012, M.overol), s * 0.07, TY - 0.005, 0.088, -0.42));
+        spine.add(at(box(0.04, 0.2, 0.012, M.overol), s * 0.072, TY - 0.08, -0.097, 0.1));
+        spine.add(at(box(0.04, 0.012, 0.13, M.overol), s * 0.07, TY + 0.052, 0.0, 0.1));
+        spine.add(at(box(0.046, 0.03, 0.01, M.metal), s * 0.07, TY - 0.09, 0.114));
+      });
+      // porta-herramientas en la cadera derecha: destornillador y flexómetro
+      const bolsa = box(0.09, 0.11, 0.05, M.guanteOsc); bolsa.position.set(-0.165, 0.09, 0.045); spine.add(bolsa);
+      spine.add(at(cyl(0.004, 0.004, 0.09, M.herr, 8), -0.185, 0.17, 0.04)); spine.add(at(cyl(0.009, 0.009, 0.045, M.herrRojo, 10), -0.185, 0.2, 0.04));
+      spine.add(at(box(0.05, 0.05, 0.03, M.herrAm), 0.165, 0.11, 0.06));
+    } else {
+      // camiseta o buzo: cuello redondo, dobladillo y cinturón; el equipo de la tienda lleva el logo en el pecho
+      const cuello = cyl(0.06, 0.068, 0.022, mTopOsc, 16); cuello.position.set(0, TY + 0.035, 0.005); spine.add(cuello);
+      const dob = cyl(0.168 * tw, 0.168 * tw, 0.025, mTopOsc, 20); dob.position.y = 0.11; dob.scale.set(1, 1, 0.64); spine.add(dob);
+      const cint = cyl(0.166 * tw, 0.166 * tw, 0.03, cloth(0x1a1715, 0.7), 20); cint.position.y = 0.085; cint.scale.set(1.02, 1, 0.66); spine.add(cint);
+      if (opt.logo) { spine.add(at(box(0.045, 0.045, 0.004, mAcc), 0.06 * tw, TY - 0.09, 0.104 - 0.0, 0, 0, 0)); spine.add(at(box(0.022, 0.022, 0.003, cloth(0x141416)), 0.06 * tw, TY - 0.09, 0.107)); }
+      if (opt.stripe) spine.add(at(box(0.2 * tw, 0.03, 0.004, cloth(opt.stripe)), 0, TY - 0.16, 0.104));
+      if (opt.backpack) {                                                                                           // morral
+        const mb = cloth(opt.backpack, 0.95);
+        spine.add(at(box(0.24, 0.32, 0.11, mb), 0, TY - 0.2, -0.16)); spine.add(at(box(0.18, 0.1, 0.03, cloth(opt.backpack, 0.7)), 0, TY - 0.3, -0.225));
+        [-1, 1].forEach((s) => spine.add(at(box(0.04, 0.012, 0.16, mb), s * 0.08, TY + 0.05, -0.04, 0.15)));
+        [-1, 1].forEach((s) => spine.add(at(box(0.04, 0.22, 0.012, mb), s * 0.085, TY - 0.07, 0.095, -0.15)));
+      }
+      if (opt.bag) {                                                                                                // bolso cruzado
+        const mg = cloth(opt.bag, 0.6);
+        spine.add(at(box(0.2, 0.15, 0.07, mg), -0.2, 0.06, 0.02)); spine.add(at(box(0.025, 0.46, 0.008, mg), -0.05, TY - 0.2, 0.108, 0, 0, 0.42)); spine.add(at(box(0.025, 0.4, 0.008, mg), -0.1, TY - 0.2, -0.1, 0, 0, 0.3));
+      }
+    }
+    // cuello y cabeza: cráneo, pelo, orejas, cejas, ojos, nariz y boca
     const neck = new T.Group(); neck.position.y = TY + 0.06; spine.add(neck);
     const head = new T.Group(); neck.add(head);
-    const skull = new T.Mesh(new T.SphereGeometry(DIM.head, 18, 14), M.piel); skull.position.y = 0.13; skull.scale.set(0.9, 1.05, 0.95); skull.castShadow = true; head.add(skull);
-    const nk = cyl(0.045, 0.05, 0.06, M.piel); nk.position.y = 0.03; head.add(nk);
-    const pelo = new T.Mesh(new T.SphereGeometry(DIM.head + 0.005, 16, 10, Math.PI * 0.92, Math.PI * 1.16, 0, Math.PI * 0.62), M.pelo); pelo.position.y = 0.128; pelo.scale.set(0.92, 1.03, 0.95); head.add(pelo);   // pelo en la nuca y las sienes
-    [-1, 1].forEach((s) => { const o = new T.Mesh(new T.SphereGeometry(0.022, 10, 8), M.piel); o.position.set(s * 0.098, 0.125, 0.0); o.scale.set(0.5, 1, 0.8); head.add(o); });
-    [-1, 1].forEach((s) => { head.add(at(box(0.03, 0.006, 0.006, M.pelo), s * 0.036, 0.157, 0.104, 0, 0, s * 0.12)); const e = new T.Mesh(new T.SphereGeometry(0.011, 10, 8), M.ojo); e.position.set(s * 0.036, 0.137, 0.103); e.scale.set(1, 0.85, 0.6); head.add(e); });
-    const nariz = new T.Mesh(new T.SphereGeometry(0.017, 10, 8), M.piel); nariz.position.set(0, 0.115, 0.1); nariz.scale.set(0.75, 1.1, 1); head.add(nariz);
-    head.add(at(box(0.036, 0.006, 0.004, M.boca), 0, 0.082, 0.1));
-    const cap = new T.Mesh(new T.SphereGeometry(DIM.head + 0.012, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.46), M.gorra); cap.position.y = 0.145; cap.scale.set(0.92, 1, 0.97); head.add(cap);
-    const visera = new T.Mesh(new T.CylinderGeometry(0.1, 0.1, 0.01, 16, 1, false, -Math.PI * 0.42, Math.PI * 0.84), M.gorra); visera.position.set(0, 0.165, 0.03); visera.scale.set(1.05, 1, 1.25); visera.castShadow = true; head.add(visera);
-    head.add(at(cyl(0.012, 0.012, 0.006, M.gorra, 8), 0, 0.268, 0.0)); head.add(at(box(0.04, 0.03, 0.004, M.naranja), 0, 0.205, 0.113, -0.25));
-    const gafas = new T.Group(); head.add(gafas);                                                                   // gafas de seguridad claras
-    [-1, 1].forEach((s) => gafas.add(at(box(0.05, 0.028, 0.008, M.gafas), s * 0.033, 0.138, 0.114)));
-    gafas.add(at(box(0.135, 0.003, 0.003, M.gorra), 0, 0.151, 0.112)); [-1, 1].forEach((s) => gafas.add(at(box(0.003, 0.003, 0.1, M.gorra), s * 0.1, 0.146, 0.05)));
-    // máscara de soldar con bisagra en la frente: baja sobre la cara
-    const mask = new T.Group(); mask.position.set(0, 0.23, 0.03); head.add(mask);
-    const shield = box(0.2, 0.27, 0.012, M.mascara); shield.position.set(0, -0.12, 0.12); mask.add(shield);
-    const vis = box(0.11, 0.035, 0.006, M.visor); vis.position.set(0, -0.08, 0.128); mask.add(vis);
-    mask.rotation.x = -Math.PI * 0.62; mask.visible = false;
-    // respirador de media cara con dos cartuchos (GTC 45: vapores orgánicos)
-    const resp = new T.Group(); resp.position.set(0, 0.1, 0.085); head.add(resp);
-    const rb = new T.Mesh(new T.SphereGeometry(0.06, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), M.herr); rb.rotation.x = Math.PI / 2; rb.scale.set(1.1, 0.9, 0.9); resp.add(rb);
-    [-1, 1].forEach((sx) => { const c = cyl(0.028, 0.028, 0.03, M.naranja, 12); c.position.set(sx * 0.055, -0.01, 0.035); c.rotation.x = Math.PI / 2; resp.add(c); });
-    resp.visible = false;
+    const HR = D.head;
+    const skull = new T.Mesh(new T.SphereGeometry(HR, 18, 14), mSkin); skull.position.y = 0.13; skull.scale.set(0.9, 1.05, 0.95); skull.castShadow = true; head.add(skull);
+    const nk = cyl(0.045, 0.05, 0.06, mSkin); nk.position.y = 0.03; head.add(nk);
+    const pelo = new T.Mesh(new T.SphereGeometry(HR + 0.005, 16, 10, Math.PI * 0.92, Math.PI * 1.16, 0, Math.PI * 0.62), mHair); pelo.position.y = 0.128; pelo.scale.set(0.92, 1.03, 0.95); head.add(pelo);   // nuca y sienes
+    if (hair !== 'cap') { const top = new T.Mesh(new T.SphereGeometry(HR + 0.006, 16, 10, 0, Math.PI * 2, 0, Math.PI * (hair === 'buzz' ? 0.4 : 0.44)), mHair); top.position.y = 0.132; top.scale.set(0.92, 1.03, 0.96); top.castShadow = true; head.add(top); }
+    if (hair === 'bun') { const b = new T.Mesh(new T.SphereGeometry(0.042, 12, 10), mHair); b.position.set(0, 0.215, -0.085); head.add(b); }
+    if (hair === 'pony') { const c = capsule(0.028, 0.16, mHair); c.position.set(0, 0.04, -0.12); c.rotation.x = -0.35; head.add(c); const b = new T.Mesh(new T.SphereGeometry(0.03, 10, 8), mHair); b.position.set(0, 0.13, -0.11); head.add(b); }
+    if (hair === 'long') { const c = capsule(0.1, 0.1, mHair); c.position.set(0, 0.07, -0.05); c.scale.set(1, 1, 0.5); head.add(c); }
+    [-1, 1].forEach((s) => { const o = new T.Mesh(new T.SphereGeometry(0.022, 10, 8), mSkin); o.position.set(s * 0.098, 0.125, 0.0); o.scale.set(0.5, 1, 0.8); head.add(o); });
+    [-1, 1].forEach((s) => { head.add(at(box(0.03, 0.006, 0.006, mHair), s * 0.036, 0.157, 0.104, 0, 0, s * 0.12)); const e = new T.Mesh(new T.SphereGeometry(fem ? 0.012 : 0.011, 10, 8), M.ojo); e.position.set(s * 0.036, 0.137, 0.103); e.scale.set(1, 0.85, 0.6); head.add(e); });
+    const nariz = new T.Mesh(new T.SphereGeometry(fem ? 0.015 : 0.017, 10, 8), mSkin); nariz.position.set(0, 0.115, 0.1); nariz.scale.set(0.75, 1.1, 1); head.add(nariz);
+    head.add(at(box(0.036, fem ? 0.009 : 0.006, 0.004, fem ? cloth(0xb5584f, 0.7) : M.boca), 0, 0.082, 0.1));
+    if (opt.beard) head.add(at(new T.Mesh(new T.SphereGeometry(0.1, 14, 10, Math.PI * 0.25, Math.PI * 0.5, Math.PI * 0.5, Math.PI * 0.36), mHair), 0, 0.128, 0.004)).scale.set(0.92, 1.03, 0.96);
+    let mask = null, resp = null;
+    if (hair === 'cap') {
+      const cap = new T.Mesh(new T.SphereGeometry(HR + 0.012, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.46), M.gorra); cap.position.y = 0.145; cap.scale.set(0.92, 1, 0.97); head.add(cap);
+      const visera = new T.Mesh(new T.CylinderGeometry(0.1, 0.1, 0.01, 16, 1, false, -Math.PI * 0.42, Math.PI * 0.84), M.gorra); visera.position.set(0, 0.165, 0.03); visera.scale.set(1.05, 1, 1.25); visera.castShadow = true; head.add(visera);
+      head.add(at(cyl(0.012, 0.012, 0.006, M.gorra, 8), 0, 0.268, 0.0)); head.add(at(box(0.04, 0.03, 0.004, M.naranja), 0, 0.205, 0.113, -0.25));
+    }
+    if (ov || opt.glasses) {                                                                                        // gafas de seguridad claras / gafas
+      const gafas = new T.Group(); head.add(gafas); const mg = ov ? M.gafas : cloth(0xdfeaf2, 0.1, { transparent: true, opacity: 0.25 }), mf = ov ? M.gorra : cloth(0x1a1a1c, 0.5);
+      [-1, 1].forEach((s) => gafas.add(at(box(0.05, 0.028, 0.008, mg), s * 0.033, 0.138, 0.114)));
+      gafas.add(at(box(0.135, 0.003, 0.003, mf), 0, 0.151, 0.112)); [-1, 1].forEach((s) => gafas.add(at(box(0.003, 0.003, 0.1, mf), s * 0.1, 0.146, 0.05)));
+    }
+    if (ov) {
+      // máscara de soldar con bisagra en la frente: baja sobre la cara
+      mask = new T.Group(); mask.position.set(0, 0.23, 0.03); head.add(mask);
+      const shield = box(0.2, 0.27, 0.012, M.mascara); shield.position.set(0, -0.12, 0.12); mask.add(shield);
+      const vis = box(0.11, 0.035, 0.006, M.visor); vis.position.set(0, -0.08, 0.128); mask.add(vis);
+      mask.rotation.x = -Math.PI * 0.62; mask.visible = false;
+      // respirador de media cara con dos cartuchos (GTC 45: vapores orgánicos)
+      resp = new T.Group(); resp.position.set(0, 0.1, 0.085); head.add(resp);
+      const rb = new T.Mesh(new T.SphereGeometry(0.06, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), M.herr); rb.rotation.x = Math.PI / 2; rb.scale.set(1.1, 0.9, 0.9); resp.add(rb);
+      [-1, 1].forEach((sx) => { const c = cyl(0.028, 0.028, 0.03, M.naranja, 12); c.position.set(sx * 0.055, -0.01, 0.035); c.rotation.x = Math.PI / 2; resp.add(c); });
+      resp.visible = false;
+    }
     // brazos
     const arms = {};
-    [['L', 1], ['R', -1]].forEach(([k, s]) => {
-      const sh = new T.Group(); sh.position.set(s * DIM.shW, DIM.torso + 0.02, 0); spine.add(sh);
-      const hombro = new T.Mesh(new T.SphereGeometry(0.058, 12, 10), M.camisa); hombro.position.set(-s * 0.012, -0.005, 0); hombro.castShadow = true; sh.add(hombro);
-      const up = limb(0.05, DIM.up, M.camisa); sh.add(up);
-      const elbow = new T.Group(); elbow.position.y = -DIM.up; up.add(elbow);
-      elbow.add(new T.Mesh(new T.SphereGeometry(0.046, 10, 8), M.camisa));
-      const fore = limb(0.042, DIM.fore, M.camisa); elbow.add(fore);
-      const cuff = cyl(0.046, 0.046, 0.04, M.camisaOsc); cuff.position.y = -DIM.fore + 0.07; fore.add(cuff);
-      const hand = new T.Group(); hand.position.y = -DIM.fore; fore.add(hand);
-      hand.add(at(cyl(0.05, 0.044, 0.06, M.guanteOsc, 12), 0, 0.01, 0));                                             // puño del guante de carnaza
-      const palm = box(0.07, 0.085, 0.035, M.guante); palm.position.y = -0.045; hand.add(palm);
-      hand.add(at(box(0.066, 0.03, 0.036, M.guante), 0, -0.095, 0));                                                 // dedos
-      hand.add(at(capsule(0.012, 0.03, M.guante), s * 0.042, -0.04, 0.012, 0, 0, s * 0.5));                            // pulgar
+    [['L', 1], ['R', -1]].forEach(([kk, s]) => {
+      const sh = new T.Group(); sh.position.set(s * D.shW, TY + 0.02, 0); spine.add(sh);
+      const hombro = new T.Mesh(new T.SphereGeometry(fem ? 0.052 : 0.058, 12, 10), mTop); hombro.position.set(-s * 0.012, -0.005, 0); hombro.castShadow = true; sh.add(hombro);
+      const up = limb(fem ? 0.044 : 0.05, D.up, sleeves === 'long' ? mTop : mSkin); sh.add(up);
+      if (sleeves !== 'long') { const sl = cyl(fem ? 0.05 : 0.056, fem ? 0.048 : 0.054, D.up * 0.5, mTop, 12); sl.position.y = -D.up * 0.25; up.add(sl); }
+      const elbow = new T.Group(); elbow.position.y = -D.up; up.add(elbow);
+      elbow.add(new T.Mesh(new T.SphereGeometry(fem ? 0.04 : 0.046, 10, 8), sleeves === 'long' ? mTop : mSkin));
+      const fore = limb(fem ? 0.037 : 0.042, D.fore, sleeves === 'long' ? mTop : mSkin); elbow.add(fore);
+      if (sleeves === 'long') { const cuff = cyl(0.046, 0.046, 0.04, mTopOsc); cuff.position.y = -D.fore + 0.07; fore.add(cuff); }
+      const hand = new T.Group(); hand.position.y = -D.fore; fore.add(hand);
+      const mH = ov ? M.guante : mSkin;
+      if (ov) hand.add(at(cyl(0.05, 0.044, 0.06, M.guanteOsc, 12), 0, 0.01, 0));                                    // puño del guante de carnaza
+      const palm = box(fem ? 0.062 : 0.07, 0.085, 0.032, mH); palm.position.y = -0.045; hand.add(palm);
+      hand.add(at(box(fem ? 0.058 : 0.066, 0.03, 0.034, mH), 0, -0.095, 0));                                         // dedos
+      hand.add(at(capsule(0.011, 0.03, mH), s * 0.04, -0.04, 0.012, 0, 0, s * 0.5));                                   // pulgar
       const tool = new T.Group(); tool.position.y = -0.06; hand.add(tool);
-      arms[k] = { sh, up, elbow, fore, hand, tool, side: s, target: null, dir: null, cur: new T.Vector3(), curDir: new T.Vector3(0, -1, 0) };
+      arms[kk] = { sh, up, elbow, fore, hand, tool, side: s, target: null, dir: null, cur: new T.Vector3(), curDir: new T.Vector3(0, -1, 0) };
     });
     // piernas
     const legs = {};
-    [['L', 1], ['R', -1]].forEach(([k, s]) => {
-      const hip = new T.Group(); hip.position.set(s * DIM.hipW, 0, 0); pelvis.add(hip);
-      const thigh = limb(0.075, DIM.thigh, M.overol); hip.add(thigh);
-      thigh.add(at(box(0.07, 0.09, 0.01, M.overolOsc), s * 0.03, -0.12, 0.068));                                    // bolsillo lateral
-      const knee = new T.Group(); knee.position.y = -DIM.thigh; thigh.add(knee);
-      knee.add(new T.Mesh(new T.SphereGeometry(0.066, 10, 8), M.overol));
-      const shin = limb(0.06, DIM.shin, M.overol); knee.add(shin);
-      shin.add(at(box(0.09, 0.09, 0.02, M.overolOsc), 0, -0.06, 0.056));                                             // rodillera
-      const foot = new T.Group(); foot.position.set(0, -DIM.shin + 0.05, 0); shin.add(foot);                           // bota de seguridad con suela
-      foot.add(at(box(0.1, 0.1, 0.13, M.bota), 0, 0, 0.0)); foot.add(at(box(0.1, 0.06, 0.17, M.bota), 0, -0.02, 0.1));
-      foot.add(at(box(0.104, 0.02, 0.29, M.suela), 0, -0.04, 0.06)); foot.add(at(box(0.096, 0.03, 0.05, M.suela), 0, -0.035, 0.17));
-      foot.add(at(cyl(0.004, 0.004, 0.07, M.gorra, 6), 0, 0.03, 0.065, Math.PI / 2));
-      legs[k] = { hip, thigh, knee, shin, foot, side: s };
+    [['L', 1], ['R', -1]].forEach(([kk, s]) => {
+      const hip = new T.Group(); hip.position.set(s * D.hipW, 0, 0); pelvis.add(hip);
+      const thigh = limb(fem ? 0.07 : 0.075, D.thigh, mPants); hip.add(thigh);
+      if (ov) thigh.add(at(box(0.07, 0.09, 0.01, M.overolOsc), s * 0.03, -0.12, 0.068));                             // bolsillo lateral
+      const knee = new T.Group(); knee.position.y = -D.thigh; thigh.add(knee);
+      knee.add(new T.Mesh(new T.SphereGeometry(fem ? 0.06 : 0.066, 10, 8), mPants));
+      const shin = limb(fem ? 0.055 : 0.06, D.shin, mPants); knee.add(shin);
+      if (ov) shin.add(at(box(0.09, 0.09, 0.02, M.overolOsc), 0, -0.06, 0.056));                                      // rodillera
+      const foot = new T.Group(); foot.position.set(0, -D.shin + 0.05, 0); shin.add(foot);
+      if (ov) {                                                                                                     // bota de seguridad con suela
+        foot.add(at(box(0.1, 0.1, 0.13, mShoes), 0, 0, 0.0)); foot.add(at(box(0.1, 0.06, 0.17, mShoes), 0, -0.02, 0.1));
+        foot.add(at(box(0.104, 0.02, 0.29, mSole), 0, -0.04, 0.06)); foot.add(at(box(0.096, 0.03, 0.05, mSole), 0, -0.035, 0.17));
+        foot.add(at(cyl(0.004, 0.004, 0.07, M.gorra, 6), 0, 0.03, 0.065, Math.PI / 2));
+      } else {                                                                                                      // tenis
+        foot.add(at(box(0.09, 0.06, 0.11, mShoes), 0, -0.015, 0.0)); foot.add(at(box(0.09, 0.05, 0.16, mShoes), 0, -0.02, 0.1));
+        foot.add(at(box(0.096, 0.022, 0.27, mSole), 0, -0.04, 0.06));
+      }
+      legs[kk] = { hip, thigh, knee, shin, foot, side: s };
     });
     root.visible = false;
-    const w = { root, pelvis, spine, neck, head, mask, resp, arms, legs, hipY: DIM.thigh + DIM.shin, crouch: 0, lean: 0, walk: 0, walking: false, look: null, stool: 0, facing: 0, tool: null, toolL: null, maskDown: false };
+    const w = { root, pelvis, spine, neck, head, mask, resp, arms, legs, dim: D, hipY: D.thigh + D.shin, crouch: 0, lean: 0, walk: 0, walking: false, look: null, stool: 0, facing: 0, tool: null, toolL: null, maskDown: false, sit: null, sway: 0 };
     E.scene.add(root);
     return w;
   }
+  /* fusiona las mallas hermanas que comparten material (una por hueso y material): de ~110 piezas a ~30 llamadas de dibujo */
+  function bake(root) {
+    const groups = []; root.traverse((o) => { if (!o.isMesh) groups.push(o); });
+    groups.forEach((g) => {
+      const byMat = new Map();
+      g.children.forEach((m) => { if (m.isMesh && !m.children.length && m.geometry.index && m.geometry.attributes.uv) { if (!byMat.has(m.material)) byMat.set(m.material, []); byMat.get(m.material).push(m); } });
+      byMat.forEach((list, mat) => {
+        if (list.length < 2) return;
+        let nv = 0, ni = 0; list.forEach((m) => { m.updateMatrix(); nv += m.geometry.attributes.position.count; ni += m.geometry.index.count; });
+        const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), idx = new (nv > 65535 ? Uint32Array : Uint16Array)(ni);
+        const v = new T.Vector3(), nm = new T.Matrix3(); let ov = 0, oi = 0;
+        list.forEach((m) => {
+          const G = m.geometry, P = G.attributes.position, N = G.attributes.normal, U = G.attributes.uv, I = G.index; nm.getNormalMatrix(m.matrix);
+          for (let i = 0; i < P.count; i++) {
+            v.fromBufferAttribute(P, i).applyMatrix4(m.matrix); pos[(ov + i) * 3] = v.x; pos[(ov + i) * 3 + 1] = v.y; pos[(ov + i) * 3 + 2] = v.z;
+            v.fromBufferAttribute(N, i).applyMatrix3(nm).normalize(); nor[(ov + i) * 3] = v.x; nor[(ov + i) * 3 + 1] = v.y; nor[(ov + i) * 3 + 2] = v.z;
+            uv[(ov + i) * 2] = U.getX(i); uv[(ov + i) * 2 + 1] = U.getY(i);
+          }
+          for (let i = 0; i < I.count; i++) idx[oi + i] = I.getX(i) + ov;
+          ov += P.count; oi += I.count;
+          g.remove(m); G.dispose();
+        });
+        const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setAttribute('normal', new T.BufferAttribute(nor, 3)); geo.setAttribute('uv', new T.BufferAttribute(uv, 2)); geo.setIndex(new T.BufferAttribute(idx, 1));
+        const mm = new T.Mesh(geo, mat); mm.castShadow = true; mm.receiveShadow = true; g.add(mm);
+      });
+    });
+    return root;
+  }
+  AR.bake = bake;
+  const buildWorker = () => { const w = buildPerson({ outfit: 'overol' }); bake(w.root); return w; };
+  AR.person = buildPerson;
   let W = null;
   AR.worker = () => W || (W = buildWorker());
 
@@ -333,18 +418,18 @@
     _v.copy(worldDir).applyQuaternion(_qp).normalize();
     group.quaternion.setFromUnitVectors(DOWN, _v);
   }
-  function ikArm(a, worldTarget, worldDir) {
+  function ikArm(w, a, worldTarget, worldDir) {
     const S0 = a.sh.getWorldPosition(new T.Vector3());
-    const l1 = DIM.up, l2 = DIM.fore;
+    const l1 = w.dim.up, l2 = w.dim.fore;
     const d = new T.Vector3().copy(worldTarget).sub(S0); let dist = d.length();      // (vector propio: aimLimb usa los temporales)
     dist = clamp(dist, 0.12, l1 + l2 - 0.01); d.normalize();
     // el codo cuelga: hacia abajo, un poco afuera y atrás del cuerpo (nunca por delante de la mano).
     // Si la mano cruza al otro lado del cuerpo, el codo se pega al costado en vez de abrirse.
-    _qp.copy(W.root.quaternion).invert(); const tl = _v2.copy(d).applyQuaternion(_qp);
+    _qp.copy(w.root.quaternion).invert(); const tl = _v2.copy(d).applyQuaternion(_qp);
     const cross = tl.x * a.side < -0.15, high = tl.y > 0.35;
-    const hint = new T.Vector3(a.side * (cross ? 0.15 : high ? 0.7 : 0.45), cross ? -0.75 : -0.8, cross ? -0.5 : -0.35).applyQuaternion(W.root.quaternion).normalize();
+    const hint = new T.Vector3(a.side * (cross ? 0.15 : high ? 0.7 : 0.45), cross ? -0.75 : -0.8, cross ? -0.5 : -0.35).applyQuaternion(w.root.quaternion).normalize();
     let perp = new T.Vector3().copy(hint).addScaledVector(d, -hint.dot(d));
-    if (perp.lengthSq() < 1e-4) { perp.set(a.side, 0, 0).applyQuaternion(W.root.quaternion); perp.addScaledVector(d, -perp.dot(d)); }
+    if (perp.lengthSq() < 1e-4) { perp.set(a.side, 0, 0).applyQuaternion(w.root.quaternion); perp.addScaledVector(d, -perp.dot(d)); }
     perp.normalize();
     const aa = (l1 * l1 - l2 * l2 + dist * dist) / (2 * dist), hh = Math.sqrt(Math.max(0, l1 * l1 - aa * aa));
     const elbow = new T.Vector3().copy(S0).addScaledVector(d, aa).addScaledVector(perp, hh);
@@ -361,23 +446,32 @@
     a.fore.quaternion.setFromEuler(new T.Euler(-0.3 - Math.max(0, -swing) * 0.4, 0, 0));
     a.hand.quaternion.identity();
   }
-  function pose() {
-    if (!W || !W.root.visible) return;
-    const w = W, hip = w.hipY * (1 - w.crouch) + 0.52 * w.crouch;
-    w.pelvis.position.y = hip + w.stool;
-    const l = DIM.thigh, cosA = clamp(hip / (2 * l), -1, 1), a = Math.acos(cosA);
-    ['L', 'R'].forEach((k, i) => {
-      const lg = w.legs[k], ph = w.walk + (i ? Math.PI : 0), sw = w.walking ? Math.sin(ph) * 0.55 : 0, lift = w.walking ? Math.max(0, Math.sin(ph + Math.PI / 2)) * 0.55 : 0;
-      lg.thigh.rotation.set(-a - sw, 0, i ? -0.03 : 0.03);
-      lg.knee.rotation.set(2 * a + lift, 0, 0);
-      lg.foot.rotation.set(-a - lift * 0.6, 0, 0);
-    });
-    w.spine.rotation.set(w.lean + w.crouch * 0.35, w.walking ? Math.sin(w.walk) * 0.04 : 0, 0);
-    w.spine.position.y = w.walking ? Math.abs(Math.sin(w.walk)) * 0.02 : 0;
+  function pose(w) {
+    w = w || W;
+    if (!w || !w.root.visible) return;
+    const l = w.dim.thigh;
+    if (w.sit) {
+      // sentado: la pelvis sobre el asiento, muslos al frente, piernas colgando
+      w.pelvis.position.y = w.sit.seat + 0.08;
+      ['L', 'R'].forEach((k, i) => { const lg = w.legs[k], a1 = Math.PI / 2 - 0.08 + (i ? 0.04 : -0.04), a2 = Math.PI / 2 + 0.12; lg.thigh.rotation.set(-a1, 0, i ? -0.12 : 0.12); lg.knee.rotation.set(a2, 0, 0); lg.foot.rotation.set(a1 - a2, 0, 0); });
+      w.spine.rotation.set(w.lean, 0, 0); w.spine.position.y = 0;
+    } else {
+      const hip = w.hipY * (1 - w.crouch) + 0.52 * w.crouch;
+      w.pelvis.position.y = hip + w.stool;
+      const cosA = clamp(hip / (2 * l), -1, 1), a = Math.acos(cosA);
+      ['L', 'R'].forEach((k, i) => {
+        const lg = w.legs[k], ph = w.walk + (i ? Math.PI : 0), sw = w.walking ? Math.sin(ph) * 0.55 : 0, lift = w.walking ? Math.max(0, Math.sin(ph + Math.PI / 2)) * 0.55 : 0;
+        lg.thigh.rotation.set(-a - sw, 0, i ? -0.03 : 0.03);
+        lg.knee.rotation.set(2 * a + lift, 0, 0);
+        lg.foot.rotation.set(-a - lift * 0.6, 0, 0);
+      });
+      w.spine.rotation.set(w.lean + w.crouch * 0.35, w.walking ? Math.sin(w.walk) * 0.04 : 0, w.sway || 0);
+      w.spine.position.y = w.walking ? Math.abs(Math.sin(w.walk)) * 0.02 : 0;
+    }
     w.root.updateMatrixWorld(true);
     ['L', 'R'].forEach((k, i) => {
       const arm = w.arms[k];
-      if (arm.target) ikArm(arm, arm.cur, arm.curDir);
+      if (arm.target) ikArm(w, arm, arm.cur, arm.curDir);
       else restArm(arm, w.walking ? Math.sin(w.walk + (i ? 0 : Math.PI)) * 0.6 : 0);
     });
     // la cabeza mira al trabajo
@@ -386,11 +480,12 @@
       const hp = w.head.getWorldPosition(_v2); _v.copy(w.look).sub(hp);
       w.neck.parent.getWorldQuaternion(_qp); _qp.invert(); _v.applyQuaternion(_qp);
       const yaw = clamp(Math.atan2(_v.x, _v.z), -1.0, 1.0), pitch = clamp(-Math.atan2(_v.y, Math.hypot(_v.x, _v.z)), -0.5, 0.42);
-      w.neck.rotation.set(pitch, yaw, 0);
-    } else w.neck.rotation.set(0, 0, 0);
-    w.mask.rotation.x = w.maskDown ? 0 : -Math.PI * 0.62;
+      w.neck.rotation.set(pitch + (w.nod || 0), yaw, 0);
+    } else w.neck.rotation.set(w.nod || 0, 0, 0);
+    if (w.mask) w.mask.rotation.x = w.maskDown ? 0 : -Math.PI * 0.62;
     w.root.updateMatrixWorld(true);
   }
+  AR.pose = pose;
 
   /* ------------------------------------------------------------ herramientas (en la mano derecha) */
   const TOOLS = {};
@@ -599,7 +694,7 @@
   const toWorldDir = (o, d) => d.clone().applyAxisAngle(UP, o.group.rotation.y);
   /* dentro del local, sin atravesar muros */
   function inRoom(p, m) { const FR = E.floorRect; m = m || 0.3; p.x = clamp(p.x, FR[0] + m, FR[2] - m); p.z = clamp(p.z, FR[1] + m, FR[3] + 2.2); return p; }
-  const inWalk = (x, z) => { const FR = E.floorRect; return x >= FR[0] + 0.28 && x <= FR[2] - 0.28 && z >= FR[1] + 0.28 && z <= FR[3] + 2.0; };
+  const inWalk = (x, z) => { const FR = E.floorRect; if (z > FR[3] + 0.42 && z <= FR[3] + 2.6) return Math.abs(x) < 9; return x >= FR[0] + 0.28 && x <= FR[2] - 0.28 && z >= FR[1] + 0.28 && z <= FR[3] + 2.0; };
   function localBox(o) { if (!o._lbox) { o._lbox = new T.Box3(); o.parts.forEach((p) => o._lbox.union(boxOf(p))); } return o._lbox; }
 
   /* --- obstáculos: el operario no atraviesa muebles, equipos del taller ni los pilares de la fachada.
@@ -664,7 +759,7 @@
         const ng = g[u] + c; if (ng < g[v]) { g[v] = ng; par[v] = u; hpush(ng + h(v), v); }
       }
     }
-    if (!found) return [from, to];
+    if (!found) return null;
     const raw = [to]; for (let u = par[t]; u >= 0 && u !== s; u = par[u]) raw.push(V3(x0 + (u % nx) * CS, 0, z0 + Math.floor(u / nx) * CS)); raw.push(from); raw.reverse();
     const out = [raw[0]]; let i = 0;
     while (i < raw.length - 1) { let j = raw.length - 1; while (j > i + 1 && !segFree(obs, raw[i], raw[j])) j--; out.push(raw[j]); i = j; }
@@ -727,7 +822,7 @@
       // rodea los muebles y equipos: ruta libre entre donde está y donde debe pararse
       const obs = obstacles();
       const start = blocked(obs, from.x, from.z) ? freeSpot(from.clone(), obs, to) : from;
-      const path = findPath(start, to, obs); if (start !== from) path.unshift(from);
+      const path = findPath(start, to, obs) || [start, to]; if (start !== from) path.unshift(from);
       await walkPath(path);
     }
     if (st.stool && !w.stool) { placeStool(st); await stepStool(st.stool); }
@@ -735,6 +830,7 @@
     await crouchTo(st.crouch);
   }
   AR._path = { obstacles, findPath, freeSpot, standFor };
+  AR.nav = { obstacles, findPath, freeSpot, segFree, blocked, inWalk, inRoom, RW };
   async function turnTo(a) {
     const w = AR.worker(), a0 = w.facing, d = Math.atan2(Math.sin(a - a0), Math.cos(a - a0));
     if (Math.abs(d) < 0.03) return;
