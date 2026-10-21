@@ -96,6 +96,25 @@ bodega de Villanueva (Casanare), Carrera 11 N.º 3-36.
 Datos de la Nota 2: `js/nota2-data.js`. Los tiempos son estimados: se validan con el ebanista y cronometrando el primer
 juego.
 
+## Nota 3 · Proveedores y costos
+
+La pestaña **Nota 3 · Costos** (enlace `#nota3`, `#nota3-hc`…) cuesta lo que se diseñó: cuánto cuesta fabricar, no a
+cuánto se vende (guía, numeral 7).
+
+- **P · Lista de compras** para los 12 juegos: tableros y perfiles enteros según los planes de corte, acabados por galón,
+  herrajes, iluminación, equipo e insumos.
+- **Q · Cotizaciones**: precios de catálogo publicados, con enlace y fecha (20 de octubre de 2026), tres por materia
+  prima, iluminación y equipo, y una para herrajes.
+- **R · Selección**: cuadro comparativo con cinco criterios ponderados (costo, especificación, capacidad, plazo y
+  ubicación) y la razón de cada elección.
+- **Mano de obra, costos indirectos y hoja de costos** de cada mueble, del juego y del volumen, sin IVA y con el cálculo a
+  la vista; sensibilidad del costo al número de juegos y lo que el diseño ahorra.
+- **Calidad del documento** (datos por etiqueta y supuestos que más pesan), **guion de la socialización** y lista de
+  chequeo.
+
+Cálculos en `js/costos.js`; datos en `js/nota3-data.js`. La Nota 3 le cambió al mueble las tapas de 30 mm (capa de abajo
+en melamina blanca y canto Rovere de 33 mm), la gola de la cajonera (596 mm) y los perfiles LED del laboratorio (1.49 m).
+
 ## Fachada
 
 Fascia y pilares en panel de aluminio compuesto negro satinado, con juntas alineadas a los pilares. El logotipo de

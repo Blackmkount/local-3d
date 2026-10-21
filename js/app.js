@@ -26,7 +26,7 @@
       it.short ? { short: it.short } : null, it.dims ? { dims: it.dims } : null, it.ubic ? { ubic: it.ubic } : null, it.cant ? { cant: it.cant } : null);
   }
   /* proceso industrial de cada material (data.js, procesos) */
-  const PROC_OF = { blanca15: ['aglomerado', 'melamina'], rovere15: ['aglomerado', 'melamina'], fondo6: ['aglomerado', 'melamina'], mdf15: ['mdf'], mdf55: ['mdf'], canto: ['canto'], cantoRovere: ['canto'], tubo1: ['tubo'], tubo15: ['tubo'], tuboRect: ['tubo'], perforada: ['tubo'], vidrio6: ['vidrio'], vidrio10: ['vidrio'], perfil3030: ['aluminio'], perfilLed: ['aluminio', 'led'], perfilManija: ['aluminio'], acril3: ['acrilico'], opal3: ['acrilico'], cob: ['led'] };
+  const PROC_OF = { blanca15: ['aglomerado', 'melamina'], blanca15v: ['aglomerado', 'melamina'], cantoRovere33: ['canto'], rovere15: ['aglomerado', 'melamina'], fondo6: ['aglomerado', 'melamina'], mdf15: ['mdf'], mdf55: ['mdf'], canto: ['canto'], cantoRovere: ['canto'], tubo1: ['tubo'], tubo15: ['tubo'], tuboRect: ['tubo'], perforada: ['tubo'], vidrio6: ['vidrio'], vidrio10: ['vidrio'], perfil3030: ['aluminio'], perfilLed: ['aluminio', 'led'], perfilManija: ['aluminio'], acril3: ['acrilico'], opal3: ['acrilico'], cob: ['led'] };
   const MT = () => VS.montaje[S.ver] || DATA.montaje;
   const ITEMS = () => DATA.items.map((d) => byN[d.n]);
   const NEXT = (n, k) => { const i = DATA.items.findIndex((x) => x.n === n); return byN[DATA.items[(i + k + DATA.items.length) % DATA.items.length].n]; };
