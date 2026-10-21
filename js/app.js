@@ -26,7 +26,7 @@
       it.short ? { short: it.short } : null, it.dims ? { dims: it.dims } : null, it.ubic ? { ubic: it.ubic } : null, it.cant ? { cant: it.cant } : null);
   }
   /* proceso industrial de cada material (data.js, procesos) */
-  const PROC_OF = { blanca15: ['aglomerado', 'melamina'], rovere15: ['aglomerado', 'melamina'], fondo6: ['aglomerado', 'melamina'], mdf15: ['mdf'], mdf55: ['mdf'], canto: ['canto'], cantoRovere: ['canto'], tubo1: ['tubo'], tubo15: ['tubo'], tuboRect: ['tubo'], perforada: ['tubo'], vidrio6: ['vidrio'], vidrio10: ['vidrio'], perfil3030: ['aluminio'], perfilLed: ['aluminio', 'led'], perfilManija: ['aluminio'], acril3: ['acrilico'], opal3: ['acrilico'], cob: ['led'] };
+  const PROC_OF = { blanca15: ['aglomerado', 'melamina'], blanca15v: ['aglomerado', 'melamina'], cantoRovere33: ['canto'], rovere15: ['aglomerado', 'melamina'], fondo6: ['aglomerado', 'melamina'], mdf15: ['mdf'], mdf55: ['mdf'], canto: ['canto'], cantoRovere: ['canto'], tubo1: ['tubo'], tubo15: ['tubo'], tuboRect: ['tubo'], perforada: ['tubo'], vidrio6: ['vidrio'], vidrio10: ['vidrio'], perfil3030: ['aluminio'], perfilLed: ['aluminio', 'led'], perfilManija: ['aluminio'], acril3: ['acrilico'], opal3: ['acrilico'], cob: ['led'] };
   const MT = () => VS.montaje[S.ver] || DATA.montaje;
   const ITEMS = () => DATA.items.map((d) => byN[d.n]);
   const NEXT = (n, k) => { const i = DATA.items.findIndex((x) => x.n === n); return byN[DATA.items[(i + k + DATA.items.length) % DATA.items.length].n]; };
@@ -168,6 +168,7 @@
   }
   /* deja el mueble armado y la escena completa */
   function resetItem(it) {
+    if (L.armado) L.armado.stop();
     S.gen++; stopTweens();
     it.insts.forEach((o) => {
       o.group.position.copy(o.home);
@@ -233,12 +234,16 @@
     $('#act-explode').setAttribute('aria-pressed', 'false'); $('#act-explode span').textContent = 'Explosionar';
     buildDots(seq.length);
     focus(it, S.inst, true, 1.0);
+    const AR = L.armado;
+    if (AR && AR.available() && AR.play(it, S.inst, from || 0, byN[it.n])) { S.step = from || 0; updateStepper(); syncPanelState(); syncLabels(); return; }
     asmStep(from || 0, true);
     syncPanelState(); syncLabels();
   }
   function asmStep(k, anim) {
     const it = S.sel, seq = byN[it.n].seq, gen = ++S.gen;
     stopTweens();
+    const AR = L.armado;
+    if (AR && AR.state.on) { k = E.clamp(k, 0, seq.length - 1); S.step = k; AR.goto(k, anim); updateStepper(); return; }
     k = E.clamp(k, 0, seq.length - 1); S.step = k;
     const A = it.asm;
     let total = 0;
@@ -288,6 +293,7 @@
   }
   function exitAsm(quiet) {
     const it = S.sel; if (!it) return;
+    if (L.armado) L.armado.stop();
     S.gen++; stopTweens(); S.done = false; S.moving = -1;
     it.insts.forEach((o) => { o.group.position.copy(o.home); o.parts.forEach((p) => { p.visible = true; p.position.copy(p.userData.home); }); });
     S.mode = 'solid'; S.playing = false; S.step = -1;
@@ -533,7 +539,7 @@
       '<div class="total-row"><span>Total ' + (fab ? 'de materiales' : '') + '</span><b class="mono">' + cop(d.total) + '</b></div>';
     sec.fab = '<p class="note">En el taller, antes de llevar las piezas al local.</p><ol class="steps">' + d.fab.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ol>';
     sec.ens =
-      (canAnim ? '<div class="seq-box"><div class="seq-h"><h3>Animación de armado</h3><button type="button" class="btn btn-led js-play">Ver armado paso a paso</button></div><ol class="seq">' + d.seq.map((s, i) => '<li><button type="button" data-k="' + i + '"><span>' + esc(s.t) + '</span><small>' + esc(s.src) + '</small></button></li>').join('') + '</ol></div>' : '') +
+      (canAnim ? '<div class="seq-box"><div class="seq-h"><h3>Animación de armado</h3><button type="button" class="btn btn-led js-play">Ver armado paso a paso</button></div>' + (L.armado && L.armado.available() ? '<p class="seq-lead">Un ebanista arma el mueble pieza por pieza: suelda cada unión de tubo, atornilla los tableros, encola y prensa las capas, ancla al muro, asienta el vidrio y conecta la luz. Cada operación muestra su tiempo estimado en planta (Nota 2).</p>' : '') + '<ol class="seq">' + d.seq.map((s, i) => '<li><button type="button" data-k="' + i + '"><span>' + esc(s.t) + '</span><small>' + esc(s.src) + '</small></button></li>').join('') + '</ol></div>' : '') +
       '<h3>' + (fab ? 'Ensamble en el local' : 'Instalación') + '</h3><ol class="steps">' + d.ens.map((s) => '<li>' + esc(s) + '</li>').join('') + '</ol>';
     sec.why = '<ul class="why">' + d.why.map((w) => '<li><h4>' + esc(w.t) + '</h4><p>' + esc(w.d) + '</p></li>').join('') + '</ul>';
     if (VS.req[d.n]) sec.req = reqPanel(d.n);
@@ -1183,10 +1189,17 @@
     $('#st-prev').addEventListener('click', () => { S.playing = false; S.done = false; asmStep(S.step - 1, false); });
     $('#st-next').addEventListener('click', () => { S.playing = false; S.done = false; asmStep(S.step + 1, true); });
     $('#st-play').addEventListener('click', () => {
-      if (S.playing) { S.playing = false; updateStepper(); return; }
-      const seq = byN[S.sel.n].seq; S.playing = true; S.done = false;
+      const AR = L.armado;
+      if (S.playing) { S.playing = false; if (AR && AR.state.on) AR.pause(); updateStepper(); return; }
+      const seq = byN[S.sel.n].seq; S.done = false;
+      if (AR && AR.state.on && AR.state.paused) { S.playing = true; AR.resume(); updateStepper(); return; }
+      S.playing = true;
       asmStep(S.step >= seq.length - 1 ? 0 : S.step + 1, true);
     });
+    $('#st-speed').addEventListener('click', (e) => { const b = e.target.closest('[data-speed]'); if (!b) return; $$('#st-speed [data-speed]').forEach((x) => x.classList.toggle('is-on', x === b)); if (L.armado) L.armado.setSpeed(+b.dataset.speed); });
+    $('#st-sound').addEventListener('click', () => { const on = $('#st-sound').getAttribute('aria-pressed') !== 'true'; $('#st-sound').setAttribute('aria-pressed', on ? 'true' : 'false'); if (L.armado) L.armado.setSound(on); });
+    $('#st-cam').addEventListener('click', () => { const on = $('#st-cam').getAttribute('aria-pressed') !== 'true'; $('#st-cam').setAttribute('aria-pressed', on ? 'true' : 'false'); if (L.armado) L.armado.setFollow(on); });
+    if (L.armado) { L.armado.init({ state: S, focus, showDecor, ghostOthers, updateStepper, refreshEdges, afterFinish: () => { if (S.mode === 'asm') exitAsm(); } }); if (L.armado.state.sound) $('#st-sound').setAttribute('aria-pressed', 'true'); }
     $('#st-dots').addEventListener('click', (e) => { const d = e.target.closest('.dot'); if (d) { S.playing = false; S.done = false; asmStep(+d.dataset.k, true); } });
     $('#st-exit').addEventListener('click', () => exitAsm());
     $('#z-in').addEventListener('click', () => E.zoomBy(0.78));
@@ -1233,7 +1246,7 @@
     });
     E.onClick = onClick; E.onHover = onHover; E.afterRender = updateLabels;
     E.onResize = () => { layout(); };
-    E.onUserMove = () => { $('#tip').hidden = true; if (S.view) { S.view = null; $$('#views button').forEach((b) => b.classList.remove('is-on')); } };
+    E.onUserMove = () => { $('#tip').hidden = true; if (L.armado && L.armado.state.on && L.armado.state.follow) { L.armado.setFollow(false); $('#st-cam').setAttribute('aria-pressed', 'false'); } if (S.view) { S.view = null; $$('#views button').forEach((b) => b.classList.remove('is-on')); } };
   }
 
   /* -------------------------------------------------------------------- inicio */

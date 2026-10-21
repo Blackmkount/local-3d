@@ -17,7 +17,7 @@
   const base = {}; DATA.items.forEach((i) => { base[i.n] = i; });
   const VER = ['A', 'B', 'C'];
   const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
-  const ST = { open: false, sec: 'A', ver: 'A', n: 2, from: null, nota: 1, secs: { 1: 'A', 2: 'J' } };
+  const ST = { open: false, sec: 'A', ver: 'A', n: 2, from: null, nota: 1, secs: { 1: 'A', 2: 'J', 3: 'P' } };
   /* otras notas (nota2.js…) se registran aquí: { titulo, sub, secs, render(id), click(e) } */
   const MODS = (L.notaMods = L.notaMods || {});
 
@@ -47,7 +47,7 @@
 
   /* ------------------------------------------------ D · matriz de selección */
   const OFICIO = {
-    rovere15: 'Carpintería de tablero', blanca15: 'Carpintería de tablero', fondo6: 'Carpintería de tablero', mdf15: 'Carpintería de tablero', mdf55: 'Carpintería de tablero', hpl: 'Carpintería de tablero', canto: 'Carpintería de tablero', cantoRovere: 'Carpintería de tablero', contacto: 'Carpintería de tablero', pegante: 'Carpintería de tablero',
+    rovere15: 'Carpintería de tablero', blanca15: 'Carpintería de tablero', blanca15v: 'Carpintería de tablero', cantoRovere33: 'Carpintería de tablero', fondo6: 'Carpintería de tablero', mdf15: 'Carpintería de tablero', mdf55: 'Carpintería de tablero', hpl: 'Carpintería de tablero', canto: 'Carpintería de tablero', cantoRovere: 'Carpintería de tablero', contacto: 'Carpintería de tablero', pegante: 'Carpintería de tablero',
     perforada: 'Metalmecánica', tubo1: 'Metalmecánica', tubo15: 'Metalmecánica', tuboRect: 'Metalmecánica', anticorr: 'Pintura', laca: 'Lacado',
     perfil3030: 'Ensamble de perfilería', pvc10: 'Corte de plásticos', pvc5: 'Corte de plásticos', acril3: 'Corte de plásticos', opal3: 'Corte de plásticos',
     vidrio10: 'Vidriería', vidrio6: 'Vidriería', petg: 'Impresión 3D', perfilLed: 'Instalación eléctrica', cob: 'Instalación eléctrica'
@@ -190,7 +190,7 @@
   function secF() {
     const it = VS.items[ST.ver][ST.n], P = VS.precios, I = itemOf(ST.ver, ST.n);
     const esp = (p) => { const m = /(\d+(?:\.\d+)?) mm/.exec(p.m); return m ? m[1] : (p.m.match(/calibre \d+/) || [''])[0]; };
-    const ORIG = { rovere15: 'Se fabrica · corte y enchape encargados al proveedor', blanca15: 'Se fabrica · corte y enchape encargados al proveedor', fondo6: 'Se fabrica · corte encargado al proveedor', mdf15: 'Se fabrica · corte encargado; se laca o enchapa en el taller', mdf55: 'Se fabrica · corte encargado; se curva y laca en el taller',
+    const ORIG = { rovere15: 'Se fabrica · corte y enchape encargados al proveedor', blanca15: 'Se fabrica · corte y enchape encargados al proveedor', blanca15v: 'Se fabrica · capa de abajo de la tapa de 30 mm', fondo6: 'Se fabrica · corte encargado al proveedor', mdf15: 'Se fabrica · corte encargado; se laca o enchapa en el taller', mdf55: 'Se fabrica · corte encargado; se curva y laca en el taller',
       hpl: 'Se compra · se corta y se pega en el taller', pvc10: 'Se fabrica · corte CNC encargado', pvc5: 'Se fabrica · corte CNC encargado', acril3: 'Se fabrica · corte láser encargado', opal3: 'Se fabrica · corte láser encargado', perforada: 'Se fabrica · corte y doblez en el taller',
       tubo1: 'Se fabrica · corte, soldadura y pintura en el taller', tubo15: 'Se fabrica · corte, soldadura y pintura en el taller', tuboRect: 'Se fabrica · corte, soldadura y pintura en el taller', perfil3030: 'Se compra cortado a medida', perfilLed: 'Se compra · se corta en el taller', cob: 'Se compra · se corta en el taller', vidrio10: 'Se encarga a la vidriería (templado a medida)', vidrio6: 'Se encarga a la vidriería (templado a medida)', petg: 'Se fabrica · impresión 3D en el taller' };
     const origen = (k) => ORIG[k] || ({ lamina: 'Se fabrica', barra: 'Se fabrica · corte en el taller', m: 'Se compra y se corta', m2: 'Se encarga', kg: 'Se fabrica' }[P[k].tipo]);
@@ -404,7 +404,7 @@
     el.id = 'nota'; el.hidden = true; el.setAttribute('aria-label', 'Nota 1 · Diseño del mobiliario');
     el.innerHTML = '<header class="pl-bar n1-bar"><button type="button" class="btn" id="n1-back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver al 3D</button>' +
       '<div class="pl-title"><b id="n1-tt">Nota 1 · Diseño del mobiliario</b><span id="n1-st"></span></div>' +
-      '<div class="seg seg-sm n1-pv n1-notas" id="n1-notas" role="radiogroup" aria-label="Nota">' + [[1, 'Nota 1 · Diseño'], [2, 'Nota 2 · Producción']].map((x) => '<button type="button" role="radio" data-nota="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
+      '<div class="seg seg-sm n1-pv n1-notas" id="n1-notas" role="radiogroup" aria-label="Nota">' + [[1, 'Nota 1 · Diseño'], [2, 'Nota 2 · Producción'], [3, 'Nota 3 · Costos']].filter((x) => x[0] === 1 || MODS[x[0]]).map((x) => '<button type="button" role="radio" data-nota="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' +
       '<div class="pl-tools"' + (inFrame ? ' hidden' : '') + '><button type="button" class="btn" id="n1-print"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 7.5V3.5h8v4M6 13.5H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5h12A1.5 1.5 0 0 1 17.5 9v3a1.5 1.5 0 0 1-1.5 1.5h-2M6 11h8v5.5H6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Imprimir sección</button></div></header>' +
       '<div class="n1-wrap"><nav id="n1-nav" aria-label="Elementos de la nota"></nav>' +
       '<div id="n1-body" tabindex="-1"></div></div>' +
@@ -467,7 +467,7 @@
   }, true);
   function init() {
     const b = $('#btn-nota'); if (b) b.addEventListener('click', () => open());
-    const m = /^#nota([12])(?:-([a-z0-9]+))?$/i.exec(location.hash || '');
+    const m = /^#nota([123])(?:-([a-z0-9]+))?$/i.exec(location.hash || '');
     if (m) { const go = () => (document.querySelector('#app.is-ready') ? open(m[2] ? m[2].toUpperCase() : null, +m[1]) : setTimeout(go, 200)); go(); }
   }
   L.n1 = { open, close, matrix, state: ST, render, h: { esc, cop, f1, vtag, tipoTag, stIcon, pickN, pickV, itemOf, vinfo, ROLE, FABN, base, ST_TXT, TIPO, inFrame } };

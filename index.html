@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Jost:wght@300;400;600&display=swap">
 <meta name="theme-color" content="#1c1c1e">
-<link rel="stylesheet" href="css/styles.css?v=20261017-2">
+<link rel="stylesheet" href="css/styles.css?v=20261020-3">
 </head>
 <body>
 <div id="app" class="is-loading">
@@ -44,7 +44,7 @@
       <button type="button" id="btn-budget" class="tb" title="Presupuesto"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 16V9M10 16V4.5M15.5 16v-5.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg><span data-s="Costos">Presupuesto</span></button>
       <button type="button" id="btn-vers" class="tb" title="Comparar las tres versiones"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="5" width="4.4" height="10" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.8" y="5" width="4.4" height="10" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="13.1" y="5" width="4.4" height="10" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span data-s="Versiones">Versiones</span></button>
       <button type="button" id="btn-req" class="tb" title="Requisitos de diseño"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 5.5h8M8.5 10h8M8.5 14.5h8M3.2 5.6l1.2 1.1 2-2.2M3.2 10.1l1.2 1.1 2-2.2M3.2 14.6l1.2 1.1 2-2.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-s="Requisitos">Requisitos</span></button>
-      <button type="button" id="btn-nota" class="tb" title="Notas del curso: Nota 1 · Diseño del mobiliario y Nota 2 · Sistema de producción"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 2.8h6.2l3.8 3.8v10.6H5.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M11.5 3v3.8h3.8M8 10.2h5M8 13.2h5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-s="Notas">Notas</span></button>
+      <button type="button" id="btn-nota" class="tb" title="Notas del curso: Nota 1 · Diseño del mobiliario, Nota 2 · Sistema de producción y Nota 3 · Proveedores y costos"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 2.8h6.2l3.8 3.8v10.6H5.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M11.5 3v3.8h3.8M8 10.2h5M8 13.2h5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-s="Notas">Notas</span></button>
       <button type="button" id="btn-mats" class="tb" title="Materiales"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3 17 7l-7 4-7-4zM3 10.5l7 4 7-4M3 14l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><span>Materiales</span></button>
       <button type="button" id="btn-labels" class="tb" aria-pressed="false" title="Números del plano"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17.4s-5.2-4.6-5.2-8.6a5.2 5.2 0 1 1 10.4 0c0 4-5.2 8.6-5.2 8.6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.1 7.1 10.4 6.4v4.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Números</span></button>
     </div>
@@ -79,11 +79,13 @@
     </div>
     <div id="stepper" class="pane" hidden>
       <div class="st-cap"><span class="st-n" id="st-n"></span><span class="st-t" id="st-t"></span><span class="st-src" id="st-src"></span></div>
+      <div class="st-op" id="st-op" hidden><i class="st-ico" id="st-ico"></i><span class="st-opt" id="st-opt"></span><b class="st-cnt" id="st-cnt"></b><small class="st-min" id="st-min"></small><div class="st-bar"><i id="st-barf"></i></div></div>
       <div class="st-row">
         <button type="button" id="st-prev" class="ibtn" aria-label="Paso anterior"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button type="button" id="st-play" class="ibtn ibtn-led" aria-label="Pausar"></button>
         <button type="button" id="st-next" class="ibtn" aria-label="Paso siguiente"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="st-dots" id="st-dots"></div>
+        <div class="st-tools"><div class="st-speed" id="st-speed" role="group" aria-label="Velocidad"><button type="button" data-speed="1" class="is-on">1×</button><button type="button" data-speed="2">2×</button><button type="button" data-speed="4">4×</button></div><button type="button" id="st-cam" class="ibtn" aria-pressed="true" title="La cámara sigue al operario"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6.5h9a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H3zM13 9l4-2v6l-4-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button><button type="button" id="st-sound" class="ibtn" aria-pressed="false" title="Sonido de las herramientas"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3zM13 7.5a3.5 3.5 0 0 1 0 5M15 5a7 7 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
         <button type="button" id="st-exit" class="btn">Terminar</button>
       </div>
     </div>
@@ -157,28 +159,32 @@
   </div>
 </div>
 
-<script src="js/brand.js?v=20261017-2"></script>
+<script src="js/brand.js?v=20261020-3"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="js/data.js?v=20261017-2"></script>
-<script src="js/versions.js?v=20261017-2"></script>
-<script src="js/engine.js?v=20261017-2"></script>
-<script src="js/geo.js?v=20261017-2"></script>
-<script src="js/room.js?v=20261017-2"></script>
-<script src="js/furniture.js?v=20261017-2"></script>
-<script src="js/furniture-alt.js?v=20261017-2"></script>
-<script src="js/furniture-ab.js?v=20261017-2"></script>
-<script src="js/export.js?v=20261017-2"></script>
-<script src="js/ui.js?v=20261017-2"></script>
-<script src="js/plan.js?v=20261017-2"></script>
-<script src="js/app.js?v=20261017-2"></script>
-<script src="js/nota1-data.js?v=20261017-2"></script>
-<script src="js/dwg.js?v=20261017-2"></script>
-<script src="js/uniones.js?v=20261017-2"></script>
-<script src="js/nota1.js?v=20261017-2"></script>
-<script src="js/corte.js?v=20261017-2"></script>
-<script src="js/proceso.js?v=20261017-2"></script>
-<script src="js/nota2-data.js?v=20261017-2"></script>
-<script src="js/planta.js?v=20261017-2"></script>
-<script src="js/nota2.js?v=20261017-2"></script>
+<script src="js/data.js?v=20261020-3"></script>
+<script src="js/versions.js?v=20261020-3"></script>
+<script src="js/engine.js?v=20261020-3"></script>
+<script src="js/geo.js?v=20261020-3"></script>
+<script src="js/room.js?v=20261020-3"></script>
+<script src="js/furniture.js?v=20261020-3"></script>
+<script src="js/furniture-alt.js?v=20261020-3"></script>
+<script src="js/armado.js?v=20261020-3"></script>
+<script src="js/furniture-ab.js?v=20261020-3"></script>
+<script src="js/export.js?v=20261020-3"></script>
+<script src="js/ui.js?v=20261020-3"></script>
+<script src="js/plan.js?v=20261020-3"></script>
+<script src="js/app.js?v=20261020-3"></script>
+<script src="js/nota1-data.js?v=20261020-3"></script>
+<script src="js/dwg.js?v=20261020-3"></script>
+<script src="js/uniones.js?v=20261020-3"></script>
+<script src="js/nota1.js?v=20261020-3"></script>
+<script src="js/corte.js?v=20261020-3"></script>
+<script src="js/proceso.js?v=20261020-3"></script>
+<script src="js/nota2-data.js?v=20261020-3"></script>
+<script src="js/planta.js?v=20261020-3"></script>
+<script src="js/nota2.js?v=20261020-3"></script>
+<script src="js/nota3-data.js?v=20261020-3"></script>
+<script src="js/costos.js?v=20261020-3"></script>
+<script src="js/nota3.js?v=20261020-3"></script>
 </body>
 </html>
