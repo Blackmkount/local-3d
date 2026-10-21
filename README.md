@@ -129,6 +129,14 @@ atornilla, una capa sobre otra se encola). Los textos de ensamble del despiece a
 su tiempo estimado en planta con los datos tipo de la Nota 2. El control de la animación tiene velocidad (1×, 2×, 4×),
 cámara que sigue al operario (se suelta al arrastrar) y sonido de las herramientas, sintetizado en el navegador.
 
+El operario viste camisa de manga larga y overol de peto (tirantes con hebilla, bolsillo con lápiz, rodilleras, porta-
+herramientas en la cadera), guantes de carnaza, botas de seguridad, gorra y gafas claras; baja la máscara para soldar y se
+pone el respirador para lacar. Los brazos se resuelven por cinemática inversa de dos huesos con el codo colgando hacia
+abajo y atrás (si una mano cruza el cuerpo, el codo se pega al costado). Para moverse no atraviesa nada: los muebles del
+local, los equipos del taller y los pilares de la fachada son obstáculos en planta, y la ruta entre un punto de trabajo y
+otro se calcula con A* sobre una trama de 10 cm y se tensa para que camine en tramos rectos. Se para siempre por fuera del
+mueble, en la cara más cercana al punto (frente, costados o fondo si no hay muro), a la distancia de la herramienta.
+
 ## Fachada
 
 Fascia y pilares en panel de aluminio compuesto negro satinado, con juntas alineadas a los pilares. El logotipo de
