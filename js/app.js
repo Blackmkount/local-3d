@@ -168,6 +168,7 @@
   }
   /* deja el mueble armado y la escena completa */
   function resetItem(it) {
+    if (L.armado) L.armado.stop();
     S.gen++; stopTweens();
     it.insts.forEach((o) => {
       o.group.position.copy(o.home);

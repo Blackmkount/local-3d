@@ -555,6 +555,8 @@
   const toWorld = (o, p) => o.group.localToWorld(p.clone());
   const toWorldDir = (o, d) => d.clone().applyAxisAngle(UP, o.group.rotation.y);
   /* dónde pararse para alcanzar un punto: frente al mueble, a 0.42 m; en el taburete si queda alto */
+  /* dentro del local, sin atravesar muros */
+  function inRoom(p, m) { const FR = E.floorRect; m = m || 0.3; p.x = clamp(p.x, FR[0] + m, FR[2] - m); p.z = clamp(p.z, FR[1] + m, FR[3] + 2.2); return p; }
   function localBox(o) { if (!o._lbox) { o._lbox = new T.Box3(); o.parts.forEach((p) => o._lbox.union(boxOf(p))); } return o._lbox; }
   function standFor(o, pts, toolName) {
     const c = new T.Vector3(); pts.forEach((q) => c.add(o.group.worldToLocal(q.w.clone()))); c.multiplyScalar(1 / pts.length);
@@ -564,7 +566,7 @@
     // se para delante del mueble (nunca dentro): a dist del frente del punto o de la cara frontal, lo que quede más afuera
     const z = Math.max(c.z + dist, (maxY > 1.0 ? lb.max.z : Math.min(lb.max.z, c.z + 0.25)) + dist);
     // un poco a la izquierda del punto (la cámara mira desde la derecha) y de cara al trabajo
-    const pos = o.group.localToWorld(V3(clamp(c.x + 0.3, lb.min.x - 0.3, lb.max.x + 0.5), 0, z)); pos.y = 0;
+    const pos = inRoom(o.group.localToWorld(V3(clamp(c.x + 0.3, lb.min.x - 0.3, lb.max.x + 0.5), 0, z))); pos.y = 0;
     const target = o.group.localToWorld(c.clone()), face = Math.atan2(target.x - pos.x, target.z - pos.z);
     return { pos, face, stool, crouch: minY < 0.72 ? clamp((0.9 - minY) / 0.6, 0, 1) : 0 };
   }
@@ -618,34 +620,29 @@
   async function idle(dur) { const w = AR.worker(); release('L'); release('R'); w.look = null; await wait(dur || 0.3, () => pose()); }
 
   /* ------------------------------------------------------------ cámara */
-  /* cámara: elige, entre varias posiciones alrededor del punto de trabajo, la que deja ver el punto y al
-     operario sin que uno tape al otro, de frente al operario, dentro del local y a una distancia que depende
-     del tamaño del mueble */
+  /* cámara por encima del hombro del operario (como en un videojuego en tercera persona): detrás y a un lado
+     de él, un poco más alta que su cabeza, mirando al punto de trabajo. Se elige el lado que quede más lejos de
+     los muros y fuera del mueble. Con los paneles abiertos se ve menos pantalla: se aleja un poco más. */
   function camOp(o, pts, st) {
     if (!S.follow || E.reduced) return;
     const c = new T.Vector3(); pts.forEach((q) => c.add(q.w)); c.multiplyScalar(1 / pts.length);
     let spread = 0; pts.forEach((q) => { spread = Math.max(spread, q.w.distanceTo(c)); });
-    const f = frontDir(o);
-    const R = clamp((o.radius || 1) * 1.0 + 1.4 + spread * 0.6, 2.0, 4.6);
-    const tgt = c.clone().lerp(o.center || c, 0.3); tgt.y = clamp(tgt.y + 0.1 + st.stool * 0.3, 0.75, 2.0);
-    const el = clamp(0.42 - (tgt.y - 1.1) * 0.22, 0.08, 0.5);
-    const wk = st.pos.clone().setY(1.2), face = V3(Math.sin(st.face), 0, Math.cos(st.face));
-    const FR = E.floorRect;
+    const us = E.usable ? E.usable() : { w: E.size.w, h: E.size.h }, kFit = clamp(E.size.w / Math.max(120, us.w), 1, 2.1) * 0.8;
+    const face = V3(Math.sin(st.face), 0, Math.cos(st.face)), back = face.clone().negate(), lat = V3(face.z, 0, -face.x);
+    const wk = st.pos.clone(), dist = (1.45 + spread * 0.8) * Math.max(1, kFit), FR = E.floorRect;
+    const box = o.box ? o.box.clone().expandByScalar(0.25) : null;
     let best = null;
-    [-1.25, -0.95, -0.6, 0.6, 0.95, 1.25].forEach((ang) => {
-      const dir = f.clone().applyAxisAngle(UP, ang);
-      const P = tgt.clone().addScaledVector(dir, R * Math.cos(el)); P.y = tgt.y + R * Math.sin(el);
-      P.x = clamp(P.x, FR[0] + 0.4, FR[2] - 0.4); P.z = clamp(P.z, FR[1] + 0.4, FR[3] + 2.5); P.y = Math.min(P.y, 2.7);
-      const v1 = wk.clone().sub(P), v2 = c.clone().sub(P);
-      const sep = v1.angleTo(v2);                                         // separación angular entre operario y punto
-      const front = face.dot(P.clone().sub(wk).setY(0).normalize());     // > 0: la cámara ve la cara del operario
-      let score = -Math.abs(sep - 0.32) * 3 + front * 1.2;
-      if (sep < 0.14 && v1.length() < v2.length()) score -= 3;            // el operario taparía el punto
-      if (P.distanceTo(tgt) < R * 0.6) score -= 1.5;                       // quedó pegada a un muro
-      if (!best || score > best.score) best = { P, score };
+    [1, -1].forEach((sg) => {
+      const P = wk.clone().addScaledVector(back, dist).addScaledVector(lat, sg * (1.5 + spread * 0.3) * Math.max(1, kFit * 0.9)); P.y = 1.65 + st.stool + Math.max(0, c.y - 1.4) * 0.5;
+      const raw = P.clone(); inRoom(P, 0.3);
+      let score = Math.min(P.x - FR[0], FR[2] - P.x, P.z - FR[1]) - P.distanceTo(raw) * 2;
+      if (box && box.containsPoint(P)) score -= 5;
+      if (!best || score > best.score) best = { P, score, sg };
     });
-    const P = best.P, d = P.clone().sub(tgt), r = Math.max(1.6, d.length());
+    const tgt = c.clone().lerp(wk.clone().setY(c.y), 0.12); tgt.y = clamp(c.y + 0.05, 0.5, 2.1);
+    const P = best.P, d = P.clone().sub(tgt), r = Math.max(1.4, d.length());
     const th = Math.atan2(d.x, d.z), ph = Math.acos(clamp(d.y / r, -1, 1));
+    AR._lastCam = best;
     E.flyTo({ target: tgt, theta: th, phi: clamp(ph, 0.5, 1.45), radius: r }, 1.1 / S.speed, { ease: E.ease.inOut });
   }
   function camWhole(dur) { if (!S.follow || E.reduced) return; H.focus(S.it, S.inst, true, dur || 1.1); }
@@ -744,7 +741,7 @@
     const w = AR.worker(); fxInit();
     const pts = worldPts(o, act.pts), st0 = standFor(o, pts);
     const f = frontDir(o), side = V3(-f.z, 0, f.x);
-    const mach = showProp('soldadora', st0.pos.clone().addScaledVector(side, 0.95).addScaledVector(f, 0.35), st0.face);
+    const mach = showProp('soldadora', inRoom(st0.pos.clone().addScaledVector(side, 0.95).addScaledVector(f, 0.35), 0.4), st0.face);
     if (!w.maskDown) { await wait(0.35, (k) => { w.mask.visible = true; w.mask.rotation.x = lerp(-Math.PI * 0.62, 0, E.ease.inOut(k)); pose(); }); w.maskDown = true; }
     await perPoint(o, act, 'soldador', 'soldar', async (q) => {
       const tilt = q.wn.clone().multiplyScalar(0.55).add(V3(0, 0.6, 0)).normalize();        // el electrodo entra inclinado
@@ -942,7 +939,7 @@
   /* --- revisión final: el operario se aparta, mide y aprueba */
   async function revisar(o) {
     const w = AR.worker(), bb = o.box || new T.Box3().setFromObject(o.group), c = bb.getCenter(new T.Vector3()), s = bb.getSize(new T.Vector3());
-    const f = frontDir(o), pos = c.clone().addScaledVector(f, Math.max(1.0, s.length() * 0.45)); pos.y = 0;
+    const f = frontDir(o), pos = inRoom(c.clone().addScaledVector(f, Math.max(1.0, s.length() * 0.45))); pos.y = 0;
     setOp('revisar', 'Revisando escuadra, nivel y acabado', 0, 1, L.nota2 && L.nota2.tiempos.inspFinal ? L.nota2.tiempos.inspFinal.min : 20);
     equip('cinta'); equip(null, true);
     await moveTo({ pos, face: Math.atan2(-f.x, -f.z), stool: 0, crouch: 0 });
@@ -1019,9 +1016,9 @@
     const w = AR.worker(); w.root.visible = true;
     // el operario empieza frente al mueble, a la derecha, junto a su carro de herramientas
     const f = frontDir(inst), side = V3(-f.z, 0, f.x), c = inst.box ? inst.box.getCenter(new T.Vector3()) : inst.home.clone();
-    w.root.position.copy(c).addScaledVector(f, 1.3).addScaledVector(side, -0.9); w.root.position.y = 0; w.facing = Math.atan2(-f.x, -f.z); w.root.rotation.y = w.facing; w.crouch = 0; w.stool = 0; w.walking = false; w.look = null; w.maskDown = false; w.mask.visible = false;
+    w.root.position.copy(c).addScaledVector(f, 1.3).addScaledVector(side, -0.9); inRoom(w.root.position); w.root.position.y = 0; w.facing = Math.atan2(-f.x, -f.z); w.root.rotation.y = w.facing; w.crouch = 0; w.stool = 0; w.walking = false; w.look = null; w.maskDown = false; w.mask.visible = false;
     release('L'); release('R'); equip(null); equip(null, true); pose();
-    showProp('carro', c.clone().addScaledVector(f, 1.55).addScaledVector(side, -1.55).setY(0), w.facing + Math.PI / 2);
+    showProp('carro', inRoom(c.clone().addScaledVector(f, 1.55).addScaledVector(side, -1.55).setY(0), 0.45), w.facing + Math.PI / 2);
     const gen = ++S.gen;
     const stepper = $('#st-op'); if (stepper) stepper.hidden = false;
     runStep(from || 0).catch((e) => { if (e !== ABORT) console.error(e); });
