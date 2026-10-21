@@ -137,6 +137,38 @@ local, los equipos del taller y los pilares de la fachada son obstáculos en pla
 otro se calcula con A* sobre una trama de 10 cm y se tensa para que camine en tramos rectos. Se para siempre por fuera del
 mueble, en la cara más cercana al punto (frente, costados o fondo si no hay muro), a la distancia de la herramienta.
 
+## Gente en el local
+
+El local tiene vida en las tres versiones (botón **Gente** de la barra superior; también en la búsqueda, «Gente en el
+local»). Está encendido por omisión en computador y apagado en celulares y con «reducir movimiento».
+
+- **Clientes** llegan por el pasillo del centro comercial. Algunos solo pasan y se detienen frente a la vitrina o a las
+  pantallas «Entra y crea» de los pilares (a veces les toman foto). Los demás entran, recorren de dos a cuatro muebles
+  (miran, tocan el producto, le toman foto, miran la pantalla de 75"), a veces piden que les expliquen ahí mismo y
+  terminan en la barra: se sientan en un taburete libre y preguntan, o pagan lo que tomaron del exhibidor.
+- **La dependienta** vigila las impresoras (se para frente al mesón por dentro del local, revisa la cama, abre la
+  puerta), ordena la barra y atiende: conversa por turnos con el cliente, le señala un exhibidor o, si trae un
+  producto, lo recibe, lo empaca en una bolsa de papel de BlackForge, cobra con el datáfono (el cliente acerca el
+  celular) y le entrega la bolsa, con la que sale del local.
+- **El diseñador** trabaja en la barra de atención (el taburete de la punta que da hacia la fachada) en un MacBook Pro
+  con el laminador abierto: teclea, piensa con la mano en la barbilla, toma café, mira a quien entra y a veces le
+  comenta algo a la dependienta.
+
+Todo se adapta a la distribución de cada versión: la barra y sus taburetes (cada taburete sabe a qué cara da; en B,
+donde la barra va espalda con espalda con la isla, la dependienta atiende desde la punta), el mesón con las
+impresoras y los exhibidores con producto. Nadie atraviesa muebles ni personas: las rutas se calculan con A* sobre los
+mismos obstáculos del armado, cada paso respeta un espacio personal de 46 cm (alejarse siempre se puede), se predice
+el cruce con quien camina y cede el que llegó después (si hace falta, retrocede por su propia ruta), y quien se levanta
+de un taburete espera a que su salida esté libre. En la prueba final, 12 corridas de 10 minutos simulados (4 por
+versión, 321 clientes en total, unos 14 atendidos y 6 ventas por corrida) no tuvieron ningún choque con muebles ni
+personas a menos de 40 cm.
+
+Las personas comparten el esqueleto del operario (`AR.person` en `js/armado.js`: overol, uniforme del local o ropa
+casual, con variantes de pelo, barba, gafas, morral y bolso) y sus piezas se fusionan por hueso y material (~33 mallas
+por persona). La escena se anima solo mientras se ve: con las Notas, una ventana o el plano 2D encima, o la pestaña
+oculta, todo se congela; durante «Ver armado» y el montaje la gente se retira y vuelve al terminar. Código en
+`js/vida.js`.
+
 ## Fachada
 
 Fascia y pilares en panel de aluminio compuesto negro satinado, con juntas alineadas a los pilares. El logotipo de
