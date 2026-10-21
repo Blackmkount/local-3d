@@ -115,6 +115,20 @@ cuánto se vende (guía, numeral 7).
 Cálculos en `js/costos.js`; datos en `js/nota3-data.js`. La Nota 3 le cambió al mueble las tapas de 30 mm (capa de abajo
 en melamina blanca y canto Rovere de 33 mm), la gola de la cajonera (596 mm) y los perfiles LED del laboratorio (1.49 m).
 
+## Armado con operario
+
+«Ver armado» ya no mueve solo las piezas: un ebanista las arma. Cada pieza llega a sus manos y él la fija como dice el
+despiece: suelda cada punto de contacto entre tubos (baja la máscara, salta la chispa, sube el humo y el cordón se enfría),
+atornilla los tableros con el atornillador, encola en zigzag y prensa las capas de las tapas dobles, perfora y ancla al muro
+con chazos, rosca los niveladores, asienta el vidrio con ventosas, conecta la luz (que enciende con un parpadeo) y al final
+revisa el mueble. Si el punto queda alto se sube a un taburete; la soldadora y el carro de herramientas aparecen a su lado.
+
+Las operaciones salen del propio modelo (`js/armado.js`): cada pieza nueva se compara con las que ya están puestas, donde
+se tocan hay una unión y el tipo de unión lo dan los materiales (acero con acero se suelda, tablero con tablero se
+atornilla, una capa sobre otra se encola). Los textos de ensamble del despiece afinan la decisión, y cada operación muestra
+su tiempo estimado en planta con los datos tipo de la Nota 2. El control de la animación tiene velocidad (1×, 2×, 4×),
+cámara que sigue al operario (se suelta al arrastrar) y sonido de las herramientas, sintetizado en el navegador.
+
 ## Fachada
 
 Fascia y pilares en panel de aluminio compuesto negro satinado, con juntas alineadas a los pilares. El logotipo de

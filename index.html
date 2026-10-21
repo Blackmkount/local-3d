@@ -79,11 +79,13 @@
     </div>
     <div id="stepper" class="pane" hidden>
       <div class="st-cap"><span class="st-n" id="st-n"></span><span class="st-t" id="st-t"></span><span class="st-src" id="st-src"></span></div>
+      <div class="st-op" id="st-op" hidden><i class="st-ico" id="st-ico"></i><span class="st-opt" id="st-opt"></span><b class="st-cnt" id="st-cnt"></b><small class="st-min" id="st-min"></small><div class="st-bar"><i id="st-barf"></i></div></div>
       <div class="st-row">
         <button type="button" id="st-prev" class="ibtn" aria-label="Paso anterior"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button type="button" id="st-play" class="ibtn ibtn-led" aria-label="Pausar"></button>
         <button type="button" id="st-next" class="ibtn" aria-label="Paso siguiente"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <div class="st-dots" id="st-dots"></div>
+        <div class="st-tools"><div class="st-speed" id="st-speed" role="group" aria-label="Velocidad"><button type="button" data-speed="1" class="is-on">1×</button><button type="button" data-speed="2">2×</button><button type="button" data-speed="4">4×</button></div><button type="button" id="st-cam" class="ibtn" aria-pressed="true" title="La cámara sigue al operario"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6.5h9a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H3zM13 9l4-2v6l-4-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button><button type="button" id="st-sound" class="ibtn" aria-pressed="false" title="Sonido de las herramientas"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3zM13 7.5a3.5 3.5 0 0 1 0 5M15 5a7 7 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
         <button type="button" id="st-exit" class="btn">Terminar</button>
       </div>
     </div>
@@ -166,6 +168,7 @@
 <script src="js/room.js?v=20261020-1"></script>
 <script src="js/furniture.js?v=20261020-1"></script>
 <script src="js/furniture-alt.js?v=20261020-1"></script>
+<script src="js/armado.js?v=20261020-2"></script>
 <script src="js/furniture-ab.js?v=20261020-1"></script>
 <script src="js/export.js?v=20261020-1"></script>
 <script src="js/ui.js?v=20261020-1"></script>

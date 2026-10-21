@@ -32,7 +32,7 @@
     if (opt.geo) m.position.set(x, y, z); else m.position.set(x + sx / 2, y + sy / 2, z + sz / 2);
     m.castShadow = !opt.noShadow; m.receiveShadow = !opt.noShadow;
     if (opt.order) m.renderOrder = opt.order;
-    reg(o, m, { part: true, name, mk: opt.mk || mat, step: step || 0, home: m.position.clone(), ex: V(ex || [0, 0, 0]), exA: opt.exA ? V(opt.exA) : null });
+    reg(o, m, { part: true, name, mk: opt.mk || mat, step: step || 0, home: m.position.clone(), ex: V(ex || [0, 0, 0]), exA: opt.exA ? V(opt.exA) : null, pts: opt.pts || null });
     o.parts.push(m);
     return m;
   }
@@ -52,11 +52,11 @@
   const cylM = (x, y, z, r, h, axis) => G.mat(x, y, z, axis === 'z' ? PI / 2 : 0, 0, axis === 'x' ? PI / 2 : 0, r, h, r);
   function patas(o, pts, h, step, ex, opt) {
     const l = pts.map((p) => ({ g: G.cyl(), m: cylM(p[0], h / 2, p[1], 0.022, h), c: 0x18181a }));
-    return PM(o, 'Patas niveladoras', 'plastico', l, step, ex, Object.assign({ mk: 'patas', noShadow: true }, opt));
+    return PM(o, 'Patas niveladoras', 'plastico', l, step, ex, Object.assign({ mk: 'patas', noShadow: true, pts: pts.map((p) => [p[0], 0, p[1]]) }, opt));
   }
   function chazos(o, pts, step, ex, opt) {
     const l = pts.map((p) => ({ g: G.cyl(), m: cylM(p[0], p[1], p[2], 0.009, 0.06, 'z'), c: 0xd0d2d5 }));
-    return PM(o, 'Chazos', 'inox', l, step, ex, Object.assign({ mk: 'anclaje', noShadow: true }, opt));
+    return PM(o, 'Chazos', 'inox', l, step, ex, Object.assign({ mk: 'anclaje', noShadow: true, pts: pts.map((p) => [p[0], p[1], p[2] + 0.03]) }, opt));
   }
   /* tgt: diccionario de una versión alternativa (furniture-alt.js); sin tgt, la versión A */
   function add(n, insts, cfg, tgt) {
