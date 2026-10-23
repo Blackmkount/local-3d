@@ -634,7 +634,38 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
 .pl-zoom { display: inline-flex; align-items: center; height: 32px; border-radius: 9px; background: rgba(0, 0, 0, 0.06); }
 .pl-zv { min-width: 54px; height: 100%; font-size: 12px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
 .pl-zv:hover { background: rgba(0, 0, 0, 0.06); }
-.pl-stage { position: relative; flex: 1; overflow: hidden; touch-action: none; cursor: grab; outline: none; }
+.pl-body { position: relative; flex: 1; display: flex; min-height: 0; }
+.pl-stage { position: relative; flex: 1; min-width: 0; overflow: hidden; touch-action: none; cursor: grab; outline: none; }
+/* barra lateral del juego de planos */
+.pl-nav { display: none; flex: none; width: 272px; overflow-y: auto; padding: 10px 8px 24px; background: rgba(255, 255, 255, 0.72); box-shadow: 0.5px 0 0 rgba(0, 0, 0, 0.12); scrollbar-width: thin; color: #1d1d1f; overscroll-behavior: contain; }
+#plano.is-nav .pl-nav { display: block; }
+.pl-nh { padding: 4px 8px 10px; font-size: 12.5px; font-weight: 600; }
+.pl-nh small { display: block; font-size: 11.5px; font-weight: 400; color: #6e6e73; margin-top: 2px; }
+.pl-g { margin-bottom: 2px; }
+.pl-g0 { padding-bottom: 6px; margin-bottom: 6px; box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.1); }
+.pl-g summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 9px; font-size: 12.5px; font-weight: 600; list-style: none; cursor: pointer; }
+.pl-g summary::-webkit-details-marker { display: none; }
+.pl-g summary:hover { background: rgba(0, 0, 0, 0.05); }
+.pl-g summary .num { background: rgba(0, 0, 0, 0.08); color: #1d1d1f; min-width: 22px; height: 22px; font-size: 11.5px; }
+.pl-g summary span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-g summary i { font-style: normal; font-size: 11px; color: #8e8e93; font-weight: 500; }
+.pl-g[open] summary i::after { content: ' ▾'; } .pl-g:not([open]) summary i::after { content: ' ▸'; }
+.pl-it { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 6px; width: 100%; padding: 5px 8px; border-radius: 8px; text-align: left; font-size: 12.5px; color: #1d1d1f; cursor: pointer; }
+.pl-g:not(.pl-g0) .pl-it { padding-left: 14px; grid-template-columns: 30px minmax(0, 1fr); }
+.pl-it b { font-weight: 600; color: #6e6e73; font-size: 12px; }
+.pl-it small { display: block; font-size: 11px; color: #8e8e93; line-height: 1.3; }
+.pl-it:hover { background: rgba(0, 0, 0, 0.05); }
+.pl-it.is-on { background: #1d1d1f; color: #fff; }
+.pl-it.is-on b, .pl-it.is-on small { color: rgba(255, 255, 255, 0.72); }
+.pl-step { display: inline-flex; align-items: center; height: 32px; border-radius: 9px; background: rgba(0, 0, 0, 0.06); }
+.pl-step .ibtn:disabled { opacity: 0.3; }
+.pl-pos { min-width: 52px; text-align: center; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+#pl-navb[aria-pressed="true"] { background: #1d1d1f; color: #fff; }
+.pl-load { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 22px; color: #6e6e73; }
+.pl-spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(0, 0, 0, 0.12); border-top-color: #1d1d1f; animation: plSpin 0.8s linear infinite; }
+@keyframes plSpin { to { transform: rotate(360deg); } }
+.pl-pset { display: none; }
+.pl-card .plc-f > span { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .pl-stage.is-grab { cursor: grabbing; }
 .pl-sheet { position: absolute; left: 0; top: 0; width: 1260px; height: 891px; transform-origin: 0 0; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 18px 50px -12px rgba(0, 0, 0, 0.28); background: #fff; will-change: transform; }
 .pl-sheet.is-anim { transition: transform 0.45s var(--spring); }
@@ -663,6 +694,12 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
 .is-narrow .pl-tools::-webkit-scrollbar { display: none; }
 .is-narrow .pl-tools .btn { flex: none; }
 .is-narrow .pl-hint { display: none; }
+.is-narrow .pl-nav { position: absolute; left: 0; top: 0; bottom: 0; z-index: 4; width: min(300px, 86vw); background: rgba(255, 255, 255, 0.97); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 12px 0 40px -12px rgba(0, 0, 0, 0.3); }
+.is-narrow #pl-navb span, .is-narrow #pl-back span { display: none; }
+.is-narrow #pl-back, .is-narrow #pl-navb { padding: 0 9px; }
+#plano .is-narrow .pl-title, .is-narrow .pl-bar .pl-title { order: 0; flex: 1; min-width: 0; }
+.is-narrow .pl-title b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.is-narrow .pl-pos { min-width: 44px; }
 .is-narrow .pl-card { right: 8px; bottom: 8px; width: calc(100% - 16px); }
 
 /* impresión: solo la lámina, a tamaño real en A3 horizontal */
@@ -673,6 +710,13 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
   body.plan-open #app, body.plan-open #plano { position: static; height: auto; overflow: visible; background: #fff; animation: none; }
   body.plan-open .pl-stage { overflow: visible; }
   body.plan-open .pl-sheet { position: static; transform: none !important; width: 420mm; height: 297mm; box-shadow: none; }
+  body.plan-open .pl-nav, body.plan-open .pl-load { display: none !important; }
+  body.plan-open .pl-body { display: block; }
+  body.print-set .pl-body { display: none !important; }
+  body.print-set .pl-pset { display: block !important; }
+  .pl-psheet { width: 420mm; height: 297mm; page-break-after: always; break-after: page; }
+  .pl-psheet:last-child { page-break-after: auto; break-after: auto; }
+  .pl-psheet svg { display: block; width: 100%; height: 100%; }
 }
 
 /* barra superior en pantallas angostas: versión junto a las herramientas */

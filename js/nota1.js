@@ -180,10 +180,10 @@
   function secE() {
     const it = itemOf(ST.ver, ST.n);
     return secHead('E', pickV()) +
-      '<p class="n1-lead">Cada mueble tiene un plano de conjunto (alzado, vista lateral, corte A–A, planta e isometría, con cotas generales y de niveles en escala normalizada) y un despiece explosionado con la marca y la medida de cada pieza. Se dibujan desde el modelo 3D: lo que se ve en el visor es lo que dice el plano.</p>' +
+      '<p class="n1-lead">Cada mueble tiene un plano de ensamble (alzado, vista lateral, corte A–A, planta e isometría, con cotas generales y de niveles en escala normalizada), un despiece explosionado con la marca y la medida de cada pieza, la secuencia de ensamble paso a paso con sus uniones y tiempos, los detalles constructivos de las uniones a escala 1:5 y las láminas de piezas. Se dibujan desde el modelo 3D: lo que se ve en el visor es lo que dice el plano. El juego completo de cada versión también está en el Plano 2D.</p>' +
       pickN(ST.n) +
       '<div class="n1-sheets">' +
-      ['conjunto', 'explosion'].concat(Array.from({ length: L.dwg.nPiezas(ST.ver, ST.n) }, (_, j) => 'piezas:' + (j + 1))).map((k, i) => '<figure class="n1-fig"><div class="n1-sheet" data-dwg="' + k + '"><span class="n1-load">Dibujando la lámina…</span></div><figcaption><b>' + ST.ver + '-' + (ST.n < 10 ? '0' : '') + ST.n + '.' + (i + 1) + '</b> ' + (i > 1 ? 'Piezas, hoja ' + (i - 1) : i ? 'Despiece explosionado' : 'Plano de conjunto') + ' · ' + esc(it.short) +
+      ['conjunto', 'explosion', 'ensamble', 'detalles'].concat(Array.from({ length: L.dwg.nPiezas(ST.ver, ST.n) }, (_, j) => 'piezas:' + (j + 1))).map((k, i) => '<figure class="n1-fig"><div class="n1-sheet" data-dwg="' + k + '"><span class="n1-load">Dibujando la lámina…</span></div><figcaption><b>' + ST.ver + '-' + (ST.n < 10 ? '0' : '') + ST.n + '.' + (i + 1) + '</b> ' + L.dwg.sheetName(k) + ' · ' + esc(it.short) +
         '<span><button type="button" class="btn btn-sm" data-n1zoom="' + k + '">Ampliar</button>' + (inFrame ? '' : '<button type="button" class="btn btn-sm" data-n1svg="' + k + '">Descargar SVG</button>') + '</span></figcaption></figure>').join('') +
       '</div><p class="n1-note">Las láminas de piezas dan la medida de corte de cada tablero, lámina, tubo y perfil, con su espesor o su sección; las perforaciones de los herrajes se toman del plano de conjunto. Los detalles de las uniones están en el elemento G.</p>';
   }
@@ -426,7 +426,7 @@
     if (t.closest('#n1-rgo')) return captureAll();
     const go = t.closest('[data-n1go]'); if (go) { close(true); if (L.api.state.ver !== ST.ver) L.api.setVersion(ST.ver); L.api.select(+go.dataset.n1go, null, { force: true }); return; }
     if (t.closest('[data-n1plan]')) { close(true); L.api.setVersion(ST.ver); L.api.openPlan(); return; }
-    const z = t.closest('[data-n1zoom]'); if (z) { const k = z.dataset.n1zoom; $('#n1-vs').innerHTML = sheet(k); $('#n1-vt').textContent = (k === 'conjunto' ? 'Plano de conjunto' : k === 'explosion' ? 'Despiece explosionado' : 'Piezas, hoja ' + k.split(':')[1]) + ' · ' + ST.n + ' · ' + itemOf(ST.ver, ST.n).short + ' · versión ' + ST.ver; $('#n1-view').hidden = false; return; }
+    const z = t.closest('[data-n1zoom]'); if (z) { const k = z.dataset.n1zoom; $('#n1-vs').innerHTML = sheet(k); $('#n1-vt').textContent = L.dwg.sheetName(k) + ' · ' + ST.n + ' · ' + itemOf(ST.ver, ST.n).short + ' · versión ' + ST.ver; $('#n1-view').hidden = false; return; }
     const d = t.closest('[data-n1svg]'); if (d) return download(d.dataset.n1svg);
     const a = t.closest('a[href^="#n1-f-"]'); if (a) { e.preventDefault(); const el = $(a.getAttribute('href')); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('is-flash'); setTimeout(() => el.classList.remove('is-flash'), 1600); } }
   }
