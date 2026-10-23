@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Jost:wght@300;400;600&display=swap">
 <meta name="theme-color" content="#1c1c1e">
-<link rel="stylesheet" href="css/styles.css?v=20261021-1">
+<link rel="stylesheet" href="css/styles.css?v=20261022-1">
 </head>
 <body>
 <div id="app" class="is-loading">
@@ -129,8 +129,10 @@
 
   <section id="plano" hidden aria-label="Plano 2D a escala">
     <header class="pl-bar">
-      <button type="button" class="btn" id="pl-back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Volver al 3D</button>
-      <div class="pl-title"><b>Plano 2D</b><span id="pl-sub"></span></div>
+      <button type="button" class="btn" id="pl-back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Volver al 3D</span></button>
+      <button type="button" class="btn" id="pl-navb" aria-pressed="true" aria-controls="pl-nav"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 4.5h13M3.5 10h13M3.5 15.5h13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>Láminas</span></button>
+      <div class="pl-title"><b id="pl-head">Plano 2D</b><span id="pl-sub"></span></div>
+      <span class="pl-step"><button type="button" class="ibtn" id="pl-prev" aria-label="Lámina anterior" title="Lámina anterior ( [ )"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span id="pl-pos" class="pl-pos"></span><button type="button" class="ibtn" id="pl-next" aria-label="Lámina siguiente" title="Lámina siguiente ( ] )"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span>
       <div class="seg pl-ver" id="pl-ver" role="radiogroup" aria-label="Versión del mobiliario">
         <button type="button" role="radio" data-ver="A" class="is-on" aria-checked="true">A · Taller</button>
         <button type="button" role="radio" data-ver="B" aria-checked="false">B · Galería</button>
@@ -140,12 +142,16 @@
         <button type="button" class="btn btn-tg" id="pl-cotas" aria-pressed="true">Cotas</button>
         <button type="button" class="btn btn-tg" id="pl-nums" aria-pressed="true">Números</button>
         <span class="pl-zoom"><button type="button" class="ibtn" id="pl-zo" aria-label="Alejar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><button type="button" class="pl-zv" id="pl-fit" title="Ajustar la lámina a la pantalla"><span id="pl-zv">100 %</span></button><button type="button" class="ibtn" id="pl-zi" aria-label="Acercar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4.5v11M4.5 10h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></span>
+        <button type="button" class="btn" id="pl-pset" hidden title="Imprimir todas las láminas de este mueble"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 6.5V3.5h8.5M7 8.5V5.5h8v3M7 13.5H5a1.5 1.5 0 0 1-1.5-1.5v-2A1.5 1.5 0 0 1 5 8.5h11A1.5 1.5 0 0 1 17.5 10v2a1.5 1.5 0 0 1-1.5 1.5h-2M7 11.5h7v5H7z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>Imprimir el juego del mueble</button>
         <button type="button" class="btn" id="pl-print"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 7.5V3.5h8v4M6 13.5H4a1.5 1.5 0 0 1-1.5-1.5V9A1.5 1.5 0 0 1 4 7.5h12A1.5 1.5 0 0 1 17.5 9v3a1.5 1.5 0 0 1-1.5 1.5h-2M6 11h8v5.5H6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Imprimir</button>
         <button type="button" class="btn btn-led" id="pl-svg"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5v9M6.5 9 10 12.5 13.5 9M4 15.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Descargar SVG</button>
       </div>
     </header>
-    <div class="pl-stage" id="pl-stage" tabindex="-1"><div class="pl-sheet" id="pl-sheet"></div></div>
-    <p class="pl-hint">Arrastra para desplazar · rueda o pellizco para acercar · toca un mueble para ver su ficha</p>
+    <div class="pl-body">
+      <nav class="pl-nav" id="pl-nav" aria-label="Láminas del juego de planos"></nav>
+      <div class="pl-stage" id="pl-stage" tabindex="-1"><div class="pl-sheet" id="pl-sheet"></div><p class="pl-hint" id="pl-hint">Arrastra para desplazar · rueda o pellizco para acercar · toca un mueble para ver su ficha</p></div>
+    </div>
+    <div class="pl-pset" id="pl-pset-out"></div>
     <div class="pl-card" id="pl-card" hidden></div>
   </section>
 
@@ -160,33 +166,34 @@
   </div>
 </div>
 
-<script src="js/brand.js?v=20261021-1"></script>
+<script src="js/brand.js?v=20261022-1"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="js/data.js?v=20261021-1"></script>
-<script src="js/versions.js?v=20261021-1"></script>
-<script src="js/engine.js?v=20261021-1"></script>
-<script src="js/geo.js?v=20261021-1"></script>
-<script src="js/room.js?v=20261021-1"></script>
-<script src="js/furniture.js?v=20261021-1"></script>
-<script src="js/furniture-alt.js?v=20261021-1"></script>
-<script src="js/armado.js?v=20261021-1"></script>
-<script src="js/vida.js?v=20261021-1"></script>
-<script src="js/furniture-ab.js?v=20261021-1"></script>
-<script src="js/export.js?v=20261021-1"></script>
-<script src="js/ui.js?v=20261021-1"></script>
-<script src="js/plan.js?v=20261021-1"></script>
-<script src="js/app.js?v=20261021-1"></script>
-<script src="js/nota1-data.js?v=20261021-1"></script>
-<script src="js/dwg.js?v=20261021-1"></script>
-<script src="js/uniones.js?v=20261021-1"></script>
-<script src="js/nota1.js?v=20261021-1"></script>
-<script src="js/corte.js?v=20261021-1"></script>
-<script src="js/proceso.js?v=20261021-1"></script>
-<script src="js/nota2-data.js?v=20261021-1"></script>
-<script src="js/planta.js?v=20261021-1"></script>
-<script src="js/nota2.js?v=20261021-1"></script>
-<script src="js/nota3-data.js?v=20261021-1"></script>
-<script src="js/costos.js?v=20261021-1"></script>
-<script src="js/nota3.js?v=20261021-1"></script>
+<script src="js/data.js?v=20261022-1"></script>
+<script src="js/versions.js?v=20261022-1"></script>
+<script src="js/engine.js?v=20261022-1"></script>
+<script src="js/geo.js?v=20261022-1"></script>
+<script src="js/room.js?v=20261022-1"></script>
+<script src="js/furniture.js?v=20261022-1"></script>
+<script src="js/furniture-alt.js?v=20261022-1"></script>
+<script src="js/armado.js?v=20261022-1"></script>
+<script src="js/vida.js?v=20261022-1"></script>
+<script src="js/furniture-ab.js?v=20261022-1"></script>
+<script src="js/export.js?v=20261022-1"></script>
+<script src="js/ui.js?v=20261022-1"></script>
+<script src="js/plan.js?v=20261022-1"></script>
+<script src="js/app.js?v=20261022-1"></script>
+<script src="js/nota1-data.js?v=20261022-1"></script>
+<script src="js/dwg.js?v=20261022-1"></script>
+<script src="js/uniones.js?v=20261022-1"></script>
+<script src="js/planos.js?v=20261022-1"></script>
+<script src="js/nota1.js?v=20261022-1"></script>
+<script src="js/corte.js?v=20261022-1"></script>
+<script src="js/proceso.js?v=20261022-1"></script>
+<script src="js/nota2-data.js?v=20261022-1"></script>
+<script src="js/planta.js?v=20261022-1"></script>
+<script src="js/nota2.js?v=20261022-1"></script>
+<script src="js/nota3-data.js?v=20261022-1"></script>
+<script src="js/costos.js?v=20261022-1"></script>
+<script src="js/nota3.js?v=20261022-1"></script>
 </body>
 </html>

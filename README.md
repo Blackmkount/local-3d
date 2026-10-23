@@ -22,9 +22,11 @@ costos, fabricación, ensamble y la razón de cada material.
   *Versiones* compara las tres: concepto, distribución, materiales, ventajas, desventajas y costo de cada mueble.
   El diseño original del documento del proyecto ya no se muestra; sus datos siguen en `js/data.js` como base de los
   productos comprados y de la versión C.
-- **Plano 2D**: la planta de arquitectura a escala 1:50 en lámina A3, en líneas negras sobre blanco, con cotas, pasos
-  libres, números, cuadro de mobiliario y cajetín. Cambia con la versión, se acerca y desplaza, cada mueble abre su
-  ficha y se puede imprimir a escala (A3 horizontal) o descargar en SVG.
+- **Plano 2D**: el juego de planos de la versión, en láminas A3 de líneas negras sobre blanco (ver *Juego de planos*
+  más abajo): índice y convenciones, la planta de arquitectura a escala 1:50 (cotas, pasos libres, números, cuadro de
+  mobiliario y cajetín) y, para cada mueble fabricado, plano de ensamble con cotas, despiece explosionado, secuencia de
+  ensamble, detalles constructivos y piezas. Cambia con la versión, se acerca y desplaza, en la planta cada mueble abre
+  su ficha o sus planos, y cada lámina se imprime a escala (A3 horizontal) o se descarga en SVG.
 - **Requisitos de diseño**: las condiciones que se fijaron antes de dibujar los muebles (espacio, ergonomía, cargas,
   durabilidad, luz, instalaciones, seguridad, fabricación, marca y presupuesto) y cómo las cumple cada versión, mueble
   por mueble. Cada ficha de un mueble fabricado tiene además la pestaña *Requisitos*.
@@ -40,7 +42,8 @@ costos, fabricación, ensamble y la razón de cada material.
 
 Un enlace que termina en `#m7` abre directamente la ficha del elemento 7 (sirve con cualquier número del 1 al 20);
 el botón de compartir de cada ficha copia ese enlace. Una letra al final elige la versión (`#m7b`, `#c`) y `#plano`
-abre el plano 2D (`#planob` lo abre en la versión B).
+abre el plano 2D (`#planob` lo abre en la versión B). `#plano-7.3` abre la lámina 3 del mueble 7 (su secuencia de
+ensamble) y `#plano-g` el índice del juego de planos; también admiten la letra de la versión (`#plano-7.3b`).
 
 ## Nota 1 · Diseño del mobiliario (Diseño VIII · Producción)
 
@@ -114,6 +117,28 @@ cuánto se vende (guía, numeral 7).
 
 Cálculos en `js/costos.js`; datos en `js/nota3-data.js`. La Nota 3 le cambió al mueble las tapas de 30 mm (capa de abajo
 en melamina blanca y canto Rovere de 33 mm), la gola de la cajonera (596 mm) y los perfiles LED del laboratorio (1.49 m).
+
+## Juego de planos
+
+El Plano 2D es un juego de planos completo por versión (68 láminas A3 en cada una), con una barra lateral
+para recorrerlo, flechas o <kbd>[</kbd> <kbd>]</kbd> para pasar de lámina, y *Imprimir el juego del mueble* para
+sacar todas las láminas de un mueble de una vez. Todas se dibujan desde el modelo 3D (`js/dwg.js` y `js/planos.js`):
+el mueble que se ve es el que se fabrica.
+
+| Lámina | Contenido |
+|---|---|
+| G-00 · Índice y convenciones | Lista de láminas de la versión, tipos de línea, rayados de sección por material, símbolos (marca de pieza, llamada de detalle, soldadura, fijación, paso, primer diedro) y notas generales |
+| A-01 · Planta de distribución | La planta a escala 1:50 con cotas, pasos y cuadro de mobiliario |
+| X-nn.1 · Plano de ensamble | Alzado frontal, vista lateral, corte A–A, planta e isometría, con cotas generales, de niveles y de ejes, en escala normalizada |
+| X-nn.2 · Despiece explosionado | Isometría explosionada con globos y la lista de piezas (marca, cantidad, medidas, material y origen) |
+| X-nn.3 · Secuencia de ensamble | Una isometría por paso, con lo ya armado en gris y las piezas nuevas en negro, separadas y con su flecha de montaje; debajo, las piezas y las uniones del paso con su cantidad (cordones de soldadura, autoperforantes, tornillos de ensamble, uniones de perfil, chazos, niveladores, herrajes, encolados) y el tiempo de planta con los datos tipo de la Nota 2. Al pie, herrajes y consumibles, herramientas y protección personal (GTC 45) |
+| X-nn.4 · Detalles constructivos | Hasta cinco ampliaciones a escala 1:5 de uniones reales del mueble, señaladas en una isometría de referencia; cada una se mira desde la cara por donde entra la fijación (los autoperforantes de las tapas, desde abajo) y lleva sus marcas y el símbolo de soldadura. Al lado, los cortes de cada unión (`js/uniones.js`) y las notas de fabricación |
+| X-nn.5… · Piezas | Medida de corte de cada tablero, lámina, tubo y perfil, con su espesor o su sección |
+
+Las uniones de cada paso salen del mismo análisis del armado con operario (dónde se toca cada pieza nueva con lo ya
+puesto y de qué material son), con todas sus fijaciones; las piezas que el modelo une en una sola malla (los
+niveladores, los chazos) se separan por componentes. Las cantidades de compra son las de la lista de herrajes. La
+Nota 1 (elemento E) muestra las mismas láminas con la misma numeración.
 
 ## Armado con operario
 
@@ -357,7 +382,9 @@ así los navegadores descargan la versión nueva en lugar de usar la guardada en
 | `js/versions.js` | **Versiones y requisitos**: precios de tienda con enlace, despiece, fabricación, armado y razones de cada mueble; distribución de cada versión (`LAYOUT`), lámparas (`FIXTURES`), montaje, requisitos y el cálculo de costos |
 | `js/furniture-ab.js` | Los muebles de las versiones A (Taller a la vista) y B (Galería) modelados pieza por pieza |
 | `js/furniture-alt.js` | Los muebles de la versión C (Modular) y las utilidades de modelado que comparten las versiones |
-| `js/plan.js` | El plano 2D a escala 1:50 (SVG), con los muebles de cada versión |
+| `js/plan.js` | La planta 2D a escala 1:50 (SVG), con los muebles de cada versión |
+| `js/dwg.js` | Láminas técnicas dibujadas desde la geometría 3D: plano de ensamble, explosionado y piezas |
+| `js/planos.js` | Juego de planos: secuencia de ensamble, detalles constructivos, índice y convenciones, y la lista de láminas del Plano 2D |
 | `js/room.js` | Muros, fachada, cielo, luces y cotas |
 | `js/engine.js` | Motor: texturas PBR procedurales, materiales, luces, postproceso HDR, refinamiento progresivo, cámara, reflejo del piso y animaciones |
 | `js/geo.js` | Utilidades de geometría (tableros con canto redondeado, trazos SVG a formas 3D) |

@@ -129,8 +129,9 @@
     if (m && src) { const arr = m[1] === 'Ensamble' ? src.ens : src.fab; if (arr && arr[+m[2] - 1]) t += arr[+m[2] - 1]; }
     return t.toLowerCase();
   };
-  function plan(it, o, k) {
-    const txt = TXT(it, k);
+  /* full: todas las fijaciones (para los planos); sin full se limitan a 10 por grupo para la animación */
+  function plan(it, o, k, full) {
+    const txt = TXT(it, k), capN = (pts, n) => (full ? pts : cap(pts, n));
     const placed = o.parts.filter((p) => p.userData.step < k), mine = o.parts.filter((p) => p.userData.step === k);
     const groups = [];
     mine.forEach((p) => { const nm = p.userData.name; let g = groups.find((x) => x.name === nm && x.cls === classOf(p)); if (!g) { g = { name: nm, cls: classOf(p), parts: [] }; groups.push(g); } g.parts.push(p); });
@@ -172,10 +173,10 @@
         });
         base.push(p);
       });
-      if (weld.length) acts.push({ t: 'soldar', parts: g.parts, pts: cap(weld, 10), what: g.name });
-      if (allen.length) acts.push({ t: 'allen', parts: g.parts, pts: cap(allen, 10), what: g.name });
-      if (screw.length) acts.push({ t: 'atornillar', parts: g.parts, pts: cap(screw, 10), what: g.name });
-      if (hwp.length) acts.push({ t: 'herraje', parts: g.parts, pts: cap(hwp, 8), what: g.name });
+      if (weld.length) acts.push({ t: 'soldar', parts: g.parts, pts: capN(weld, 10), what: g.name });
+      if (allen.length) acts.push({ t: 'allen', parts: g.parts, pts: capN(allen, 10), what: g.name });
+      if (screw.length) acts.push({ t: 'atornillar', parts: g.parts, pts: capN(screw, 10), what: g.name });
+      if (hwp.length) acts.push({ t: 'herraje', parts: g.parts, pts: capN(hwp, 8), what: g.name });
     });
     if (/lacar|retoc|pintar/.test(txt) && groups.some((g) => /laca|negro/.test(g.parts[0].material.name || ''))) acts.push({ t: 'retocar', parts: mine.filter((p) => /laca|negro/.test(p.material.name || '')), what: 'retoque de laca' });
     return acts;

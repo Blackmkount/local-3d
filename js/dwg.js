@@ -191,7 +191,7 @@
      k = mm de lámina por metro (1000 / escala). Devuelve coordenadas en mm, con origen arriba a la izquierda. */
   function project(S, vname, k, opt) {
     opt = opt || {};
-    const B = VIEW[vname]();
+    const B = opt.basis || VIEW[vname]();
     const cut = opt.cut || null;                 // { c } plano dot(p, f) = c; se quita lo que queda del lado del observador
     // extensión de la vista
     const ext = { r0: Infinity, r1: -Infinity, u0: Infinity, u1: -Infinity, d0: Infinity, d1: -Infinity };
@@ -206,6 +206,7 @@
       }
     });
     if (cut) ext.d0 = Math.min(ext.d0, cut.c);
+    if (opt.win) { ext.r0 = Math.max(ext.r0, opt.win.r0); ext.r1 = Math.min(ext.r1, opt.win.r1); ext.u0 = Math.max(ext.u0, opt.win.u0); ext.u1 = Math.min(ext.u1, opt.win.u1); }   // solo una ventana (detalles)
     const pad = 0.004;
     ext.r0 -= pad; ext.r1 += pad; ext.u0 -= pad; ext.u1 += pad; ext.d0 -= 0.01; ext.d1 += 0.01;
     const wmm = (ext.r1 - ext.r0) * k, hmm = (ext.u1 - ext.u0) * k;
@@ -231,9 +232,10 @@
     };
     const vis = [], hid = [];
     const mask = new Uint8Array(Wp * Hp);
+    const wmX = opt.win ? wmm : 0, wmY = opt.win ? hmm : 0;
     const runs = [];                                                // [x0,y0,x1,y1,visible]
     const a3 = V3(), b3 = V3();
-    S.list.forEach((s) => {
+    S.list.forEach((s, si) => {
       const W = s.W, E = s.E, FN = s.FN;
       for (let e = 0; e < E.length; e += 5) {
         let draw = E[e + 2] === 1;
@@ -255,6 +257,7 @@
         }
         const ar = a3.dot(B.r), au = a3.dot(B.u), ad = a3.dot(B.f), br = b3.dot(B.r), bu = b3.dot(B.u), bd = b3.dot(B.f);
         const x0 = toX(ar + (br - ar) * ta), y0 = toY(au + (bu - au) * ta), x1 = toX(ar + (br - ar) * tb), y1 = toY(au + (bu - au) * tb);
+        if (opt.win && (Math.max(x0, x1) < -2 || Math.min(x0, x1) > wmX + 2 || Math.max(y0, y1) < -2 || Math.min(y0, y1) > wmY + 2)) continue;
         const z0 = (ad + (bd - ad) * ta - ext.d0) / dr, z1 = (ad + (bd - ad) * tb - ext.d0) / dr;
         const len = Math.hypot(x1 - x0, y1 - y0) * ppm;
         if (len < 0.3) continue;
@@ -265,9 +268,9 @@
           const px = X * ppm, py = Y * ppm;
           const v = Z <= depthAt(px, py) + eps ? 1 : 0;
           if (v) { const cx = Math.round(px), cy = Math.round(py); for (let j = -1; j <= 1; j++) for (let q = -1; q <= 1; q++) { const xx = cx + q, yy = cy + j; if (xx >= 0 && yy >= 0 && xx < Wp && yy < Hp) mask[yy * Wp + xx] = 1; } }
-          if (v !== cur) { if (cur >= 0) runs.push([sx, sy, X, Y, cur]); cur = v; sx = X; sy = Y; }
+          if (v !== cur) { if (cur >= 0) runs.push([sx, sy, X, Y, cur, si]); cur = v; sx = X; sy = Y; }
         }
-        runs.push([sx, sy, x1, y1, cur]);
+        runs.push([sx, sy, x1, y1, cur, si]);
       }
     });
     DW._t.edges = performance.now() - _t0;
@@ -282,9 +285,9 @@
         const t = i / n, X = r[0] + (r[2] - r[0]) * t, Y = r[1] + (r[3] - r[1]) * t;
         const px = Math.round(X * ppm), py = Math.round(Y * ppm);
         const free = px < 0 || py < 0 || px >= Wp || py >= Hp || !mask[py * Wp + px] ? 1 : 0;
-        if (free !== cur) { if (cur === 1) hid.push([sx, sy, X, Y]); cur = free; sx = X; sy = Y; }
+        if (free !== cur) { if (cur === 1) hid.push([sx, sy, X, Y, 0, r[5]]); cur = free; sx = X; sy = Y; }
       }
-      if (cur === 1) hid.push([sx, sy, r[2], r[3]]);
+      if (cur === 1) hid.push([sx, sy, r[2], r[3], 0, r[5]]);
     });
     // sección
     const sec = [];
@@ -475,7 +478,7 @@
     const fx = x0, fy = y0, lx = fx + PF.w + g, sx = lx + PL.w + g, py = fy + PF.h + g;
     let s = sheetOpen('Plano de conjunto, mueble ' + n + ', versión ' + v);
     s += '<text class="title" x="20" y="22">' + esc(n + ' · ' + I.name) + '</text>';
-    s += '<text class="subtitle" x="20" y="28">Plano de conjunto · versión ' + v + ' · ' + esc(I.vi.nombre) + ' · ' + esc(I.dims) + '</text>';
+    s += '<text class="subtitle" x="20" y="28">Plano de ensamble (conjunto) · versión ' + v + ' · ' + esc(I.vi.nombre) + ' · ' + esc(I.dims) + '</text>';
     s += viewSVG(PF, fx, fy) + viewSVG(PL, lx, fy) + viewSVG(PS, sx, fy) + viewSVG(PP, fx, py);
     // línea de corte A-A en el alzado
     const cX = fx + PF.toX(xc);
@@ -523,7 +526,7 @@
       s += label(ix, iy + PI.h + 7, 'ISOMETRÍA', 'Sin escala');
     }
     s += '<text class="c-note" x="20" y="283">Cotas en milímetros. Aristas ocultas en trazos. Tolerancia general de corte ±1 mm; verificar en sitio las medidas del muro antes de fabricar.</text>';
-    s += rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.1', contenido: 'Plano de conjunto', escala: '1:' + den + ' en A3', version: v + ' · ' + I.vi.nombre, fecha: L.nota1 ? L.nota1.fechaCorta : '17 oct. 2026' });
+    s += rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.1', contenido: 'Plano de ensamble (conjunto)', escala: '1:' + den + ' en A3', version: v + ' · ' + I.vi.nombre, fecha: L.nota1 ? L.nota1.fechaCorta : '17 oct. 2026' });
     return s + '</svg>';
   };
 
@@ -670,7 +673,7 @@
       s += celda(pz, x0 + c * (cw + 2), y0 + r * (ch + 2), cw, ch);
     });
     s += '<text class="c-note" x="20" y="283">Medidas de corte en milímetros. Los tableros se piden cortados y enchapados al proveedor; los tubos se cortan a 90° en el taller. Perforaciones de herrajes según el plano de conjunto.</text>';
-    s += rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.' + (2 + page), contenido: 'Piezas · hoja ' + page + ' de ' + tot, escala: 'Indicada en cada pieza', version: v + ' · ' + I.vi.nombre, fecha: L.nota1 ? L.nota1.fechaCorta : '17 oct. 2026' });
+    s += rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.' + (4 + page), contenido: 'Piezas · hoja ' + page + ' de ' + tot, escala: 'Indicada en cada pieza', version: v + ' · ' + I.vi.nombre, fecha: L.nota1 ? L.nota1.fechaCorta : '17 oct. 2026' });
     return s + '</svg>';
   };
 
@@ -685,6 +688,7 @@
     return '<svg xmlns="http://www.w3.org/2000/svg" class="dwg dwg-iso" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Isometría del mueble ' + n + ', versión ' + v + '"><style>' + DW.css + '</style>' + viewSVG(P, (w - P.w) / 2, (h - P.h) / 2, { thin: true }) + '</svg>';
   };
   DW._solids = solids; DW._project = project;
+  DW._h = { solids, project, viewSVG, pathOf, label, rotulo, sheetOpen, arrow, dimH, dimV, info, nn, partsTable, basis, VIEW, esc, SCALES };
   DW.clear = function () { Object.keys(solidCache).forEach((k) => delete solidCache[k]); };
 
   DW.css = [

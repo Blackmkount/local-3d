@@ -794,7 +794,7 @@
     syncVerUI();
     if (S.planOpen) renderPlan();
     if (keep) select(keep.n, null, { tab: keep.tab, force: true });
-    if (!opt.quiet) setHash(S.planOpen ? 'plano' : keep ? 'm' + keep.n : '');
+    if (!opt.quiet) setHash(S.planOpen ? 'plano' + (PO.sheet !== 'a' ? '-' + PO.sheet : '') : keep ? 'm' + keep.n : '');
     if (!$('#modal').hidden && S.modalKind) reopenModal();
     if (!opt.quiet) L.ui.toast('Versión ' + v + ' · ' + vi.nombre, vi.titulo + '. Mobiliario fabricado: ' + cop(totals(v).fabricado) + ' en materiales.', 'cube', 4200);
   }
@@ -891,18 +891,26 @@
   }
 
   /* --------------------------------------------------------------- plano 2D */
-  const PO = { k: 1, x: 0, y: 0, cotas: true, nums: true, ptrs: new Map(), W: 1260, H: 891 };
+  const PO = { k: 1, x: 0, y: 0, cotas: true, nums: true, ptrs: new Map(), W: 1260, H: 891, sheet: 'a', cache: new Map(), nav: null, open: {} };
+  /* juego de planos de la versión (planos.js): índice, planta y las láminas de cada mueble fabricado */
+  const plList = {};
+  const plSheets = () => plList[S.ver] || (plList[S.ver] = L.planos ? L.planos.sheets(S.ver) : [{ id: 'a', code: 'A-01', title: 'Planta de distribución y mobiliario', group: 'General' }]);
+  function plCur() { const all = plSheets(), m = /^(\d+)\./.exec(PO.sheet); return all.find((x) => x.id === PO.sheet) || (m && all.find((x) => x.id === m[1] + '.1')) || all.find((x) => x.id === 'a'); }
   const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
-  function openPlan() {
-    if (S.planOpen) return;
+  function openPlan(sheet) {
+    if (sheet) PO.sheet = sheet;
+    if (S.planOpen) { renderPlan(); return; }
     exitMontaje(true); deselect(true); if (!$('#modal').hidden) closeModal(); closeSpot(true);
     S.planOpen = true; S.planFrom = S.view || 'fachada';
     renderPlan();
     $('#plano').hidden = false; document.body.classList.add('plan-open');
     $$('#views button').forEach((b) => b.classList.toggle('is-on', b.dataset.view === 'plano'));
+    if (PO.nav == null) PO.nav = !(E.size.w < 900);
+    plNavShow(PO.nav);
     requestAnimationFrame(() => { L.ui.syncSegs(); planFit(false); });
-    setHash('plano');
+    plHash();
   }
+  const plHash = () => setHash('plano' + (PO.sheet !== 'a' ? '-' + PO.sheet : ''));
   function closePlan(silent) {
     if (!S.planOpen) return;
     S.planOpen = false; $('#plano').hidden = true; document.body.classList.remove('plan-open'); planCard(null);
@@ -910,12 +918,63 @@
     if (!silent) goView(S.planFrom && VIEWS[S.planFrom] ? S.planFrom : 'fachada', 1.2);
   }
   function renderPlan() {
-    $('#pl-sheet').innerHTML = L.plan.svg(S.ver, { cotas: PO.cotas, nums: PO.nums });
-    const vi = verInfo(S.ver);
-    $('#pl-sub').textContent = 'Versión ' + S.ver + ' · escala 1:50 en A3'; void vi;
-    $('#pl-cotas').setAttribute('aria-pressed', PO.cotas ? 'true' : 'false');
-    $('#pl-nums').setAttribute('aria-pressed', PO.nums ? 'true' : 'false');
-    if (PO.card) planCard(PO.card);
+    const sh = plCur(), all = plSheets(), i = all.findIndex((x) => x.id === sh.id), planta = sh.id === 'a';
+    PO.sheet = sh.id;
+    $('#pl-head').textContent = sh.code + (sh.n ? ' · ' + sh.title : ' · ' + (sh.id === 'g' ? 'Índice' : 'Planta'));
+    $('#pl-sub').textContent = sh.n ? sh.n + ' · ' + sh.name + ' · versión ' + S.ver : planta ? 'Planta de distribución · versión ' + S.ver + ' · escala 1:50 en A3' : 'Juego de planos · versión ' + S.ver + ' · ' + all.length + ' láminas A3';
+    $('#pl-pos').textContent = (i + 1) + ' / ' + all.length;
+    $('#pl-prev').disabled = i <= 0; $('#pl-next').disabled = i >= all.length - 1;
+    $('#pl-cotas').hidden = $('#pl-nums').hidden = !planta;
+    $('#pl-pset').hidden = !sh.n || inFrame;
+    $('#pl-hint').textContent = 'Arrastra para desplazar · rueda o pellizco para acercar · ' + (planta ? 'toca un mueble para ver su ficha' : '[ y ] cambian de lámina');
+    if (planta) {
+      $('#pl-sheet').innerHTML = L.plan.svg(S.ver, { cotas: PO.cotas, nums: PO.nums });
+      $('#pl-cotas').setAttribute('aria-pressed', PO.cotas ? 'true' : 'false');
+      $('#pl-nums').setAttribute('aria-pressed', PO.nums ? 'true' : 'false');
+      if (PO.card) planCard(PO.card);
+    } else { planCard(null); plDraw(sh); }
+    plNav();
+  }
+  /* dibuja una lámina (se guarda en caché: las más recientes) */
+  function plSVG(sh, ver) {
+    ver = ver || S.ver;
+    const key = ver + '|' + sh.id;
+    if (PO.cache.has(key)) { const v = PO.cache.get(key); PO.cache.delete(key); PO.cache.set(key, v); return v; }
+    const svg = sh.id === 'g' ? L.dwg.indice(ver) : sh.id === 'a' ? L.plan.svg(ver, { cotas: PO.cotas, nums: PO.nums }) : L.planos.draw(ver, sh);
+    PO.cache.set(key, svg);
+    while (PO.cache.size > 24) PO.cache.delete(PO.cache.keys().next().value);
+    return svg;
+  }
+  function plDraw(sh) {
+    const key = S.ver + '|' + sh.id, el = $('#pl-sheet');
+    if (PO.cache.has(key)) { el.innerHTML = plSVG(sh); return; }
+    el.innerHTML = '<div class="pl-load"><span class="pl-spin"></span>Dibujando la lámina ' + esc(sh.code) + ' desde el modelo 3D…</div>';
+    const id = sh.id, ver = S.ver;
+    setTimeout(() => requestAnimationFrame(() => {
+      if (!S.planOpen || PO.sheet !== id || S.ver !== ver) return;
+      let svg = '';
+      try { svg = plSVG(sh); } catch (err) { console.error(err); svg = '<div class="pl-load">No se pudo dibujar la lámina ' + esc(sh.code) + '.</div>'; }
+      if (PO.sheet === id && S.ver === ver) el.innerHTML = svg;
+    }), 30);
+  }
+  function plGo(id, keepView) {
+    if (!id || id === PO.sheet) return;
+    PO.sheet = id; const sh = plCur(); if (sh.n) PO.open[sh.n] = true;
+    renderPlan(); if (!keepView) planFit(true); plHash();
+    if (E.size.w < 900) plNavShow(false);
+    const on = $('#pl-nav .is-on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
+  }
+  function plStep(d) { const all = plSheets(), cur = plCur(), i = all.findIndex((x) => x.id === cur.id), j = E.clamp(i + d, 0, all.length - 1); if (j !== i) plGo(all[j].id, true); }
+  function plNavShow(on) { PO.nav = on; $('#plano').classList.toggle('is-nav', on); $('#pl-navb').setAttribute('aria-pressed', on ? 'true' : 'false'); requestAnimationFrame(() => planFit(false)); }
+  /* barra lateral: general y, por mueble, sus láminas */
+  function plNav() {
+    const all = plSheets(), cur = plCur(), groups = [];
+    all.forEach((x) => { let g = groups.find((q) => q.name === x.group); if (!g) { g = { name: x.group, n: x.n, list: [] }; groups.push(g); } g.list.push(x); });
+    if (cur.n) PO.open[cur.n] = true;
+    const item = (x) => '<button type="button" class="pl-it' + (x.id === cur.id ? ' is-on' : '') + '" data-sheet="' + x.id + '"' + (x.id === cur.id ? ' aria-current="true"' : '') + '><b class="mono">' + esc(x.n ? x.code.slice(x.code.lastIndexOf('.')) : x.code) + '</b><span>' + esc(x.title) + (x.sub ? '<small>' + esc(x.sub) + '</small>' : '') + '</span></button>';
+    $('#pl-nav').innerHTML = '<p class="pl-nh">Juego de planos · versión ' + S.ver + '<small>' + all.length + ' láminas A3, dibujadas desde el modelo 3D</small></p>' +
+      groups.map((g) => g.n ? '<details class="pl-g" data-g="' + g.n + '"' + (PO.open[g.n] ? ' open' : '') + '><summary><span class="num">' + g.n + '</span><span>' + esc(g.name.replace(/^\d+ · /, '')) + '</span><i>' + g.list.length + '</i></summary>' + g.list.map(item).join('') + '</details>'
+        : '<div class="pl-g pl-g0">' + g.list.map(item).join('') + '</div>').join('');
   }
   function planApply(anim) {
     const sh = $('#pl-sheet');
@@ -947,8 +1006,27 @@
     c.innerHTML = '<div class="plc-h"><span class="num">' + n + '</span><span class="pill pill-' + d.origen + '">' + (fab ? 'Se fabrica' : 'Se compra') + '</span>' + (fab && VS.req[n] ? vtag(S.ver, 'sm') : '') +
       '<button type="button" class="ibtn ibtn-fill" id="plc-x" aria-label="Cerrar"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button></div>' +
       '<h4>' + esc(d.name) + '</h4><p class="plc-m mono">' + esc(d.dims) + ' · ' + esc(d.cant) + '</p><p class="plc-u">' + esc(d.ubic) + '</p>' +
-      '<div class="plc-f"><b class="mono">' + cop(d.total) + '</b><button type="button" class="btn btn-led" id="plc-go">Abrir ficha en 3D</button></div>';
+      '<div class="plc-f"><b class="mono">' + cop(d.total) + '</b><span>' + (fab && L.planos && L.planos.fab(S.ver).some((x) => x.n === n) ? '<button type="button" class="btn" id="plc-dwg">Ver sus planos</button>' : '') + '<button type="button" class="btn btn-led" id="plc-go">Abrir ficha en 3D</button></span></div>';
     c.hidden = false; planHL(n);
+  }
+  /* imprime todas las láminas de un mueble: se dibujan una tras otra y se imprimen juntas */
+  function planPrintSet() {
+    const sh = plCur(); if (!sh.n) return;
+    const list = plSheets().filter((x) => x.n === sh.n), out = $('#pl-pset-out'), ver = S.ver;
+    L.ui.toast('Preparando el juego del mueble', list.length + ' láminas de ' + sh.name + '.', 'ok', 3500);
+    out.innerHTML = ''; let i = 0;
+    const next = () => {
+      if (i >= list.length) {
+        document.body.classList.add('is-printing', 'print-set');
+        const done = () => { document.body.classList.remove('is-printing', 'print-set'); out.innerHTML = ''; window.removeEventListener('afterprint', done); };
+        window.addEventListener('afterprint', done);
+        setTimeout(() => { try { window.print(); } catch (e) { done(); } }, 80);
+        return;
+      }
+      const d = document.createElement('div'); d.className = 'pl-psheet'; d.innerHTML = plSVG(list[i], ver); out.appendChild(d); i++;
+      setTimeout(next, 10);
+    };
+    setTimeout(next, 30);
   }
   function planPrint() {
     document.body.classList.add('is-printing');
@@ -957,12 +1035,12 @@
     setTimeout(() => { try { window.print(); } catch (e) { done(); } }, 60);
   }
   function planDownload() {
-    const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' + L.plan.svg(S.ver, { cotas: PO.cotas, nums: PO.nums });
+    const sh = plCur(), svg = '<?xml version="1.0" encoding="UTF-8"?>\n' + plSVG(sh);
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-    const a = document.createElement('a'); a.href = url; a.download = 'plano-blackforge-version-' + S.ver.toLowerCase() + '.svg';
+    const a = document.createElement('a'); a.href = url; a.download = 'plano-blackforge-' + sh.code.toLowerCase().replace(/[^a-z0-9]+/g, '-') + (sh.n ? '' : '-version-' + S.ver.toLowerCase()) + '.svg';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
-    L.ui.toast('Plano descargado', a.download + ' · lámina A3 a escala 1:50, lista para AutoCAD, Illustrator o Inkscape.', 'ok', 5000);
+    L.ui.toast('Lámina descargada', a.download + ' · A3 vectorial, lista para AutoCAD, Illustrator o Inkscape.', 'ok', 5000);
   }
   function bindPlan() {
     const st = $('#pl-stage'), root = $('#plano');
@@ -971,6 +1049,12 @@
     root.addEventListener('click', (e) => {
       const t = e.target;
       if (t.closest('#pl-back')) return closePlan();
+      const sb = t.closest('[data-sheet]'); if (sb) return plGo(sb.dataset.sheet);
+      if (t.closest('#pl-navb')) return plNavShow(!PO.nav);
+      if (t.closest('#pl-prev')) return plStep(-1);
+      if (t.closest('#pl-next')) return plStep(1);
+      if (t.closest('#pl-pset')) return planPrintSet();
+      if (t.closest('#plc-dwg')) { const n = PO.card; planCard(null); return plGo(n + '.1'); }
       const vb = t.closest('[data-ver]'); if (vb) return setVersion(vb.dataset.ver);
       if (t.closest('#pl-cotas')) { PO.cotas = !PO.cotas; return renderPlan(); }
       if (t.closest('#pl-nums')) { PO.nums = !PO.nums; return renderPlan(); }
@@ -982,6 +1066,7 @@
       if (t.closest('#plc-x')) return planCard(null);
       if (t.closest('#plc-go')) { const n = PO.card; closePlan(true); planCard(null); return select(n, null, { force: true }); }
     });
+    $('#pl-nav').addEventListener('toggle', (e) => { const g = e.target.closest && e.target.closest('details[data-g]'); if (g) PO.open[g.dataset.g] = g.open; }, true);
     const elAt = (t) => t.closest && t.closest('#pl-sheet [data-n]');
     st.addEventListener('pointerover', (e) => { if (e.pointerType === 'touch') return; const g = elAt(e.target); if (PO.card == null) planHL(g ? +g.dataset.n : null); });
     st.addEventListener('pointerleave', () => { if (PO.card == null) planHL(null); });
@@ -1071,7 +1156,9 @@
     if (SP.all) return SP.all;
     const items = ITEMS().map((d) => ({ sec: 'Mobiliario', ic: String(d.n), t: d.short, s: d.name + ' · ' + (d.origen === 'fabrica' ? 'se fabrica' : 'se compra'), r: cop(d.total), q: norm(d.n + ' ' + d.short + ' ' + d.name + ' ' + d.grupo + ' ' + (d.origen === 'fabrica' ? 'fabrica' : 'compra')), run: () => select(d.n, null, { force: true }) }));
     const views = [['fachada', 'Fachada'], ['interior', 'Interior'], ['aerea', 'Aérea'], ['planta', 'Planta']].map((v) => ({ sec: 'Vistas', ic: SIC.view, t: 'Vista ' + v[1], s: 'Llevar la cámara a esta vista', q: norm('vista camara ' + v[1]), run: () => goView(v[0]) }));
-    views.push({ sec: 'Vistas', ic: SIC.plan, t: 'Plano 2D', s: 'Planta de arquitectura a escala 1:50, para imprimir en A3', q: norm('plano 2d planta arquitectura escala imprimir dibujo cotas'), run: () => openPlan() });
+    views.push({ sec: 'Vistas', ic: SIC.plan, t: 'Plano 2D', s: 'Juego de planos: planta 1:50 y láminas de cada mueble, para imprimir en A3', q: norm('plano 2d planta arquitectura escala imprimir dibujo cotas juego de planos laminas'), run: () => openPlan('a') });
+    views.push({ sec: 'Vistas', ic: SIC.plan, t: 'Índice del juego de planos', s: 'Láminas de la versión, tipos de línea, rayados y símbolos', q: norm('indice juego de planos convenciones rayados simbolos lineas'), run: () => openPlan('g') });
+    const planos = (L.planos ? L.planos.fab(S.ver) : []).map((d) => { const it = byN[d.n]; return { sec: 'Planos de los muebles', ic: SIC.plan, t: 'Planos · ' + it.short, s: 'Ensamble con cotas, explosionado, secuencia de ensamble, detalles y piezas', q: norm('planos plano ensamble explosionado despiece detalles secuencia cotas medidas ' + d.n + ' ' + it.short + ' ' + it.name), run: () => openPlan(d.n + '.1') }; });
     const vers = VS.list.map((v) => ({ sec: 'Versiones', ic: '<b class="vtag" style="--vc:' + v.color + '">' + v.id + '</b>', t: 'Versión ' + v.id + ' · ' + v.nombre + (v.id === S.ver ? ' (en el modelo)' : ''), s: v.titulo, r: copShort(totals(v.id).fabricado), q: norm('version ' + v.id + ' ' + v.nombre + ' ' + v.titulo + ' ' + v.materiales.join(' ')), run: () => setVersion(v.id) }));
     const acts = [
       { ic: SIC.chart, t: 'Presupuesto', s: 'Total, costo por mueble, por insumo, por tienda y plan de corte', q: 'presupuesto costo total precio dinero corte', run: () => openBudget() },
@@ -1083,7 +1170,7 @@
       { ic: SIC.pin, t: 'Gente en el local', s: 'Mostrar u ocultar a los clientes, la dependienta y el diseñador', q: 'gente personas clientes vida operarios dependienta', run: () => $('#btn-vida').click() },
       { ic: SIC.cube, t: 'Descargar modelo 3D (.glb)', s: 'Para Unreal Engine, Blender, Twinmotion o D5', q: 'descargar exportar glb gltf unreal blender twinmotion modelo', run: () => downloadGLB() }
     ].map((a) => Object.assign({ sec: 'Acciones' }, a, { q: norm(a.q + ' ' + a.t) }));
-    return (SP.all = acts.concat(views, vers, items));
+    return (SP.all = acts.concat(views, vers, items, planos));
   }
   function spotRender() {
     const q = norm($('#spot-q').value.trim()), words = q.split(/\s+/).filter(Boolean);
@@ -1244,7 +1331,7 @@
       if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); openSpot(); return; }
       if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.planOpen) { if (PO.card != null) return planCard(null); return closePlan(); } if (S.mode === 'asm') return exitAsm(); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
       if (!$('#modal').hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
-      if (S.planOpen) { if (e.key === '+' || e.key === '=') planZoom(1.4, null, null, true); else if (e.key === '-') planZoom(1 / 1.4, null, null, true); else if (e.key === '0') planFit(true); return; }
+      if (S.planOpen) { if (e.key === '+' || e.key === '=') planZoom(1.4, null, null, true); else if (e.key === '-') planZoom(1 / 1.4, null, null, true); else if (e.key === '0') planFit(true); else if (e.key === '[' || e.key === 'PageUp') { e.preventDefault(); plStep(-1); } else if (e.key === ']' || e.key === 'PageDown') { e.preventDefault(); plStep(1); } return; }
       if (!S.sel && /^[abc]$/i.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) { setVersion(e.key.toUpperCase()); return; }
       if (!S.sel) return;
       if (e.key === 'ArrowRight' && !e.target.closest('.tabs')) select(NEXT(S.sel.n, 1).n, null, { tab: S.tab, force: true });
@@ -1268,13 +1355,14 @@
       $('#intro-msg').textContent = 'Este navegador no pudo iniciar el modelo 3D (WebGL).';
       return;
     }
-    const hm0 = /^#(?:m\d+|plano)?([abc])?$/i.exec(location.hash || '') || [];
+    const hm0 = /^#(?:m\d+|plano(?:-(?:g|\d+\.\d+))?)?([abc])?$/i.exec(location.hash || '') || [];
     setVersion(hm0[1] ? hm0[1].toUpperCase() : 'A', { quiet: true, force: true });
     buildInventory(); buildLabels(); bindUI(); syncVerUI();
     const redraw = () => { L.redraws.forEach((f) => f()); E.invalidate(3); };
     if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('300 80px Jost'), document.fonts.load('600 80px Jost'), document.fonts.load('400 40px Jost')]).then(redraw, () => {});
-    const hm = /^#(?:m(\d+)|(plano))?([abc])?$/i.exec(location.hash || '') || [];
+    const hm = /^#(?:m(\d+)|(plano)(?:-(g|\d+\.\d+))?)?([abc])?$/i.exec(location.hash || '') || [];
     const start = hm[1] ? [null, hm[1]] : null, startPlan = !!hm[2];
+    if (hm[3]) PO.sheet = hm[3].toLowerCase();
 
     if (E.size.w >= 1280 && !start) { S.inv = true; $('#inv').hidden = false; $('#btn-inv').setAttribute('aria-pressed', 'true'); }
     S.view = 'fachada';
