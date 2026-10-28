@@ -75,6 +75,25 @@ con autorización del director del curso.
 Datos de la Nota 1: `js/nota1-data.js` (fuentes, antropometría, requisitos, criterios, fichas). Cada dato dice si sale de
 una fuente, si es estimado o si no se pudo obtener, como pide la guía (numeral 4.2).
 
+### Entrega en PDF
+
+Los seis elementos de la Nota 1 se entregan también como documentos PDF, uno por requisito de la guía, generados desde el
+mismo visor (los mismos datos, dibujos y cálculos; `js/entrega.js` arma cada documento y `tools/pdf/build.js` lo imprime
+en un Chromium sin cabeza):
+
+| Documento | Contenido | Páginas |
+|---|---|---|
+| 1 · Ficha del proyecto y planos a escala | Ficha, las tres versiones, referencia de escalado, planta 1:50 de cada versión (A-01) y plano de cada espacio a 1:25 (A-02) | A4 + láminas A3 |
+| 2 · Requisitos, alternativas y matriz | Medidas del cuerpo, requisitos de las normas, requisitos de cada mueble con su fuente, criterios, tres alternativas por mueble con su matriz, fuentes | A4 |
+| 3 · Planos técnicos | El juego de planos completo de la versión B (índice, planta y, por mueble, ensamble, explosionado, secuencia, detalles y piezas) y, como anexos, los de A y C | A3 a tamaño real |
+| 4 · Despiece, materiales y uniones | Regla de materiales, tabla de materiales, lista consolidada, herrajes y tornillería, cableado, despiece de cada mueble y detalle de cada unión; anexos de A y C | A4 |
+| 5 · Iluminación y equipo | Fichas técnicas, luz de cada mueble, alojamiento · cableado · ventilación · acceso, impresoras y pantallas; anexos de A y C | A4 |
+| 6 · Renders | Cada mueble en su espacio (se captura del modelo; el grupo lo arma con sus propias imágenes) | A4 horizontal |
+
+Para generarlos: servir la carpeta (`python3 -m http.server 8765`) y correr `node tools/pdf/build.js 1 2 3 4 5` (necesita
+`playwright` y `python3` con `pypdf`; `qpdf` recomprime el resultado). Cada documento lleva portada, índice con páginas,
+cabeceras con la sección, marcadores y enlaces internos. Las láminas A3 van a su tamaño real: imprimir al 100 %.
+
 ## Nota 2 · Sistema de producción
 
 En el mismo visor, la pestaña **Nota 2 · Producción** (o un enlace que termina en `#nota2`, `#nota2-11`…) presenta la planta
@@ -385,6 +404,7 @@ así los navegadores descargan la versión nueva en lugar de usar la guardada en
 | `js/plan.js` | La planta 2D a escala 1:50 (SVG), con los muebles de cada versión |
 | `js/dwg.js` | Láminas técnicas dibujadas desde la geometría 3D: plano de ensamble, explosionado y piezas |
 | `js/planos.js` | Juego de planos: secuencia de ensamble, detalles constructivos, índice y convenciones, y la lista de láminas del Plano 2D |
+| `js/entrega.js`, `css/entrega.css`, `tools/pdf/` | Entrega en PDF: arma los seis documentos de la Nota 1 con los datos del visor y los imprime (Playwright + pypdf) |
 | `js/room.js` | Muros, fachada, cielo, luces y cotas |
 | `js/engine.js` | Motor: texturas PBR procedurales, materiales, luces, postproceso HDR, refinamiento progresivo, cámara, reflejo del piso y animaciones |
 | `js/geo.js` | Utilidades de geometría (tableros con canto redondeado, trazos SVG a formas 3D) |

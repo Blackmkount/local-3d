@@ -128,53 +128,72 @@
       '<div class="n1-sheet" data-sheet="plan">' + L.plan.svg(ST.ver, { cotas: true, nums: true }) + '</div>' +
       '<p class="n1-note">Lámina A3 a escala 1:50 de la versión ' + ST.ver + '. Las tres versiones usan las mismas medidas del local; cambia la distribución. <button type="button" class="link" data-n1plan="1">Abrir el plano interactivo</button></p>';
   }
-  function secC() {
-    const A = N.antro, M = N.muebles[ST.n], it = itemOf(ST.ver, ST.n);
-    const antro = '<div class="n1-tbl"><table><thead><tr><th>Medida (variable de Acopla95)</th><th class="r">P5 mujeres</th><th class="r">P50 mujeres</th><th class="r">P50 hombres</th><th class="r">P95 hombres</th></tr></thead><tbody>' +
+  function antro() {
+    const A = N.antro;
+    return '<div class="n1-tbl"><table><thead><tr><th>Medida (variable de Acopla95)</th><th class="r">P5 mujeres</th><th class="r">P50 mujeres</th><th class="r">P50 hombres</th><th class="r">P95 hombres</th></tr></thead><tbody>' +
       Object.keys(A).map((k) => { const a = A[k]; return '<tr><td>' + esc(a.t) + ' <span class="n1-mut">(variable ' + a.v + ')</span></td><td class="r mono">' + f1(a.p5) + '</td><td class="r mono">' + f1(a.p50m) + '</td><td class="r mono">' + f1(a.p50h) + '</td><td class="r mono">' + f1(a.p95) + '</td></tr>'; }).join('') +
       '</tbody></table></div><p class="n1-note">Centímetros, sin ropa ni calzado. ' + tipoTag('fuente') + ' ' + fuenteRef('acopla') + '. Se diseña para los dos extremos: lo que debe alcanzar la persona más baja (P5 de mujeres) y lo que debe dejar pasar a la más grande (P95 de hombres).</p>';
-    const normas = '<div class="n1-tbl"><table><thead><tr><th>Requisito</th><th>Fuente</th>' + VER.map((v) => '<th>' + vtag(v) + ' ' + esc(vinfo(v).corto) + '</th>').join('') + '</tr></thead><tbody>' +
+  }
+  function normas() {
+    return '<div class="n1-tbl"><table><thead><tr><th>Requisito</th><th>Fuente</th>' + VER.map((v) => '<th>' + vtag(v) + ' ' + esc(vinfo(v).corto) + '</th>').join('') + '</tr></thead><tbody>' +
       N.normas.map((r) => '<tr><td><b>' + esc(r.t) + '</b><small>' + esc(r.d) + '</small></td><td>' + tipoTag(N.fuentes[r.f].tipo) + ' ' + fuenteRef(r.f) + '</td>' + VER.map((v) => '<td class="rq-' + r.v[v][0] + '">' + stIcon(r.v[v][0]) + esc(r.v[v][1]) + '</td>').join('') + '</tr>').join('') +
       '</tbody></table></div><p class="n1-note">Estos requisitos no estaban en el documento del proyecto: salieron de revisar las normas. Donde una versión no cumple, el mueble se corrige y el cambio se anota en la tabla de rastreo.</p>';
-    const reqs = VS.req[ST.n];
-    const card = '<article class="n1-card"><header><span class="n1-num">' + ST.n + '</span><div><h4>' + esc(ROLE[ST.n]) + '</h4><small>' + esc(N.ficha.espacios.find((e) => e.id === M.espacio).t) + '</small></div></header>' +
+  }
+  function reqCard(n) {
+    const A = N.antro, M = N.muebles[n], reqs = VS.req[n];
+    return '<article class="n1-card"><header><span class="n1-num">' + n + '</span><div><h4>' + esc(ROLE[n]) + '</h4><small>' + esc(N.ficha.espacios.find((e) => e.id === M.espacio).t) + '</small></div></header>' +
       '<dl class="n1-dl sm"><div><dt>Quién lo usa</dt><dd>' + esc(M.usuario) + '</dd></div><div><dt>Para qué</dt><dd>' + esc(M.uso) + '</dd></div><div><dt>Espacio alrededor</dt><dd>' + esc(M.entorno) + '</dd></div></dl>' +
       '<h5>Medidas del cuerpo que lo condicionan</h5><ul class="n1-meds">' + M.medidas.map((m) => { const a = A[m[0]]; return '<li><b>' + esc(a.t) + '</b> <span class="mono">P5 ' + f1(a.p5) + ' · P95 ' + f1(a.p95) + ' cm</span><p>' + esc(m[1]) + '</p></li>'; }).join('') + '</ul>' +
-      '<h5>Requisitos y cómo los cumple cada alternativa</h5><div class="n1-tbl"><table class="n1-rq"><thead><tr><th>Requisito</th><th>Fuente o dato</th>' + VER.map((v) => '<th>' + vtag(v) + ' ' + esc(itemOf(v, ST.n).short) + '</th>').join('') + '</tr></thead><tbody>' +
-      reqs.map((r, i) => { const s = M.src[i] || { tipo: 'no', d: '' }; return '<tr><td><b>' + esc(r) + '</b></td><td>' + tipoTag(s.tipo) + ' ' + fuenteRef(s.f) + '<small>' + esc(s.d) + '</small></td>' + VER.map((v) => { const c = VS.cumple(ST.n, v)[i] || ['si', '']; return '<td class="rq-' + c[0] + '">' + stIcon(c[0]) + esc(c[1]) + '</td>'; }).join('') + '</tr>'; }).join('') +
+      '<h5>Requisitos y cómo los cumple cada alternativa</h5><div class="n1-tbl"><table class="n1-rq"><thead><tr><th>Requisito</th><th>Fuente o dato</th>' + VER.map((v) => '<th>' + vtag(v) + ' ' + esc(itemOf(v, n).short) + '</th>').join('') + '</tr></thead><tbody>' +
+      reqs.map((r, i) => { const s = M.src[i] || { tipo: 'no', d: '' }; return '<tr><td><b>' + esc(r) + '</b></td><td>' + tipoTag(s.tipo) + ' ' + fuenteRef(s.f) + '<small>' + esc(s.d) + '</small></td>' + VER.map((v) => { const c = VS.cumple(n, v)[i] || ['si', '']; return '<td class="rq-' + c[0] + '">' + stIcon(c[0]) + esc(c[1]) + '</td>'; }).join('') + '</tr>'; }).join('') +
       '</tbody></table></div></article>';
-    const fuentes = '<ol class="n1-refs">' + Object.keys(N.fuentes).map((k) => { const f = N.fuentes[k]; return '<li id="n1-f-' + k + '"><b>' + esc(SHORT[k] || k) + '.</b> ' + esc(f.t) + (f.u ? ' <a href="' + esc(f.u) + '" target="_blank" rel="noopener">Enlace</a>' : '') + ' <small>' + tipoTag(f.tipo) + ' ' + esc(f.d) + ' Consultado el ' + esc(N.fecha) + '.</small></li>'; }).join('') + '</ol>';
+  }
+  function fuentes() {
+    return '<ol class="n1-refs">' + Object.keys(N.fuentes).map((k) => { const f = N.fuentes[k]; return '<li id="n1-f-' + k + '"><b>' + esc(SHORT[k] || k) + '.</b> ' + esc(f.t) + (f.u ? ' <a href="' + esc(f.u) + '" target="_blank" rel="noopener">Enlace</a>' : '') + ' <small>' + tipoTag(f.tipo) + ' ' + esc(f.d) + ' Consultado el ' + esc(N.fecha) + '.</small></li>'; }).join('') + '</ol>';
+  }
+  function secC() {
     return secHead('C') +
       '<p class="n1-lead">Antes de dibujar se escribió qué tiene que resolver cada mueble: quién lo usa, para qué, cuánto espacio necesita alrededor y qué medidas del cuerpo lo condicionan. Cada requisito dice de dónde sale: una fuente citada, el encargo, o un valor estimado que se dice cómo se obtuvo.</p>' +
-      '<h3>Medidas del cuerpo</h3>' + antro +
-      '<h3>Requisitos que salen de las normas</h3>' + normas +
-      '<h3>Requisitos de cada mueble</h3>' + pickN(ST.n) + card +
-      '<h3>Fuentes</h3>' + fuentes;
+      '<h3>Medidas del cuerpo</h3>' + antro() +
+      '<h3>Requisitos que salen de las normas</h3>' + normas() +
+      '<h3>Requisitos de cada mueble</h3>' + pickN(ST.n) + reqCard(ST.n) +
+      '<h3>Fuentes</h3>' + fuentes();
   }
-  function secD() {
-    const C = N.criterios;
-    const sum = '<div class="n1-tbl"><table class="n1-sum"><thead><tr><th>Mueble</th>' + VER.map((v) => '<th class="r">' + vtag(v) + ' ' + esc(vinfo(v).corto) + '</th>').join('') + '<th>Se desarrolla</th></tr></thead><tbody>' +
-      FABN.map((k) => { const m = matrix(k); return '<tr data-n1n="' + k + '" class="' + (k === ST.n ? 'is-on' : '') + '"><td><b>' + k + '</b> ' + esc(ROLE[k]) + '</td>' + VER.map((v) => '<td class="r mono' + (v === m.win ? ' is-win' : '') + '">' + m.sc[v].total.toFixed(2) + '</td>').join('') + '<td>' + vtag(m.win) + ' ' + esc(itemOf(m.win, k).short) + '</td></tr>'; }).join('') +
+  function sumTable(sel) {
+    return '<div class="n1-tbl"><table class="n1-sum"><thead><tr><th>Mueble</th>' + VER.map((v) => '<th class="r">' + vtag(v) + ' ' + esc(vinfo(v).corto) + '</th>').join('') + '<th>Se desarrolla</th></tr></thead><tbody>' +
+      FABN.map((k) => { const m = matrix(k); return '<tr data-n1n="' + k + '" class="' + (k === sel ? 'is-on' : '') + '"><td><b>' + k + '</b> ' + esc(ROLE[k]) + '</td>' + VER.map((v) => '<td class="r mono' + (v === m.win ? ' is-win' : '') + '">' + m.sc[v].total.toFixed(2) + '</td>').join('') + '<td>' + vtag(m.win) + ' ' + esc(itemOf(m.win, k).short) + '</td></tr>'; }).join('') +
       '</tbody></table></div>';
-    const wins = {}; VER.forEach((v) => { wins[v] = 0; }); let avg = {}; VER.forEach((v) => { avg[v] = 0; });
+  }
+  function resumen() {
+    const wins = {}; VER.forEach((v) => { wins[v] = 0; }); const avg = {}; VER.forEach((v) => { avg[v] = 0; });
     FABN.forEach((k) => { const m = matrix(k); wins[m.win]++; VER.forEach((v) => { avg[v] += m.sc[v].total / FABN.length; }); });
     const best = VER.slice().sort((a, b) => avg[b] - avg[a])[0];
-    const m = matrix(ST.n);
+    return { wins, avg, best };
+  }
+  function altBlock(n) {
+    const C = N.criterios, m = matrix(n);
     const val = (v, id) => {
       const f = m.F[v];
       return { req: f.req + ' de ' + f.reqN, costo: cop(f.costo), fab: f.oficios.length + ' oficios · ' + f.piezas + ' piezas', dura: (VS.precios[f.surf] ? VS.precios[f.surf].m.split(',')[0] : '—'), mont: f.ens + ' pasos', marca: N.marca[v][1] }[id];
     };
-    const cards = '<div class="n1-alts">' + VER.map((v) => { const it = itemOf(v, ST.n); return '<article class="n1-alt' + (v === m.win ? ' is-win' : '') + '" style="--vc:' + vinfo(v).color + '"><div class="n1-thumb" data-thumb="' + v + '-' + ST.n + '"><span class="n1-load">Dibujando…</span></div><header>' + vtag(v) + '<div><h4>' + esc(it.short) + '</h4><small>' + esc(it.dims) + '</small></div><b class="mono">' + m.sc[v].total.toFixed(2) + '</b></header><p>' + esc(it.it.resumen || base[ST.n].resumen) + '</p>' + (v === m.win ? '<span class="n1-winb">Alternativa elegida</span>' : '') + '</article>'; }).join('') + '</div>';
-    const tbl = '<div class="n1-tbl"><table class="n1-mx"><thead><tr><th>Criterio</th><th class="r">Peso</th>' + VER.map((v) => '<th>' + vtag(v) + ' ' + esc(itemOf(v, ST.n).short) + '</th>').join('') + '</tr></thead><tbody>' +
+    const cards = '<div class="n1-alts">' + VER.map((v) => { const it = itemOf(v, n); return '<article class="n1-alt' + (v === m.win ? ' is-win' : '') + '" style="--vc:' + vinfo(v).color + '"><div class="n1-thumb" data-thumb="' + v + '-' + n + '"><span class="n1-load">Dibujando…</span></div><header>' + vtag(v) + '<div><h4>' + esc(it.short) + '</h4><small>' + esc(it.dims) + '</small></div><b class="mono">' + m.sc[v].total.toFixed(2) + '</b></header><p>' + esc(it.it.resumen || base[n].resumen) + '</p>' + (v === m.win ? '<span class="n1-winb">Alternativa elegida</span>' : '') + '</article>'; }).join('') + '</div>';
+    const tbl = '<div class="n1-tbl"><table class="n1-mx"><thead><tr><th>Criterio</th><th class="r">Peso</th>' + VER.map((v) => '<th>' + vtag(v) + ' ' + esc(itemOf(v, n).short) + '</th>').join('') + '</tr></thead><tbody>' +
       C.map((c) => '<tr><td><b>' + esc(c.t) + '</b><small>' + esc(c.d) + '</small></td><td class="r mono">' + c.peso + ' %</td>' + VER.map((v) => '<td><span class="n1-sc">' + m.sc[v][c.id].toFixed(1) + '</span><small>' + esc(val(v, c.id)) + '</small></td>').join('') + '</tr>').join('') +
       '<tr class="n1-tot"><td><b>Total ponderado</b></td><td class="r mono">100 %</td>' + VER.map((v) => '<td class="' + (v === m.win ? 'is-win' : '') + '"><span class="n1-sc">' + m.sc[v].total.toFixed(2) + '</span><small>de 5.00</small></td>').join('') + '</tr></tbody></table></div>';
-    const dura = '<details class="n1-det"><summary>Tabla de durabilidad (criterio del grupo)</summary><div class="n1-tbl"><table><thead><tr><th>Material</th><th class="r">Puntaje</th><th>Por qué</th></tr></thead><tbody>' +
-      Object.keys(N.dura).map((k) => '<tr><td>' + esc(VS.precios[k] ? VS.precios[k].m : k) + '</td><td class="r mono">' + N.dura[k][0] + '</td><td>' + esc(N.dura[k][1]) + '</td></tr>').join('') + '</tbody></table></div></details>';
+    return cards + tbl;
+  }
+  function duraTable() {
+    return '<div class="n1-tbl"><table><thead><tr><th>Material</th><th class="r">Puntaje</th><th>Por qué</th></tr></thead><tbody>' +
+      Object.keys(N.dura).map((k) => '<tr><td>' + esc(VS.precios[k] ? VS.precios[k].m : k) + '</td><td class="r mono">' + N.dura[k][0] + '</td><td>' + esc(N.dura[k][1]) + '</td></tr>').join('') + '</tbody></table></div>';
+  }
+  function secD() {
+    const { wins, avg, best } = resumen();
+    const dura = '<details class="n1-det"><summary>Tabla de durabilidad (criterio del grupo)</summary>' + duraTable() + '</details>';
     return secHead('D') +
       '<p class="n1-lead">Cada mueble tiene tres alternativas: una por versión del local. Se comparan con seis criterios escritos antes de puntuar; cinco se calculan con los datos de cada alternativa (requisitos, costo, oficios y piezas, pasos de montaje) y dos son criterio del grupo, también escrito.</p>' +
       '<div class="n1-kpis">' + VER.map((v) => '<div style="--vc:' + vinfo(v).color + '" class="' + (v === best ? 'is-win' : '') + '">' + vtag(v) + '<span><b>' + esc(vinfo(v).nombre) + '</b><small>Gana en ' + wins[v] + ' de ' + FABN.length + ' muebles · promedio ' + avg[v].toFixed(2) + '</small></span></div>').join('') + '</div>' +
-      '<h3>Resultado por mueble <small>toca una fila para ver su matriz</small></h3>' + sum +
-      '<h3>Matriz de selección del mueble ' + ST.n + '</h3>' + pickN(ST.n) + cards + tbl +
+      '<h3>Resultado por mueble <small>toca una fila para ver su matriz</small></h3>' + sumTable(ST.n) +
+      '<h3>Matriz de selección del mueble ' + ST.n + '</h3>' + pickN(ST.n) + altBlock(ST.n) +
       '<p class="n1-note">Se desarrolla la alternativa de mayor puntaje. Como el local se arma por versiones completas, las tres alternativas de cada mueble también tienen sus planos, despiece y costos: si el cliente elige otra versión, el diseño ya está hecho. La versión con mayor promedio es la <b>' + best + ' · ' + esc(vinfo(best).nombre) + '</b>.</p>' + dura;
   }
   function secE() {
@@ -187,8 +206,8 @@
         '<span><button type="button" class="btn btn-sm" data-n1zoom="' + k + '">Ampliar</button>' + (inFrame ? '' : '<button type="button" class="btn btn-sm" data-n1svg="' + k + '">Descargar SVG</button>') + '</span></figcaption></figure>').join('') +
       '</div><p class="n1-note">Las láminas de piezas dan la medida de corte de cada tablero, lámina, tubo y perfil, con su espesor o su sección; las perforaciones de los herrajes se toman del plano de conjunto. Los detalles de las uniones están en el elemento G.</p>';
   }
-  function secF() {
-    const it = VS.items[ST.ver][ST.n], P = VS.precios, I = itemOf(ST.ver, ST.n);
+  function despiece(v, n) {
+    const it = VS.items[v][n], P = VS.precios, I = itemOf(v, n);
     const esp = (p) => { const m = /(\d+(?:\.\d+)?) mm/.exec(p.m); return m ? m[1] : (p.m.match(/calibre \d+/) || [''])[0]; };
     const ORIG = { rovere15: 'Se fabrica · corte y enchape encargados al proveedor', blanca15: 'Se fabrica · corte y enchape encargados al proveedor', blanca15v: 'Se fabrica · capa de abajo de la tapa de 30 mm', fondo6: 'Se fabrica · corte encargado al proveedor', mdf15: 'Se fabrica · corte encargado; se laca o enchapa en el taller', mdf55: 'Se fabrica · corte encargado; se curva y laca en el taller',
       hpl: 'Se compra · se corta y se pega en el taller', pvc10: 'Se fabrica · corte CNC encargado', pvc5: 'Se fabrica · corte CNC encargado', acril3: 'Se fabrica · corte láser encargado', opal3: 'Se fabrica · corte láser encargado', perforada: 'Se fabrica · corte y doblez en el taller',
@@ -205,39 +224,47 @@
     }).join('');
     const herr = it.herrajes.map((h) => { const pr = P[h[0]]; return '<tr><td><b>' + esc(pr.m) + '</b></td><td class="r mono">' + h[2] + '</td><td>' + esc(h[1]) + '</td><td>' + esc(pr.pres) + '</td><td>Se compra</td></tr>'; }).join('');
     const acab = it.acabados.map((a) => { const pr = P[a[0]]; return '<tr><td><b>' + esc(pr.m) + '</b></td><td class="r mono">' + f1(a[2]) + ' m² × ' + a[3] + '</td><td>' + esc(a[1]) + '</td><td>' + esc(pr.pres) + '</td><td>Se compra</td></tr>'; }).join('');
-    const c = VS.calc(ST.ver).items[ST.n];
-    return secHead('F', pickV()) +
-      '<p class="n1-lead">Despiece del mueble con su cantidad, material, medidas de corte y si se fabrica, se compra o se encarga. Los herrajes, la tornillería y los insumos también se compran y se cuestan.</p>' + pickN(ST.n) +
-      '<h3>' + ST.n + ' · ' + esc(I.name) + ' <small>' + esc(I.dims) + ' · materiales ' + cop(c.total) + '</small></h3>' +
+    const c = VS.calc(v).items[n];
+    return '<h3>' + n + ' · ' + esc(I.name) + ' <small>' + esc(I.dims) + ' · materiales ' + cop(c.total) + '</small></h3>' +
       '<h4 class="n1-h4">Piezas</h4><div class="n1-tbl"><table><thead><tr><th>Pieza</th><th class="r">Cant.</th><th>Material</th><th>Medidas (mm)</th><th>Formato comercial</th><th>Origen</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<h4 class="n1-h4">Herrajes, tornillería e iluminación</h4><div class="n1-tbl"><table><thead><tr><th>Elemento</th><th class="r">Cant.</th><th>Uso</th><th>Unidad de venta</th><th>Origen</th></tr></thead><tbody>' + herr + '</tbody></table></div>' +
       (acab ? '<h4 class="n1-h4">Acabados e insumos</h4><div class="n1-tbl"><table><thead><tr><th>Insumo</th><th class="r">Área × manos</th><th>Uso</th><th>Unidad de venta</th><th>Origen</th></tr></thead><tbody>' + acab + '</tbody></table></div>' : '') +
       '<p class="n1-note">Medidas de corte: largo × ancho × espesor para tableros y láminas; largo para tubos y perfiles. El costo de cada material está en el presupuesto de la versión. El cable de la luz (sección y caída de tensión) está en el elemento H; los insumos de taller (lija, discos, brocas) van en la lista de compras de la Nota 3.</p>';
   }
+  function secF() {
+    return secHead('F', pickV()) +
+      '<p class="n1-lead">Despiece del mueble con su cantidad, material, medidas de corte y si se fabrica, se compra o se encarga. Los herrajes, la tornillería y los insumos también se compran y se cuestan.</p>' + pickN(ST.n) + despiece(ST.ver, ST.n);
+  }
 
   /* G · materiales y uniones */
-  function secG() {
-    const UN = L.uniones, P = VS.precios, V = VS.items[ST.ver];
+  function regla(v) {
+    const UN = L.uniones;
     // regla: dos materiales por mueble, tres en el conjunto
     const fams = {}; const all = new Set();
-    FABN.forEach((k) => { fams[k] = UN.familias(ST.ver, k); fams[k].forEach((f) => all.add(f)); });
-    const regla = '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Materiales</th><th>Regla</th></tr></thead><tbody>' +
-      FABN.map((k) => '<tr><td><b>' + k + '</b> ' + esc(itemOf(ST.ver, k).short) + '</td><td>' + fams[k].map((f) => '<span class="n1-chip">' + esc(UN.famT[f].split(' (')[0]) + '</span>').join(' ') + '</td><td class="rq-' + (fams[k].length >= 2 ? 'si' : 'no') + '">' + stIcon(fams[k].length >= 2 ? 'si' : 'no') + (fams[k].length >= 2 ? fams[k].length + ' materiales' : 'Un solo material') + '</td></tr>').join('') +
+    FABN.forEach((k) => { fams[k] = UN.familias(v, k); fams[k].forEach((f) => all.add(f)); });
+    return '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Materiales</th><th>Regla</th></tr></thead><tbody>' +
+      FABN.map((k) => '<tr><td><b>' + k + '</b> ' + esc(itemOf(v, k).short) + '</td><td>' + fams[k].map((f) => '<span class="n1-chip">' + esc(UN.famT[f].split(' (')[0]) + '</span>').join(' ') + '</td><td class="rq-' + (fams[k].length >= 2 ? 'si' : 'no') + '">' + stIcon(fams[k].length >= 2 ? 'si' : 'no') + (fams[k].length >= 2 ? fams[k].length + ' materiales' : 'Un solo material') + '</td></tr>').join('') +
       '<tr class="n1-tot"><td><b>Conjunto</b></td><td>' + Array.from(all).map((f) => '<span class="n1-chip">' + esc(UN.famT[f]) + '</span>').join(' ') + '</td><td class="rq-' + (all.size >= 3 ? 'si' : 'no') + '">' + stIcon(all.size >= 3 ? 'si' : 'no') + all.size + ' materiales</td></tr></tbody></table></div>';
-    // materiales de la versión
-    const uso = {};
+  }
+  function mats(v) {
+    const P = VS.precios, V = VS.items[v], uso = {};
     FABN.forEach((k) => { const it = V[k]; it.piezas.concat(it.acabados).forEach((p) => { (uso[p[0]] = uso[p[0]] || new Set()).add(k); }); });
-    const mats = '<div class="n1-tbl"><table><thead><tr><th>Material</th><th>Formato comercial</th><th>Proveedor y precio</th><th>Muebles</th><th>Por qué</th></tr></thead><tbody>' +
+    return '<div class="n1-tbl"><table><thead><tr><th>Material</th><th>Formato comercial</th><th>Proveedor y precio</th><th>Muebles</th><th>Por qué</th></tr></thead><tbody>' +
       Object.keys(uso).filter((k) => P[k]).sort((a, b) => P[a].cat.localeCompare(P[b].cat)).map((k) => { const p = P[k]; return '<tr><td><b>' + esc(p.m) + '</b><small>' + esc(p.cat) + '</small></td><td>' + esc(p.pres) + '</td><td>' + esc(p.prov) + '<small>' + esc(VS.precioTxt(p)) + (p.u ? ' · <a href="' + esc(p.u) + '" target="_blank" rel="noopener">enlace</a>' : '') + '</small></td><td>' + Array.from(uso[k]).sort((a, b) => a - b).join(', ') + '</td><td>' + esc(N.matj[k] || '') + '</td></tr>'; }).join('') +
       '</tbody></table></div>';
-    const un = UN.of(ST.ver, ST.n);
+  }
+  function uniones(v, n) {
+    const P = VS.precios, un = L.uniones.of(v, n);
     const her = (ids) => ids.filter((h) => P[h]).map((h) => esc(P[h].m)).join(' · ');
-    const det = '<div class="n1-uns">' + un.map((x) => '<article class="n1-un"><div class="n1-udr">' + x.u.draw() + '</div><div><h4>' + esc(x.u.t) + '</h4><small>' + esc(x.why) + ' · detalle a escala 1:2, medidas en mm</small><p>' + esc(x.u.como) + '</p>' + (x.u.herr.length ? '<p class="n1-uh"><b>Herraje:</b> ' + her(x.u.herr) + '</p>' : '') + '</div></article>').join('') + '</div>';
+    return '<div class="n1-uns">' + un.map((x) => '<article class="n1-un"><div class="n1-udr">' + x.u.draw() + '</div><div><h4>' + esc(x.u.t) + '</h4><small>' + esc(x.why) + ' · detalle a escala 1:2, medidas en mm</small><p>' + esc(x.u.como) + '</p>' + (x.u.herr.length ? '<p class="n1-uh"><b>Herraje:</b> ' + her(x.u.herr) + '</p>' : '') + '</div></article>').join('') + '</div>';
+  }
+  function secG() {
+    const un = L.uniones.of(ST.ver, ST.n);
     return secHead('G', pickV()) +
       '<p class="n1-lead">Con qué se hace cada mueble, en qué formato se compra cada material y cómo se une un material con otro. La guía pide al menos dos materiales por mueble y tres en el conjunto.</p>' +
-      '<h3>Regla de los materiales · versión ' + ST.ver + '</h3>' + regla +
-      '<h3>Materiales de la versión ' + ST.ver + '</h3>' + mats +
-      '<h3>Uniones de cada mueble</h3>' + pickN(ST.n) + '<p class="n1-note" style="margin:0 0 10px">' + ST.n + ' · ' + esc(itemOf(ST.ver, ST.n).name) + ': ' + un.length + ' uniones.</p>' + det;
+      '<h3>Regla de los materiales · versión ' + ST.ver + '</h3>' + regla(ST.ver) +
+      '<h3>Materiales de la versión ' + ST.ver + '</h3>' + mats(ST.ver) +
+      '<h3>Uniones de cada mueble</h3>' + pickN(ST.n) + '<p class="n1-note" style="margin:0 0 10px">' + ST.n + ' · ' + esc(itemOf(ST.ver, ST.n).name) + ': ' + un.length + ' uniones.</p>' + uniones(ST.ver, ST.n);
   }
   /* H · iluminación y equipo */
   function luzDe(v, n) {
@@ -247,40 +274,57 @@
     const fu = it.herrajes.filter((h) => Z.fuenteW[h[0]]);
     return { m, W, run, fu, cap: fu.reduce((a, h) => a + Z.fuenteW[h[0]] * h[2], 0) };
   }
-  function secH() {
-    const Z = N.luz, P = VS.precios, est = { v: 'Verificado', np: 'No publicado', inf: 'Inferido', d: 'Discrepancia' };
-    const fichas = '<div class="n1-fichas">' + N.fichas.map((f) => '<article class="n1-ficha"><header><span class="n1-tipo t-' + (f.tipo === 'luz' ? 'fuente' : 'encargo') + '">' + (f.tipo === 'luz' ? 'Iluminación' : 'Equipo') + '</span><h4>' + esc(f.t) + '</h4><small>' + esc(f.ref) + ' · ' + esc(f.prov) + ' · <a href="' + esc(f.u) + '" target="_blank" rel="noopener">ficha</a></small></header><table>' +
+  const EST = { v: 'Verificado', np: 'No publicado', inf: 'Inferido', d: 'Discrepancia' };
+  function fichas() {
+    const est = EST;
+    return '<div class="n1-fichas">' + N.fichas.map((f) => '<article class="n1-ficha"><header><span class="n1-tipo t-' + (f.tipo === 'luz' ? 'fuente' : 'encargo') + '">' + (f.tipo === 'luz' ? 'Iluminación' : 'Equipo') + '</span><h4>' + esc(f.t) + '</h4><small>' + esc(f.ref) + ' · ' + esc(f.prov) + ' · <a href="' + esc(f.u) + '" target="_blank" rel="noopener">ficha</a></small></header><table>' +
       f.rows.map((r) => '<tr><th>' + esc(r[0]) + '</th><td>' + esc(r[1]) + ' <span class="n1-es e-' + r[2] + '">' + est[r[2]] + '</span></td></tr>').join('') + '</table></article>').join('') + '</div>';
-    // cálculo por mueble
-    const rows = [];
+  }
+  /* datos de la luz de cada mueble de una versión: carga, fuente, cable y dónde va la fuente */
+  function luzData(v) {
+    const Z = N.luz, out = [];
     FABN.forEach((k) => {
-      const d = luzDe(ST.ver, k); if (!d.m) return;
-      const key = ST.ver + k, host = N.comparte[key];
+      const d = luzDe(v, k); if (!d.m) return;
+      const key = v + k, host = N.comparte[key];
       let load = d.W, cap = d.cap, nota = '';
-      FABN.forEach((j) => { if (N.comparte[ST.ver + j] === key) { const o = luzDe(ST.ver, j); load += o.W; nota = 'Incluye la luz del mueble ' + j + '.'; } });
+      FABN.forEach((j) => { if (N.comparte[v + j] === key) { const o = luzDe(v, j); load += o.W; nota = 'Incluye la luz del mueble ' + j + '.'; } });
       if (host) { nota = 'Se conecta a la fuente del mueble ' + host.slice(1) + '.'; cap = 0; }
-      const dims = (itemOf(ST.ver, k).dims.match(/\d+\.\d+/g) || ['1']).map(Number), Lc = Math.max.apply(null, dims) + 0.5;
+      const dims = (itemOf(v, k).dims.match(/\d+\.\d+/g) || ['1']).map(Number), Lc = Math.max.apply(null, dims) + 0.5;
       const I = d.run / 12, sec = Z.cable.find((c) => 2 * Lc * c[1] / 1000 * I / 12 <= Z.caida) || Z.cable[Z.cable.length - 1], drop = 2 * Lc * sec[1] / 1000 * I / 12;
       const pct = cap ? load / cap : null, ok = cap ? pct <= Z.margen : true;
-      const where = (VS.items[ST.ver][k].ens.concat(VS.items[ST.ver][k].fab).find((t) => /fuente/i.test(t)) || (d.fu[0] ? 'Dentro del mueble: ' + d.fu[0][1].charAt(0).toLowerCase() + d.fu[0][1].slice(1) : '')).replace(/\.$/, '');
-      rows.push('<tr><td><b>' + k + '</b> ' + esc(itemOf(ST.ver, k).short) + '</td><td class="mono nw">' + d.m.toFixed(2).replace('.', ',') + ' m · ' + Math.round(d.W) + ' W</td><td>' + (cap ? d.fu.map((h) => h[2] + ' × ' + Z.fuenteW[h[0]] + ' W').join(' + ') : '—') + '</td>' +
+      const where = (VS.items[v][k].ens.concat(VS.items[v][k].fab).find((t) => /fuente/i.test(t)) || (d.fu[0] ? 'Dentro del mueble: ' + d.fu[0][1].charAt(0).toLowerCase() + d.fu[0][1].slice(1) : '')).replace(/\.$/, '');
+      out.push({ n: k, d, host, load, cap, nota, Lc, I, sec, drop, pct, ok, where });
+    });
+    return out;
+  }
+  function luzCalc(v) {
+    const Z = N.luz, rows = [];
+    luzData(v).forEach((r) => {
+      const { n: k, d, cap, nota, Lc, sec, drop, pct, ok, where } = r;
+      rows.push('<tr><td><b>' + k + '</b> ' + esc(itemOf(v, k).short) + '</td><td class="mono nw">' + d.m.toFixed(2).replace('.', ',') + ' m · ' + Math.round(d.W) + ' W</td><td>' + (cap ? d.fu.map((h) => h[2] + ' × ' + Z.fuenteW[h[0]] + ' W').join(' + ') : '—') + '</td>' +
         '<td class="' + (cap ? 'rq-' + (ok ? 'si' : 'no') : '') + '">' + (cap ? stIcon(ok ? 'si' : 'no') + Math.round(pct * 100) + ' %' : '') + (nota ? '<small>' + esc(nota) + '</small>' : '') + '</td>' +
         '<td class="mono nw">' + String(sec[0]).replace('.', ',') + ' mm² · ' + (drop * 100).toFixed(1).replace('.', ',') + ' %<small>tramo de ' + Lc.toFixed(1).replace('.', ',') + ' m</small></td><td>' + esc(where) + '</td></tr>');
     });
-    const calc = '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>LED</th><th>Fuente</th><th>Carga de la fuente</th><th>Cable y caída</th><th>Dónde va la fuente</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
+    return '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>LED</th><th>Fuente</th><th>Carga de la fuente</th><th>Cable y caída</th><th>Dónde va la fuente</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
       '<p class="n1-note">Carga: metros de LED por su potencia (perfil 7 W/m y tira COB 4.4 W/m, ver fichas), frente a la fuente instalada; se acepta hasta el 80 % (criterio del grupo). Cable: cada tramo va en estrella hasta la fuente, con par de cobre flexible; se elige la sección con caída de tensión de 3 % o menos para el tramo más cargado, con un recorrido igual al largo del mueble más 0.50 m (estimado). Resistencia del cobre: ' + fuenteRef('iec60228') + '. Las fuentes van en un compartimento seco y registrable, con una toma propia; su carcasa es de plástico y no tiene IP publicado, así que no se encierran sin ventilación.</p>';
-    const cam = N.cambios.filter((c) => c.v === ST.ver && c.el === 'H');
-    const camb = cam.length ? '<div class="n1-box n1-chg"><b>Cambios al mueble por este cálculo</b><ul>' + cam.map((c) => '<li><b>' + c.n + ' · ' + esc(itemOf(c.v, c.n).short) + ':</b> ' + esc(c.antes) + ' → ' + esc(c.despues) + '. ' + esc(c.causa) + '</li>').join('') + '</ul></div>' : '';
-    const IM = N.impresoras[ST.ver], it7 = itemOf(ST.ver, 7), fondo = (it7.dims.match(/\d+\.\d+/g) || [0, 0.6])[1];
-    const imp = '<div class="n1-tbl"><table><tbody>' +
+  }
+  function cambios(v) {
+    const cam = N.cambios.filter((c) => c.v === v && c.el === 'H');
+    return cam.length ? '<div class="n1-box n1-chg"><b>Cambios al mueble por este cálculo</b><ul>' + cam.map((c) => '<li><b>' + c.n + ' · ' + esc(itemOf(c.v, c.n).short) + ':</b> ' + esc(c.antes) + ' → ' + esc(c.despues) + '. ' + esc(c.causa) + '</li>').join('') + '</ul></div>' : '';
+  }
+  function impresoras(v) {
+    const IM = N.impresoras[v], it7 = itemOf(v, 7), fondo = (it7.dims.match(/\d+\.\d+/g) || [0, 0.6])[1];
+    return '<div class="n1-tbl"><table><tbody>' +
       [['Mueble', '7 · ' + esc(it7.name) + ' (' + esc(it7.dims) + ')', ''], ['Orientación', esc(IM.frente), ''], ['Espacio sobre el AMS', esc(IM.sobre), IM.est], ['Ventilación', 'Cámara cerrada con filtro de carbón. Tapa de ' + String(fondo).replace('.', ',') + ' m de fondo para una impresora de 0.389 m: quedan ' + Math.round((fondo - 0.389) * 100) + ' cm detrás para el aire y los cables (las holguras no están publicadas: estimado).', 'si'],
         ['Alimentación', 'Cuatro impresoras de 350 W como máximo a 110 V: 1400 W, unos 12.7 A. Van en un circuito propio de 20 A, cargado al 64 % (criterio de 80 % como máximo, estimado). Imprimiendo PLA consumen unos 120 W cada una (' + fuenteRef('igor') + ').', 'si'], ['Cables', 'Un pasacable en el eje de cada impresora; la regleta va bajo la tapa, dentro del mueble, con el cable de cada equipo en su canaleta.', 'si'], ['Mantenimiento', esc(IM.acceso), IM.est === 'no' ? 'si' : IM.est]]
         .map((r) => '<tr><th>' + r[0] + '</th><td class="' + (r[2] ? 'rq-' + r[2] : '') + '">' + (r[2] ? stIcon(r[2]) : '') + r[1] + '</td></tr>').join('') + '</tbody></table></div>';
+  }
+  function secH() {
     return secHead('H', pickV()) +
       '<p class="n1-lead">La iluminación (perfil LED, tira COB y sus fuentes) y el equipo (las cuatro impresoras Bambu Lab P1S) se compran y se integran al mueble. Cada dato de ficha dice si se verificó, si no está publicado, si es un cálculo o si las fuentes no coinciden.</p>' +
-      '<h3>Fichas técnicas</h3>' + fichas +
-      '<h3>Luz de cada mueble · versión ' + ST.ver + '</h3>' + calc + camb +
-      '<h3>Impresoras integradas al mueble 7 · versión ' + ST.ver + '</h3>' + imp +
+      '<h3>Fichas técnicas</h3>' + fichas() +
+      '<h3>Luz de cada mueble · versión ' + ST.ver + '</h3>' + luzCalc(ST.ver) + cambios(ST.ver) +
+      '<h3>Impresoras integradas al mueble 7 · versión ' + ST.ver + '</h3>' + impresoras(ST.ver) +
       '<p class="n1-note">Las pantallas de 75" y 55" van en muro y en pilares, no dentro de un mueble: su ficha está arriba y su soporte se confirma con la referencia exacta (no se encontró la página del soporte de 32"–75").</p>';
   }
   /* I · renders: el modelo 3D iluminado, capturado mueble por mueble */
@@ -291,10 +335,13 @@
       '<div class="n1-ract"><button type="button" class="btn btn-led" id="n1-rgo">' + (have ? 'Volver a capturar' : 'Capturar los ' + FABN.length + ' renders') + ' de la versión ' + ST.ver + '</button><span id="n1-rst">' + (have ? have + ' de ' + FABN.length + ' listos' : '') + '</span></div>' +
       '<div class="n1-renders">' + FABN.map((k) => '<figure class="n1-rend"><div class="n1-rimg">' + (R[ST.ver + k] ? '<img alt="Render del mueble ' + k + ' en el local, versión ' + ST.ver + '" src="' + R[ST.ver + k] + '">' : '<span class="n1-load">Sin capturar</span>') + '</div><figcaption><b>' + k + '</b> ' + esc(itemOf(ST.ver, k).short) + '<button type="button" class="link" data-n1go="' + k + '">Ver en 3D</button></figcaption></figure>').join('') + '</div>';
   }
-  function captureAll() {
-    const api = L.api, E = L.engine, Rm = L.room, T = THREE, v = ST.ver, R = (ST.renders = ST.renders || {});
+  /* opt: { ver, ms (tiempo máximo por imagen), list (muebles), done(url, n) } → promesa con los renders de la versión */
+  function captureAll(opt) {
+    opt = opt || {};
+    const api = L.api, E = L.engine, Rm = L.room, T = THREE, v = opt.ver || ST.ver, R = (ST.renders = ST.renders || {}), MS = opt.ms || 9000, LIST = opt.list || FABN;
     const prev = { ver: api.state.ver, goal: Object.assign({}, E.cam.goal) };
     const btn = $('#n1-rgo'), st = $('#n1-rst'); if (btn) btn.disabled = true;
+    let fin; const promise = new Promise((r) => { fin = r; });
     if (api.state.sel) api.deselect(true);
     if (api.state.ver !== v) api.setVersion(v, { quiet: true });
     document.body.classList.add('n1-capturing');
@@ -314,24 +361,28 @@
       const t0 = performance.now();
       E.capture = (pn, max, on) => {
         n++;
-        if (E.busy && performance.now() - t0 < 8000) { E.invalidate(2); return; }            // paredes que todavía se desvanecen
-        if (n >= 3 && (!on || pn >= max - 1 || performance.now() - t0 > 9000)) { E.capture = null; res(E.renderer.domElement.toDataURL('image/jpeg', 0.88)); } else E.invalidate(2);
+        if (E.busy && performance.now() - t0 < MS - 1000) { E.invalidate(2); return; }            // paredes que todavía se desvanecen
+        if (n >= 3 && (!on || pn >= max - 1 || performance.now() - t0 > MS)) { E.capture = null; res(E.renderer.domElement.toDataURL('image/jpeg', opt.q || 0.88)); } else E.invalidate(2);
       };
     });
     let i = 0;
     const next = () => {
-      if (i >= FABN.length) {
+      if (i >= LIST.length) {
         E.capture = null; Rm.hideDiv = false; document.body.classList.remove('n1-capturing');
-        if (prev.ver !== v) api.setVersion(prev.ver, { quiet: true });
-        E.flyTo({ target: new T.Vector3(prev.goal.tx, prev.goal.ty, prev.goal.tz), theta: prev.goal.th, phi: prev.goal.ph, radius: prev.goal.r }, 0);
+        if (!opt.keep) {
+          if (prev.ver !== v) api.setVersion(prev.ver, { quiet: true });
+          E.flyTo({ target: new T.Vector3(prev.goal.tx, prev.goal.ty, prev.goal.tz), theta: prev.goal.th, phi: prev.goal.ph, radius: prev.goal.r }, 0);
+        }
         api.layout(); if (ST.open && ST.sec === 'I') { const top = $('#n1-body').scrollTop; render(); $('#n1-body').scrollTop = top; }
+        fin(R);
         return;
       }
-      const k = FABN[i++];
-      if (st) st.textContent = 'Capturando ' + i + ' de ' + FABN.length + '…';
-      shot(k).then((url) => { R[v + k] = url; const im = $$('.n1-rend .n1-rimg')[i - 1]; if (im) im.innerHTML = '<img alt="Render del mueble ' + k + '" src="' + url + '">'; setTimeout(next, 30); });
+      const k = LIST[i++];
+      if (st) st.textContent = 'Capturando ' + i + ' de ' + LIST.length + '…';
+      shot(k).then((url) => { R[v + k] = url; const im = $$('.n1-rend .n1-rimg')[FABN.indexOf(k)]; if (im) im.innerHTML = '<img alt="Render del mueble ' + k + '" src="' + url + '">'; if (opt.done) opt.done(url, k); setTimeout(next, 30); });
     };
     next();
+    return promise;
   }
   function secPend(id, what) {
     return secHead(id) + '<div class="n1-empty"><p>Se entrega para el hito H2, el 28 de octubre.</p><ul>' + what.map((w) => '<li>' + esc(w) + '</li>').join('') + '</ul></div>';
@@ -470,6 +521,12 @@
     const m = /^#nota([123])(?:-([a-z0-9]+))?$/i.exec(location.hash || '');
     if (m) { const go = () => (document.querySelector('#app.is-ready') ? open(m[2] ? m[2].toUpperCase() : null, +m[1]) : setTimeout(go, 200)); go(); }
   }
-  L.n1 = { open, close, matrix, state: ST, render, h: { esc, cop, f1, vtag, tipoTag, stIcon, pickN, pickV, itemOf, vinfo, ROLE, FABN, base, ST_TXT, TIPO, inFrame } };
+  /* html de una sección con otro estado (para la entrega en PDF, entrega.js) */
+  function secHTML(id, ver, n) {
+    const o = { ver: ST.ver, n: ST.n }; if (ver) ST.ver = ver; if (n) ST.n = n;
+    try { return { A: secA, B: secB, C: secC, D: secD, E: secE, F: secF, G: secG, H: secH, I: secI, K: secK }[id](); } finally { ST.ver = o.ver; ST.n = o.n; }
+  }
+  L.n1 = { open, close, matrix, state: ST, render, capture: captureAll, sec: secHTML, SECS,
+    h: { esc, cop, f1, vtag, tipoTag, stIcon, pickN, pickV, itemOf, vinfo, ROLE, FABN, VER, base, ST_TXT, TIPO, SHORT, EST, inFrame, fuenteRef, antro, normas, reqCard, fuentes, sumTable, resumen, altBlock, duraTable, despiece, regla, mats, uniones, fichas, luzDe, luzData, luzCalc, cambios, impresoras, rastreo } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
