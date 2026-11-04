@@ -208,3 +208,29 @@ body.en-pdf #app { display: none !important; }
 #entrega .n1-card.en-aloj { break-inside: auto; }
 #entrega .en-alojs { display: block; }
 #entrega .en-alojs > .en-aloj { margin-bottom: 10px; }
+
+/* lista de compras */
+.en-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; }
+.en-kpis > div { padding: 14px 12px; border-radius: 10px; background: #141416; color: #f5f5f7; }
+.en-kpis b { display: block; font: 800 22px/1.1 var(--f-disp); letter-spacing: -0.02em; color: #ffb340; font-variant-numeric: tabular-nums; }
+.en-kpis span { display: block; margin-top: 4px; font-size: 10.5px; color: rgba(235, 235, 245, 0.75); }
+.en-bars { display: grid; gap: 6px; margin: 6px 0 4px; }
+#entrega a.en-bar { display: grid; grid-template-columns: 48mm minmax(0, 1fr) 28mm; gap: 10px; align-items: center; padding: 7px 10px; border-radius: 8px; background: #f6f5f2; color: inherit; break-inside: avoid; }
+.en-bar-n { font-weight: 700; font-size: 11.5px; }
+.en-bar-n small { display: block; font-weight: 400; font-size: 9.5px; color: #6e6e73; }
+.en-bar-t { height: 10px; border-radius: 5px; background: #e4e2dd; overflow: hidden; }
+.en-bar-t i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #c96500, #ff9f0a); }
+.en-bar b { text-align: right; font-size: 11.5px; }
+.en-shop { margin-top: 14px; break-inside: auto; }
+.en-shop > header { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding: 8px 0 6px; border-bottom: 2px solid #1d1d1f; margin-bottom: 6px; break-after: avoid; }
+#entrega .en-shop h3 { margin: 0; font-size: 16px; }
+.en-shop header small { font-size: 10px; color: #6e6e73; }
+.en-shop header b { font-size: 15px; }
+#entrega a.en-buy, .en-buy { display: inline-block; padding: 2px 8px; border-radius: 6px; background: #c96500; color: #fff; font-size: 9.6px; font-weight: 700; white-space: nowrap; text-decoration: none; }
+.en-buy.is-off { background: #e4e2dd; color: #6e6e73; font-weight: 600; }
+#entrega a.en-mlink { color: #1d1d1f; text-decoration: underline; text-decoration-color: #ff9f0a; text-decoration-thickness: 1.5px; text-underline-offset: 2px; }
+.en-uso { color: #3a3a3c !important; }
+.en-pm-tot { text-align: right; }
+.en-pm-tot small { display: block; font-size: 9.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #6e6e73; }
+.en-pm-tot b { font: 800 19px var(--f-disp); }
+.en-pm-top { display: grid; grid-template-columns: 52mm minmax(0, 1fr); gap: 12px; align-items: center; margin-bottom: 10px; }
