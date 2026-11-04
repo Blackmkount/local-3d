@@ -13,7 +13,7 @@ const { execFileSync } = require('child_process');
 
 const args = process.argv.slice(2);
 const opt = {}; const nums = [];
-args.forEach((a) => { const m = /^--([a-z]+)(?:=(.*))?$/.exec(a); if (m) opt[m[1]] = m[2] === undefined ? true : m[2]; else nums.push(/^[ABC]$/i.test(a) ? a.toUpperCase() : +a); });
+args.forEach((a) => { const m = /^--([a-z]+)(?:=(.*))?$/.exec(a); if (m) opt[m[1]] = m[2] === undefined ? true : m[2]; else nums.push(/^R?[ABC]$/i.test(a) ? a.toUpperCase() : +a); });
 const BASE = opt.base || 'http://localhost:8765', OUT = path.resolve(opt.out || 'entrega'), ROOT = path.resolve(__dirname, '..', '..');
 const POST = path.join(__dirname, 'post.py');
 const DOCS = nums.length ? nums : [1, 2, 3, 4, 5, 6];
@@ -97,7 +97,7 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
     let html = '<!doctype html><html><head><meta charset="utf-8"><style>' + css + '</style></head><body>';
     d2.sizes.forEach((s, i) => {
       const p = i + 1, k = keys.indexOf(s[0].toFixed(1) + 'x' + s[1].toFixed(1)), isA3 = s[0] > 400, land = !isA3 && s[0] > s[1];
-      const left = '<span class="t"><b>' + esc(doc.label || 'Documento ' + doc.num) + '</b> · ' + (doc.label ? 'Expediente de diseño y fabricación' : esc(doc.t)) + ' · BlackForge 3D · Nota 1</span>';
+      const left = '<span class="t"><b>' + esc(doc.label || 'Documento ' + doc.num) + '</b> · ' + (doc.req ? 'Requisitos del mobiliario' : doc.label ? 'Expediente de diseño y fabricación' : esc(doc.t)) + ' · BlackForge 3D · Nota 1</span>';
       html += '<div class="pg s' + k + (isA3 ? ' a3' : land ? ' land' : '') + '">' + (p === 1 ? '' :
         '<div class="h">' + left + '<span class="t">' + esc(secAt(p)) + '</span></div>' +
         '<div class="f">' + (isA3 ? left + '<span>' + esc(secAt(p)) + '</span>' : '<span>Diseño VIII · Producción · UPTC Duitama · ' + esc(doc.fecha || '28 de octubre de 2026') + '</span>') + '<span>Página <b>' + p + '</b> de ' + N + '</span></div>') + '</div>';
@@ -110,7 +110,7 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
     await ov.pdf({ path: p3, preferCSSPageSize: true, printBackground: false, timeout: 0 });
     await ov.close();
     const metaPath = path.join(TMP, 'd' + num + '-meta.json');
-    fs.writeFileSync(metaPath, JSON.stringify({ title: (doc.label ? doc.t + ' · Expediente de diseño y fabricación' : 'Documento ' + doc.num + ' · ' + doc.t) + ' · BlackForge 3D · Nota 1', author: 'Grupo BlackForge 3D · Diseño VIII Producción · UPTC', subject: doc.sub, outline }));
+    fs.writeFileSync(metaPath, JSON.stringify({ title: (doc.req ? doc.t : doc.label ? doc.t + ' · Expediente de diseño y fabricación' : 'Documento ' + doc.num + ' · ' + doc.t) + ' · BlackForge 3D · Nota 1', author: 'Grupo BlackForge 3D · Diseño VIII Producción · UPTC', subject: doc.sub, outline }));
     const out = path.join(OUT, doc.file + '.pdf');
     const r = run(['merge', p2, p3, out, metaPath]);
     await page.emulateMedia({ media: 'screen' });
