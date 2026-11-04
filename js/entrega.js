@@ -667,8 +667,87 @@
     return { num, ver: v, id: 'req-' + v, file: 'requisitos-espacio-' + num + '-' + vi.nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), t: 'Requisitos del mobiliario · Espacio ' + num + ' · ' + vi.nombre, label: 'Espacio ' + num + ' · ' + vi.nombre,
       sub: 'Lo que exige un taller de impresión 3D real y los requisitos de cada mueble de este espacio, con su fuente y cómo los resuelve la propuesta', kicker: 'Nota 1 · Requisitos del mobiliario · Espacio ' + num + ' de 3', fecha: FECHA_V, req: true };
   };
+  /* ================================================================ compras de un espacio
+     Un PDF por versión del local con los proveedores del visor: cada material y herraje de cada mueble
+     enlaza a la página de compra de la tienda. Resumen por tienda, lista consolidada y lista por mueble. */
+  const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
+  const buy = (u, txt) => u ? '<a class="en-buy" href="' + esc(u) + '">' + esc(txt || 'Comprar') + ' ↗</a>' : '<span class="en-buy is-off">Cotizar</span>';
+  const mlink = (m, u) => u ? '<a class="en-mlink" href="' + esc(u) + '">' + esc(m) + '</a>' : esc(m);
+  function provData(v) {
+    const c = VS.calc(v), P = VS.precios, by = {};
+    c.compras.forEach((r) => {
+      const p = P[r.id], k = p.prov;
+      const g = (by[k] = by[k] || { prov: k, rows: [], total: 0, hosts: new Set(), muebles: new Set() });
+      const mu = FABN.filter((n) => VS.items[v][n].piezas.concat(VS.items[v][n].acabados, VS.items[v][n].herrajes).some((x) => x[0] === r.id));
+      g.rows.push({ id: r.id, p, r, mu }); g.total += r.costo; if (p.u) g.hosts.add(host(p.u)); mu.forEach((n) => g.muebles.add(n));
+    });
+    const list = Object.values(by).sort((a, b) => b.total - a.total);
+    list.forEach((g) => g.rows.sort((a, b) => a.p.cat.localeCompare(b.p.cat) || b.r.costo - a.r.costo));
+    return { list, total: c.total, refs: c.compras.length };
+  }
+  function docP(doc) {
+    const v = doc.ver, vi = vinfo(v), D = provData(v), P = VS.precios, C = VS.calc(v);
+    const items = [{ id: 'p-1', t: '1 · Resumen de compras' }, { id: 'p-2', t: '2 · Compras por tienda' }];
+    D.list.forEach((g, i) => items.push({ id: 'p-t-' + i, t: g.prov + ' · ' + cop(g.total), sub: true }));
+    items.push({ id: 'p-3', t: '3 · Materiales de cada mueble' });
+    FABN.forEach((n) => items.push({ id: 'p-m-' + n, t: v + '-' + nn(n) + ' · ' + ROLE[n] + ' · ' + cop(C.items[n].total), sub: true }));
+    items.push({ id: 'p-4', t: '4 · Equipos que se compran' }, { id: 'p-5', t: '5 · Cómo usar esta lista' });
+    let s = cover(doc, '<div class="en-kpis">' +
+      '<div><b>' + cop(D.total) + '</b><span>materiales, herrajes e insumos</span></div><div><b>' + D.refs + '</b><span>referencias</span></div><div><b>' + D.list.length + '</b><span>tiendas</span></div><div><b>' + FABN.length + '</b><span>muebles</span></div></div>');
+    s += toc(doc, items);
+    const max = Math.max.apply(null, D.list.map((g) => g.total));
+    s += sec('p-1', '1 · Resumen de compras',
+      lead('Para fabricar los ' + FABN.length + ' muebles del espacio <b>' + v + ' · ' + esc(vi.nombre) + '</b> se compran ' + D.refs + ' referencias en ' + D.list.length + ' tiendas, por ' + cop(D.total) + '. Cada material de este documento es un enlace: tocarlo abre su página de compra en la tienda.') +
+      '<div class="en-bars">' + D.list.map((g, i) => '<a class="en-bar" href="#p-t-' + i + '"><span class="en-bar-n">' + esc(g.prov) + '<small>' + g.rows.length + ' referencia' + (g.rows.length > 1 ? 's' : '') + ' · ' + Array.from(g.hosts).join(', ') + '</small></span><span class="en-bar-t"><i style="width:' + (100 * g.total / max).toFixed(1) + '%"></i></span><b class="mono">' + cop(g.total) + '</b></a>').join('') + '</div>' +
+      '<h3>Por tipo de material</h3><div class="n1-tbl"><table><thead><tr><th>Tipo</th><th class="r">Referencias</th><th class="r">Costo</th><th class="r">Parte del total</th></tr></thead><tbody>' +
+      (() => { const t = {}; C.compras.forEach((r) => { const k = P[r.id].cat; t[k] = t[k] || [0, 0]; t[k][0]++; t[k][1] += r.costo; }); return Object.keys(t).sort((a, b) => t[b][1] - t[a][1]).map((k) => '<tr><td><b>' + esc(k) + '</b></td><td class="r mono">' + t[k][0] + '</td><td class="r mono">' + cop(t[k][1]) + '</td><td class="r mono">' + Math.round(100 * t[k][1] / D.total) + ' %</td></tr>').join(''); })() +
+      '</tbody></table></div>' +
+      '<h3>Por mueble</h3><div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Propuesta</th><th class="r">Referencias</th><th class="r">Materiales</th></tr></thead><tbody>' +
+      FABN.map((n) => '<tr><td><a href="#p-m-' + n + '"><b>' + n + '</b> ' + esc(ROLE[n]) + '</a></td><td>' + esc(itemOf(v, n).name) + '</td><td class="r mono">' + C.items[n].mats.length + '</td><td class="r mono">' + cop(C.items[n].total) + '</td></tr>').join('') +
+      '<tr class="n1-tot"><td colspan="3"><b>Total del espacio</b></td><td class="r mono"><b>' + cop(D.total) + '</b></td></tr></tbody></table></div>' +
+      note('Precios publicados en línea por cada tienda (consultados en octubre de 2026; la fecha y las ofertas van en la nota de cada material). Las láminas, barras y galones se compran completos: la cantidad ya incluye el aprovechamiento de corte.'));
+    s += '<section class="en-sec" id="p-2" data-title="Compras por tienda"><h2>2 · Compras por tienda</h2>' + lead('La lista para ir a comprar: agrupada por tienda, con la cantidad que se pide, el precio unitario, el costo y los muebles que la usan.');
+    D.list.forEach((g, i) => {
+      s += '<div class="en-shop" id="p-t-' + i + '"><header><div><h3>' + esc(g.prov) + '</h3><small>' + Array.from(g.hosts).map((x) => '<a href="https://' + x + '">' + x + '</a>').join(' · ') + '</small></div><b class="mono">' + cop(g.total) + '</b></header>' +
+        '<div class="n1-tbl"><table><thead><tr><th style="width:34%">Material</th><th>Se pide</th><th class="r">Precio</th><th class="r">Costo</th><th>Muebles</th><th></th></tr></thead><tbody>' +
+        g.rows.map((x) => '<tr><td><b>' + mlink(x.p.m, x.p.u) + '</b><small>' + esc(x.p.pres) + (x.p.nota ? ' · ' + esc(x.p.nota) : '') + '</small></td><td>' + esc(x.r.texto) + '</td><td class="r mono nw">' + esc(VS.precioTxt(x.p)) + '</td><td class="r mono nw">' + cop(x.r.costo) + '</td><td class="mono">' + x.mu.join(', ') + '</td><td class="r">' + buy(x.p.u) + '</td></tr>').join('') +
+        '</tbody></table></div></div>';
+    });
+    s += '</section>';
+    s += '<section class="en-sec" id="p-3" data-title="Materiales de cada mueble"><h2>3 · Materiales de cada mueble</h2>' + lead('Cada mueble con sus materiales, herrajes e insumos: para qué se usa cada uno, cuánto lleva el mueble, la tienda y su enlace de compra. El costo de las láminas y galones compartidos se reparte según lo que usa cada mueble.');
+    FABN.forEach((n, i) => {
+      const it = C.items[n], io = itemOf(v, n);
+      s += '<div class="en-pm' + (i ? ' en-page' : '') + '" id="p-m-' + n + '"><header class="en-fab-h"><span class="en-fab-n">' + nn(n) + '</span><div><small>' + esc(ESP(n).t) + ' · materiales y compras</small><h2>' + esc(ROLE[n]) + '</h2><p>' + esc(io.name) + ' · <span class="mono">' + esc(io.dims) + '</span></p></div><div class="en-pm-tot"><small>Materiales</small><b class="mono">' + cop(it.total) + '</b></div></header>' +
+        '<div class="en-pm-top"><div class="en-fab-iso">' + DW.isoSVG(v, n, 260, 180) + '</div><p class="en-fab-res">' + esc(io.it.resumen || base(n).resumen || '') + '</p></div>' +
+        '<div class="n1-tbl"><table><thead><tr><th style="width:30%">Material</th><th style="width:30%">Para qué</th><th>Lleva</th><th>Tienda</th><th class="r">Costo</th><th></th></tr></thead><tbody>' +
+        it.mats.slice().sort((a, b) => b.costo - a.costo).map((r) => { const p = P[r.key]; return '<tr><td><b>' + mlink(r.m, r.u) + '</b><small>' + esc(r.pu) + '</small></td><td><small class="en-uso">' + esc(r.uso) + '</small></td><td class="nw">' + esc(r.cant || '') + '</td><td>' + esc(r.prov) + '</td><td class="r mono nw">' + cop(r.costo) + '</td><td class="r">' + buy(r.u || (p && p.u)) + '</td></tr>'; }).join('') +
+        '<tr class="n1-tot"><td colspan="4"><b>Total del mueble</b></td><td class="r mono nw"><b>' + cop(it.total) + '</b></td><td></td></tr></tbody></table></div></div>';
+    });
+    s += '</section>';
+    const eq = DATA.items.filter((d) => d.origen !== 'fabrica');
+    const eqLink = (m) => (/P1S/.test(m.m) ? [N.fuentes.fichaP1S.u, 'Comprar'] : /75Q6QV/.test(m.m) ? [N.fichas.find((f) => f.id === 'tv75').u, 'Ficha'] : /55Q6QV/.test(m.m) ? [N.fichas.find((f) => f.id === 'tv55').u, 'Ficha'] : [null]);
+    s += sec('p-4', '4 · Equipos que se compran', lead('Lo que no se fabrica: impresoras, pantallas, sillas, estanterías de bodega y materas. Es igual en los tres espacios.') +
+      '<div class="n1-tbl"><table><thead><tr><th>Elemento</th><th>Producto</th><th class="r">Cant.</th><th>Precio</th><th>Tienda</th><th class="r">Costo</th><th></th></tr></thead><tbody>' +
+      eq.map((d) => d.mats.map((m, j) => { const l = eqLink(m); return '<tr><td>' + (j ? '' : '<b>' + d.n + '</b> ' + esc(d.short || d.name)) + '</td><td><b>' + mlink(m.m, l[0]) + '</b><small>' + esc(m.uso) + (m.nota ? ' · ' + esc(m.nota) : '') + '</small></td><td class="r mono">' + esc(m.cant) + '</td><td class="mono nw">' + esc(m.pu) + '</td><td>' + esc(m.prov) + '</td><td class="r mono nw">' + cop(m.costo) + '</td><td class="r">' + (l[0] ? buy(l[0], l[1]) : '<span class="en-buy is-off">Buscar en tienda</span>') + '</td></tr>'; }).join('')).join('') +
+      '<tr class="n1-tot"><td colspan="5"><b>Total de equipos</b></td><td class="r mono nw"><b>' + cop(eq.reduce((a, d) => a + d.mats.reduce((b, m) => b + m.costo, 0), 0)) + '</b></td><td></td></tr></tbody></table></div>' +
+      note('Las impresoras tienen enlace a la tienda del distribuidor; las pantallas, a la ficha del fabricante (el precio es de Homecenter). Los demás equipos no tienen enlace guardado en el visor: se buscan por su nombre en la tienda indicada.'));
+    s += sec('p-5', '5 · Cómo usar esta lista', '<ol class="en-steps">' +
+      '<li>Empezar por la <b>sección 2</b>: una tienda por vez, con la cantidad que se pide de cada referencia.</li>' +
+      '<li>Tocar el nombre del material o el botón <b>Comprar ↗</b>: abre la página del producto en la tienda (en el PDF, en el navegador).</li>' +
+      '<li>Confirmar precio y existencias antes de pagar: los precios son de octubre de 2026 y algunas ofertas tienen fecha de vencimiento.</li>' +
+      '<li>Los tableros se piden cortados y enchapados con la lista de piezas del expediente del espacio; los tubos y perfiles, por barra completa.</li>' +
+      '<li>Para pedir cotización por volumen, la sección 3 da lo que lleva cada mueble.</li></ol>' +
+      '<p class="n1-box">Precios al público como los publica cada tienda (en Colombia, normalmente con IVA incluido). Total de materiales del espacio: <b>' + cop(D.total) + '</b>; equipos: sección 4. Modelo 3D con todos los proveedores: <a href="' + esc(N.ficha.enlace) + '">' + esc(N.ficha.enlace) + '</a>.</p>');
+    return s;
+  }
+  EN.provDoc = function (v) {
+    const vi = vinfo(v), num = VDOC[v].num;
+    return { num, ver: v, id: 'prov-' + v, file: 'compras-espacio-' + num + '-' + vi.nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), t: 'Lista de compras · Espacio ' + num + ' · ' + vi.nombre, label: 'Espacio ' + num + ' · ' + vi.nombre,
+      sub: 'Materiales, herrajes e insumos de cada mueble con su tienda, su precio y el enlace a la página de compra', kicker: 'Proveedores y compras · Espacio ' + num + ' de 3', fecha: FECHA_V, req: true, sec2: 'Lista de compras' };
+  };
   /* ================================================================ armado */
   EN.html = function (num, opt) {
+    if (typeof num === 'string' && num[0] === 'P') { const doc = EN.provDoc(num.slice(1)); return { doc, html: docP(doc) }; }
     if (typeof num === 'string' && num[0] === 'R') { const doc = EN.reqDoc(num.slice(1)); return { doc, html: docR(doc) }; }
     if (typeof num === 'string') { const doc = EN.verDoc(num); return { doc, html: docV(doc) }; }
     const doc = DOCS.find((d) => d.num === num);
