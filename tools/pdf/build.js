@@ -13,7 +13,7 @@ const { execFileSync } = require('child_process');
 
 const args = process.argv.slice(2);
 const opt = {}; const nums = [];
-args.forEach((a) => { const m = /^--([a-z]+)(?:=(.*))?$/.exec(a); if (m) opt[m[1]] = m[2] === undefined ? true : m[2]; else nums.push(/^[RP]?[ABC]$/i.test(a) ? a.toUpperCase() : +a); });
+args.forEach((a) => { const m = /^--([a-z]+)(?:=(.*))?$/.exec(a); if (m) opt[m[1]] = m[2] === undefined ? true : m[2]; else nums.push(/^([RP]?[ABC]|F)$/i.test(a) ? a.toUpperCase() : +a); });
 const BASE = opt.base || 'http://localhost:8765', OUT = path.resolve(opt.out || 'entrega'), ROOT = path.resolve(__dirname, '..', '..');
 const POST = path.join(__dirname, 'post.py');
 const DOCS = nums.length ? nums : [1, 2, 3, 4, 5, 6];
