@@ -1167,10 +1167,28 @@
       { ic: SIC.req, t: 'Requisitos de diseño', s: 'Lo que debía cumplir cada mueble y cómo lo cumple cada versión', q: 'requisitos diseño criterios ergonomia cargas normas condiciones', run: () => openReqs(0) },
       { ic: SIC.house, t: 'Montaje del local', s: 'Orden de fabricación y montaje en seis pasos', q: 'montaje armado fabricacion orden pasos', run: () => openMontaje() },
       { ic: SIC.pin, t: 'Números del plano', s: 'Mostrar u ocultar el número de cada elemento', q: 'numeros rotulos etiquetas plano', run: () => $('#btn-labels').click() },
-      { ic: SIC.pin, t: 'Gente en el local', s: 'Mostrar u ocultar a los clientes, la dependienta y el diseñador', q: 'gente personas clientes vida operarios dependienta', run: () => $('#btn-vida').click() },
+      { ic: SIC.pin, t: 'Personas en el local', s: 'Mostrar u ocultar a los clientes, la dependienta y el diseñador', q: 'gente personas clientes vida operarios dependienta quitar', run: () => $('#btn-vida').click() },
+      { ic: SIC.pin, t: S.night ? 'Modo día' : 'Modo noche', s: 'El pasillo se apaga y el local queda con su propia luz', q: 'noche oscuro dia luz nocturno iluminacion', run: () => $('#btn-noche').click() },
       { ic: SIC.cube, t: 'Descargar modelo 3D (.glb)', s: 'Para Unreal Engine, Blender, Twinmotion o D5', q: 'descargar exportar glb gltf unreal blender twinmotion modelo', run: () => downloadGLB() }
     ].map((a) => Object.assign({ sec: 'Acciones' }, a, { q: norm(a.q + ' ' + a.t) }));
     return (SP.all = acts.concat(views, vers, items, planos));
+  }
+  /* modo noche: se recuerda en el navegador; también se abre con ?noche en el enlace */
+  function setNight(on, quiet) {
+    S.night = !!on;
+    try { localStorage.setItem('l3d-noche', on ? '1' : '0'); } catch (e) { /* */ }
+    $('#btn-noche').setAttribute('aria-pressed', on ? 'true' : 'false');
+    document.body.classList.toggle('is-night', S.night); SP.all = null;
+    E.setNight(S.night, quiet ? 0 : 1.6);
+    if (!quiet) L.ui.toast(on ? 'Modo noche' : 'Modo día', on ? 'El pasillo se apaga: el local queda con su propia luz.' : 'Vuelve la luz del centro comercial.', null, 2500);
+  }
+  function initNight() {
+    let on = false;
+    try { on = localStorage.getItem('l3d-noche') === '1'; } catch (e) { /* */ }
+    if (/[?&]noche\b/.test(location.search)) on = true;
+    if (/[?&]dia\b/.test(location.search)) on = false;
+    $('#btn-noche').addEventListener('click', () => setNight(!S.night));
+    if (on) setNight(true, true);
   }
   function spotRender() {
     const q = norm($('#spot-q').value.trim()), words = q.split(/\s+/).filter(Boolean);
@@ -1294,6 +1312,7 @@
     $('#st-cam').addEventListener('click', () => { const on = $('#st-cam').getAttribute('aria-pressed') !== 'true'; $('#st-cam').setAttribute('aria-pressed', on ? 'true' : 'false'); if (L.armado) L.armado.setFollow(on); });
     if (L.armado) { L.armado.init({ state: S, focus, showDecor, ghostOthers, updateStepper, refreshEdges, afterFinish: () => { if (S.mode === 'asm') exitAsm(); } }); if (L.armado.state.sound) $('#st-sound').setAttribute('aria-pressed', 'true'); }
     if (L.vida) L.vida.init();
+    initNight();
     $('#st-dots').addEventListener('click', (e) => { const d = e.target.closest('.dot'); if (d) { S.playing = false; S.done = false; asmStep(+d.dataset.k, true); } });
     $('#st-exit').addEventListener('click', () => exitAsm());
     $('#z-in').addEventListener('click', () => E.zoomBy(0.78));

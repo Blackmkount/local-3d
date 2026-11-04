@@ -1067,6 +1067,50 @@
     E.key.position.copy(E.keyBase); E.renderer.shadowMap.needsUpdate = true;
     P.jit = false;
   }
+  /* ------------------------------------------------------------ modo noche
+     El pasillo del centro comercial se apaga (luz cenital, de relleno y del cielo casi en cero, fondo
+     y niebla oscuros) y el local queda con su propia luz: rieles, gargantas, LED de los muebles,
+     letrero y pantallas. Al terminar se vuelve a fotografiar el entorno, así los reflejos y la luz
+     indirecta también pasan a ser de noche. t va de 0 (día) a 1 (noche). */
+  const NIGHT_BG = 0x16181d;
+  E.night = 0;
+  let nightBase = null, nightTw = null;
+  function applyNight(t) {
+    if (!nightBase) {
+      nightBase = { hemi: E.hemi.intensity, key: E.key.intensity, lights: [], bg: E.scene.background.clone(), exp: P.on ? P.exposure : E.renderer.toneMappingExposure,
+        bgN: P.on ? acesInverse(NIGHT_BG, P.exposure * 1.12, P.wb) : new T.Color(NIGHT_BG) };
+      // luces del día: todo lo que no es luz del local (las del local están en E.ledLights)
+      E.scene.traverse((o) => { if (o.isLight && o !== E.hemi && o !== E.key && E.ledLights.indexOf(o) < 0 && (o.isDirectionalLight || o.isHemisphereLight || o.isAmbientLight)) nightBase.lights.push([o, o.intensity]); });
+    }
+    const B = nightBase;
+    E.night = t;
+    if (!B.ext) {
+      // materiales del pasillo y de la fachada: de noche dejan de recibir la luz del entorno (que es la del local)
+      B.ext = new Set(); const bx = new T.Box3(), c = new T.Vector3();
+      E.scene.traverse((o) => {
+        const m = o.material; if (!o.isMesh || !m || Array.isArray(m) || m.envMapIntensity === undefined || (m.emissive && m.emissiveIntensity * (m.emissive.r + m.emissive.g + m.emissive.b) > 0.05)) return;
+        bx.setFromObject(o).getCenter(c);
+        if (c.z > 3.53 || Math.abs(c.x) > 3.22 || bx.max.z > 4.3 || bx.min.x < -3.45 || bx.max.x > 3.45) B.ext.add(m);
+      });
+      B.ext.forEach((m) => { m.userData.nightEnv = true; if (m.userData.env0 === undefined) m.userData.env0 = m.envMapIntensity; });
+    }
+    B.ext.forEach((m) => { m.envMapIntensity = m.userData.env0 * E.envK * lerp(1, 0.1, t); });
+    E.hemi.intensity = B.hemi * lerp(1, 0.16, t);
+    E.key.intensity = B.key * lerp(1, 0.035, t);
+    B.lights.forEach((x) => { x[0].intensity = x[1] * lerp(1, 0.08, t); });
+    E.scene.background.copy(B.bg).lerp(B.bgN, t);
+    if (E.scene.fog) E.scene.fog.color.copy(E.scene.background);
+    const exp = B.exp * lerp(1, 1.12, t);
+    if (P.on && P.mOut) { P.exposure = exp; P.mOut.uniforms.uExposure.value = exp; } else E.renderer.toneMappingExposure = exp;
+    E.shadowDirty = true; E.invalidate(3);
+  }
+  E.setNight = function (on, dur) {
+    const to = on ? 1 : 0, from = E.night;
+    if (nightTw) { E.cancel(nightTw); nightTw = null; }
+    if (Math.abs(to - from) < 1e-3) { applyNight(to); return; }
+    if (!dur || E.reduced) { applyNight(to); E.captureEnv(); return; }
+    nightTw = E.tween(dur, (e) => applyNight(lerp(from, to, e)), { ease: E.ease.inOut, done: () => { nightTw = null; E.captureEnv(); } });
+  };
   /* intensidad de la luz ambiental que aporta el entorno capturado */
   E.envK = 0.3;
   E.setEnvK = function (k) {
@@ -1075,7 +1119,7 @@
       const m = o.material;
       if (!m || m.envMapIntensity === undefined) return;
       if (m.userData.env0 === undefined) m.userData.env0 = m.envMapIntensity;
-      m.envMapIntensity = m.userData.env0 * k;
+      m.envMapIntensity = m.userData.env0 * k * (m.userData.nightEnv ? lerp(1, 0.1, E.night) : 1);
     });
     E.invalidate(3);
   };
