@@ -469,7 +469,8 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
 .is-narrow .p-head h2 { font-size: 20px; margin-top: 8px; }
 .is-narrow .p-body { padding: 12px 14px 18px; }
 .is-narrow #hint { font-size: 12px; }
-.is-narrow #zoom { display: none; }
+.is-narrow #zoom #z-in, .is-narrow #zoom #z-out, .is-narrow #zoom .cap-sep { display: none; }
+.is-narrow #zoom { bottom: calc(var(--ub) + 64px); }
 .is-narrow .kpis { grid-template-columns: 1fr; }
 .is-narrow .modal-body { padding: 16px 16px 22px; }
 .is-narrow #modal { padding: 8px; }
@@ -1117,3 +1118,13 @@ body.n1-open #top, body.n1-open #dock, body.n1-open #zoom, body.n1-open #stage, 
 .is-narrow .st-tools .st-speed { display: none; }
 .is-narrow .st-op .st-min { display: none; }
 .seq-lead { font-size: 12.5px; line-height: 1.45; color: var(--ink-3); margin: 2px 0 10px; }
+
+/* ------------------------------------------------------------ sin interfaz */
+#z-ui .ic-show { display: none; }
+#z-ui[aria-pressed="true"] .ic-hide { display: none; }
+#z-ui[aria-pressed="true"] .ic-show { display: block; }
+#z-ui[aria-pressed="true"] { color: var(--accent-ink); }
+#app.is-bare #top, #app.is-bare #inv, #app.is-bare #mont, #app.is-bare #panel, #app.is-bare #dock, #app.is-bare #labels, #app.is-bare #tip, #app.is-bare #toasts { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; transition: opacity 0.35s var(--out), visibility 0s linear 0.35s; }
+#app.is-bare #zoom { opacity: 0.55; transition: opacity 0.3s var(--out); }
+#app.is-bare #zoom:hover, #app.is-bare #zoom:focus-within { opacity: 1; }
+.is-narrow.is-bare #zoom { bottom: calc(var(--ub) + 18px); }
