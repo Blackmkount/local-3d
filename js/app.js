@@ -1397,7 +1397,7 @@
     const start = hm[1] ? [null, hm[1]] : null, startPlan = !!hm[2];
     if (hm[3]) PO.sheet = hm[3].toLowerCase();
 
-    if (E.size.w >= 1280 && !start) { S.inv = true; $('#inv').hidden = false; $('#btn-inv').setAttribute('aria-pressed', 'true'); }
+    if (E.size.w >= 860 && !start) { S.inv = true;                     // el mobiliario abre siempre que haya pantalla para él (en el teléfono taparía el modelo) $('#inv').hidden = false; $('#btn-inv').setAttribute('aria-pressed', 'true'); }
     S.view = 'fachada';
     layout();
     E.cam.cur.th = E.cam.goal.th = 0.95; E.cam.cur.ph = E.cam.goal.ph = 0.62; E.cam.cur.r = E.cam.goal.r = 27; E.cam.cur.ty = E.cam.goal.ty = 0.6;
