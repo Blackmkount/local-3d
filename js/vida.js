@@ -724,7 +724,7 @@
     if (on) start(); else clear();
     const b = document.getElementById('btn-vida'); if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
     E.shadowDirty = true; E.invalidate();
-    if (!quiet && L.ui && L.ui.toast) L.ui.toast(on ? 'Gente en el local' : 'Local sin gente', on ? 'Clientes, la dependienta y el diseñador en la barra.' : 'Se quitan las personas del modelo.', null, 2500);
+    if (!quiet && L.ui && L.ui.toast) L.ui.toast(on ? 'Personas en el local' : 'Local sin personas', on ? 'Clientes, la dependienta y el diseñador en la barra.' : 'Se quitan las personas del modelo.', null, 2500);
   };
   /* el armado y el montaje ocupan la escena: la gente se va mientras tanto y vuelve después */
   V.suspend = function (yes) {
@@ -737,8 +737,8 @@
     if (S.booted) return; S.booted = true;
     if (!S.hooked) { E.hooks.push(update); S.hooked = true; requestAnimationFrame(tick); }
     let on = !E.mobile && !E.reduced;
-    try { const v = localStorage.getItem('l3d-vida'); if (v === '1') on = true; else if (v === '0') on = false; } catch (e) { /* */ }
     if (E.reduced) on = false;
+    try { const v = localStorage.getItem('l3d-vida'); if (v === '1') on = true; else if (v === '0') on = false; } catch (e) { /* */ }
     const b = document.getElementById('btn-vida'); if (b) { b.addEventListener('click', () => V.setOn(!S.on)); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
     document.addEventListener('visibilitychange', () => { S.paused = document.hidden; });
     S.max = E.mobile ? 2 : 3;
