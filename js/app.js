@@ -72,7 +72,7 @@
     const w = E.size.w, h = E.size.h, wide = w >= 860;
     app.classList.toggle('is-narrow', !wide);
     let ox = 0, oy = 0, uw = w, uh = h - 64 - 84;
-    const panelOpen = !$('#panel').hidden, leftOpen = !$('#inv').hidden || !$('#mont').hidden;
+    const bare = app.classList.contains('is-bare'), panelOpen = !bare && !$('#panel').hidden, leftOpen = !bare && (!$('#inv').hidden || !$('#mont').hidden);
     if (wide) {
       const pw = panelOpen ? $('#panel').offsetWidth + 16 : 0, lw = leftOpen ? ($('#inv').hidden ? $('#mont') : $('#inv')).offsetWidth + 16 : 0;
       ox = (pw - lw) / 2; uw = w - pw - lw; oy = 10;
@@ -1168,6 +1168,7 @@
       { ic: SIC.house, t: 'Montaje del local', s: 'Orden de fabricación y montaje en seis pasos', q: 'montaje armado fabricacion orden pasos', run: () => openMontaje() },
       { ic: SIC.pin, t: 'Números del plano', s: 'Mostrar u ocultar el número de cada elemento', q: 'numeros rotulos etiquetas plano', run: () => $('#btn-labels').click() },
       { ic: SIC.pin, t: 'Personas en el local', s: 'Mostrar u ocultar a los clientes, la dependienta y el diseñador', q: 'gente personas clientes vida operarios dependienta quitar', run: () => $('#btn-vida').click() },
+      { ic: SIC.pin, t: 'Ocultar la interfaz', s: 'Solo el local en pantalla; H o Esc para volver', q: 'ocultar interfaz pantalla completa limpiar explorar ver solo', run: () => setBare(true) },
       { ic: SIC.pin, t: S.night ? 'Modo día' : 'Modo noche', s: 'El pasillo se apaga y el local queda con su propia luz', q: 'noche oscuro dia luz nocturno iluminacion', run: () => $('#btn-noche').click() },
       { ic: SIC.cube, t: 'Descargar modelo 3D (.glb)', s: 'Para Unreal Engine, Blender, Twinmotion o D5', q: 'descargar exportar glb gltf unreal blender twinmotion modelo', run: () => downloadGLB() }
     ].map((a) => Object.assign({ sec: 'Acciones' }, a, { q: norm(a.q + ' ' + a.t) }));
@@ -1176,18 +1177,29 @@
   /* modo noche: se recuerda en el navegador; también se abre con ?noche en el enlace */
   function setNight(on, quiet) {
     S.night = !!on;
-    try { localStorage.setItem('l3d-noche', on ? '1' : '0'); } catch (e) { /* */ }
+    try { localStorage.setItem('l3d-noche2', on ? '1' : '0'); } catch (e) { /* */ }
     $('#btn-noche').setAttribute('aria-pressed', on ? 'true' : 'false');
     document.body.classList.toggle('is-night', S.night); SP.all = null;
     E.setNight(S.night, quiet ? 0 : 1.6);
     if (!quiet) L.ui.toast(on ? 'Modo noche' : 'Modo día', on ? 'El pasillo se apaga: el local queda con su propia luz.' : 'Vuelve la luz del centro comercial.', null, 2500);
   }
+  /* sin interfaz: solo el local y el botón para volver (y el zoom en el computador) */
+  function setBare(on) {
+    S.bare = !!on;
+    if (S.bare) { if (S.sel) deselect(); if (S.planOpen) closePlan(); $('#tip').hidden = true; }
+    app.classList.toggle('is-bare', S.bare);
+    const b = $('#z-ui'); b.setAttribute('aria-pressed', S.bare ? 'true' : 'false');
+    b.setAttribute('aria-label', S.bare ? 'Mostrar la interfaz' : 'Ocultar la interfaz');
+    b.title = S.bare ? 'Mostrar la interfaz (H o Esc)' : 'Ocultar la interfaz para ver solo el local (H)';
+    layout(); E.invalidate(2);
+  }
   function initNight() {
-    let on = false;
-    try { on = localStorage.getItem('l3d-noche') === '1'; } catch (e) { /* */ }
+    let on = true;                                                      // de noche por omisión
+    try { on = localStorage.getItem('l3d-noche2') !== '0'; } catch (e) { /* */ }
     if (/[?&]noche\b/.test(location.search)) on = true;
     if (/[?&]dia\b/.test(location.search)) on = false;
     $('#btn-noche').addEventListener('click', () => setNight(!S.night));
+    $('#z-ui').addEventListener('click', () => setBare(!S.bare));
     if (on) setNight(true, true);
   }
   function spotRender() {
@@ -1277,7 +1289,7 @@
     ['#actions', '#stepper', '#hint'].forEach((q) => U.animated($(q), 340));
     U.animated($('#tip'), 150); U.animated($('#modal'), 520); U.animated($('#spot'), 280);
     U.seg($('#views')); U.seg($('#inv-filter'));
-    $('#kbd-k').textContent = U.isMac ? '⌘K' : 'Ctrl K';
+    if ($('#kbd-k')) $('#kbd-k').textContent = U.isMac ? '⌘K' : 'Ctrl K';
     $('#btn-search').title = 'Buscar muebles, vistas y acciones (' + (U.isMac ? '⌘K' : 'Ctrl+K') + ')';
     winDrag = U.windowDrag($('.modal-card'), $('.modal-head'), zoomModal);
     bindSpot(); bindSheet();
@@ -1348,6 +1360,8 @@
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if ($('#spot').hidden) openSpot(); else closeSpot(); return; }
       if (!$('#spot').hidden) { if (e.key === 'Escape') closeSpot(); return; }
       if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); openSpot(); return; }
+      if (S.bare && e.key === 'Escape') return setBare(false);
+      if ((e.key === 'h' || e.key === 'H') && !e.metaKey && !e.ctrlKey && !e.altKey && $('#modal').hidden && !S.planOpen && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return setBare(!S.bare);
       if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.planOpen) { if (PO.card != null) return planCard(null); return closePlan(); } if (S.mode === 'asm') return exitAsm(); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
       if (!$('#modal').hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
       if (S.planOpen) { if (e.key === '+' || e.key === '=') planZoom(1.4, null, null, true); else if (e.key === '-') planZoom(1 / 1.4, null, null, true); else if (e.key === '0') planFit(true); else if (e.key === '[' || e.key === 'PageUp') { e.preventDefault(); plStep(-1); } else if (e.key === ']' || e.key === 'PageDown') { e.preventDefault(); plStep(1); } return; }
