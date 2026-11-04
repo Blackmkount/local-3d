@@ -745,8 +745,47 @@
     return { num, ver: v, id: 'prov-' + v, file: 'compras-espacio-' + num + '-' + vi.nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), t: 'Lista de compras · Espacio ' + num + ' · ' + vi.nombre, label: 'Espacio ' + num + ' · ' + vi.nombre,
       sub: 'Materiales, herrajes e insumos de cada mueble con su tienda, su precio y el enlace a la página de compra', kicker: 'Proveedores y compras · Espacio ' + num + ' de 3', fecha: FECHA_V, req: true, sec2: 'Lista de compras' };
   };
+  /* ================================================================ ficha del proyecto (una hoja) */
+  function archSVG() {
+    const d = new DOMParser().parseFromString(L.plan.svg('B', { cotas: true, nums: false }), 'image/svg+xml');
+    $$('.mob, .table, .block, .legend, .pasos', d).forEach((g) => g.remove());
+    const sv = d.documentElement; sv.setAttribute('viewBox', '8 30 214 238'); sv.removeAttribute('width'); sv.removeAttribute('height');
+    $$('text.title, text.subtitle', d).forEach((t) => t.remove());
+    return new XMLSerializer().serializeToString(sv);
+  }
+  function docF(doc) {
+    const F = N.ficha, todo = (x) => /confirmar/i.test(x);
+    const row = (t, d, cls) => '<tr class="' + (cls || '') + '"><th>' + esc(t) + '</th><td>' + d + '</td></tr>';
+    const areas = [['Sala de ventas', '6,00 × 5,50 m', 33.0], ['Mampara', '6,00 × 0,10 m', 0.6], ['Trastienda y taller', '6,00 × 1,40 m', 8.4]];
+    return '<section class="en-ficha1">' +
+      '<header class="en-f1-h"><div><div class="en-brand"><b>BlackForge</b> 3D <span>Local de exhibición y taller de impresión 3D</span></div><h1>Ficha del proyecto</h1><p>Nota 1 · Diseño del mobiliario · Diseño VIII · Producción · UPTC Duitama</p></div></header>' +
+      '<div class="en-f1-grid"><div class="n1-tbl en-f1-t"><table><tbody>' +
+      row('Nombre', '<b>' + esc(F.nombre) + '</b>') +
+      row('Ciudad', esc(F.ciudad), todo(F.ciudad) ? 'is-todo' : '') +
+      row('Ubicación', esc(F.ubicacion), todo(F.ubicacion) ? 'is-todo' : '') +
+      row('Tipo de inmueble', esc(F.tipo) + '<small>' + esc(F.encargo) + '</small>') +
+      row('Área total', '<b>42,00 m²</b> · 6,00 m de frente × 7,00 m de fondo') +
+      row('Fachada', esc(F.fachada)) +
+      row('Fuente del plano', esc(F.fuentePlano)) +
+      row('Fecha de consulta', esc(F.consulta)) +
+      row('Enlace', '<a href="' + esc(F.enlace) + '">' + esc(F.enlace) + '</a><small>Modelo 3D interactivo con la planta, los muebles, sus planos y sus costos.</small>') +
+      row('Repositorio', '<a href="' + esc(F.repositorio) + '">' + esc(F.repositorio) + '</a>') +
+      '</tbody></table></div>' +
+      '<figure class="en-f1-plan">' + archSVG() + '<figcaption>Planta del local con sus cotas, en metros (sin mobiliario).</figcaption></figure></div>' +
+      '<div class="en-f1-cols"><div><h3>Áreas</h3><div class="n1-tbl"><table><thead><tr><th>Zona</th><th>Medidas</th><th class="r">Área</th></tr></thead><tbody>' +
+      areas.map((a) => '<tr><td><b>' + a[0] + '</b></td><td class="mono">' + a[1] + '</td><td class="r mono">' + a[2].toFixed(2).replace('.', ',') + ' m²</td></tr>').join('') +
+      '<tr class="n1-tot"><td colspan="2"><b>Total del local</b></td><td class="r mono"><b>42,00 m²</b></td></tr></tbody></table></div></div>' +
+      '<div><h3>Espacios del local</h3><div class="n1-tbl"><table><thead><tr><th>Espacio</th><th>Muebles que se diseñan</th></tr></thead><tbody>' +
+      F.espacios.map((e) => '<tr><td><b>' + esc(e.t) + '</b><small>' + esc(e.d) + '</small></td><td class="mono">' + e.n.join(', ') + '</td></tr>').join('') + '</tbody></table></div></div></div>' +
+      '<p class="n1-note">Medidas tomadas de la imagen del proyecto, escalada con el frente de 6,00 m declarado en el documento; se verifican en sitio. Los datos marcados en ámbar están por confirmar.</p>' +
+      '</section>';
+  }
+  EN.fichaDoc = function () {
+    return { num: 0, id: 'ficha', file: 'ficha-del-proyecto', t: 'Ficha del proyecto', label: 'Ficha del proyecto', sub: '', fecha: FECHA_V, sec2: 'BlackForge 3D', single: true };
+  };
   /* ================================================================ armado */
   EN.html = function (num, opt) {
+    if (num === 'F') { const doc = EN.fichaDoc(); return { doc, html: docF(doc) }; }
     if (typeof num === 'string' && num[0] === 'P') { const doc = EN.provDoc(num.slice(1)); return { doc, html: docP(doc) }; }
     if (typeof num === 'string' && num[0] === 'R') { const doc = EN.reqDoc(num.slice(1)); return { doc, html: docR(doc) }; }
     if (typeof num === 'string') { const doc = EN.verDoc(num); return { doc, html: docV(doc) }; }
