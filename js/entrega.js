@@ -540,7 +540,7 @@
       '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Ficha</th><th>Láminas</th><th>Despiece</th><th>Uniones</th><th>Luz y equipo</th><th>Requisitos</th></tr></thead><tbody>' + ver + '</tbody></table></div>' +
       '<h3>Antes de fabricar, confirmar</h3><ul class="en-ul">' +
       '<li>Medir el local en sitio (las medidas salen de la imagen del proyecto, escalada con el frente de 6,00 m).</li>' +
-      '<li>Nombre del centro comercial y ciudad, y su reglamento para anclar a muros y a la losa.</li>' +
+      '<li>Con el propietario del local (Carrera 11 N.º 3-36, Villanueva), el permiso para anclar a muros y a la losa.</li>' +
       '<li>Confirmar cada herraje con su ficha antes de perforar la primera pieza (reglas de la sección 2).</li>' +
       '<li>Lo que la tabla de rastreo deja por decidir con el grupo:</li></ul>' + h.rastreo() +
       '<h3>Uso de inteligencia artificial</h3><p class="n1-box">' + esc(F.ia) + '</p><h3>Fuentes</h3>' + h.fuentes());
@@ -777,7 +777,7 @@
       '<tr class="n1-tot"><td colspan="2"><b>Total del local</b></td><td class="r mono"><b>42,00 m²</b></td></tr></tbody></table></div></div>' +
       '<div><h3>Espacios del local</h3><div class="n1-tbl"><table><thead><tr><th>Espacio</th><th>Muebles que se diseñan</th></tr></thead><tbody>' +
       F.espacios.map((e) => '<tr><td><b>' + esc(e.t) + '</b><small>' + esc(e.d) + '</small></td><td class="mono">' + e.n.join(', ') + '</td></tr>').join('') + '</tbody></table></div></div></div>' +
-      '<p class="n1-note">Medidas tomadas de la imagen del proyecto, escalada con el frente de 6,00 m declarado en el documento; se verifican en sitio. Los datos marcados en ámbar están por confirmar.</p>' +
+      '<p class="n1-note">Medidas tomadas de la imagen del proyecto, escalada con el frente de 6,00 m declarado en el documento; se verifican en sitio.</p>' +
       '</section>';
   }
   EN.fichaDoc = function () {
