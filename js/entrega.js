@@ -471,7 +471,6 @@
     const v = doc.ver, vi = vinfo(v), F = N.ficha, E = N.escalado, best = h.resumen(), list = PN.sheets(v), fab = PN.fab(v).map((d) => d.n);
     const row = (t, d, cls) => '<div class="' + (cls || '') + '"><dt>' + esc(t) + '</dt><dd>' + d + '</dd></div>';
     const items = [
-      { id: 'v-guia', t: 'Cómo usar este documento' },
       { id: 'v-1', t: '1 · Ficha del proyecto y planos a escala' }, { id: 'v-1-plan', t: 'A-01 · Planta de distribución y mobiliario, 1:50', sub: true }, { id: 'v-1-esp', t: 'Z-01 a Z-04 · Plano de cada zona, 1:25', sub: true },
       { id: 'v-3', t: '2 · Planos técnicos y fichas de fabricación' }, { id: 'v-3-esp', t: 'Especificaciones generales y reglas de herrajes', sub: true }
     ];
@@ -480,23 +479,6 @@
       { id: 'v-5', t: '4 · Iluminación y equipo' }, { id: 'v-5-aloj', t: 'Alojamiento, cableado, ventilación y acceso', sub: true }, { id: 'v-5-imp', t: 'Impresoras y pantallas', sub: true },
       { id: 'v-6', t: '5 · Verificación final y fuentes' });
     let s = cover(doc, '<div class="en-art-plan">' + L.plan.svg(v, { cotas: false, nums: true }) + '</div>') + toc(doc, items);
-
-    /* guía de lectura */
-    s += sec('v-guia', 'Cómo usar este documento',
-      lead('Este expediente reúne todo lo necesario para fabricar y montar el mobiliario del espacio <b>' + v + ' · ' + esc(vi.nombre) + '</b>: ' + fab.length + ' muebles, cada uno con su ficha de fabricación, sus láminas técnicas, su despiece, sus uniones y su iluminación. Está pensado para que un carpintero, un soldador o un electricista lo lean sin explicación adicional.') +
-      '<div class="en-guide">' +
-      [['1', 'Ficha y planos a escala', 'Qué es el proyecto, dónde está cada mueble y cómo se escaló el local.'], ['2', 'Planos y fichas de fabricación', 'Para el taller: una ficha por mueble (pasos, herrajes, control de calidad) seguida de sus láminas A3.'], ['3', 'Despiece y uniones', 'Para comprar y cortar: lista de piezas, compras consolidadas, herrajes, cableado y el detalle de cada unión.'], ['4', 'Iluminación y equipo', 'Para el electricista: fichas técnicas, fuentes, cables, ventilación y acceso para mantenimiento.'], ['5', 'Verificación final', 'Lista de lo que está listo y de lo que queda por confirmar antes de fabricar.']]
-        .map((x) => '<div><b>' + x[0] + '</b><h4>' + x[1] + '</h4><p>' + x[2] + '</p></div>').join('') + '</div>' +
-      '<h3>Cómo se lee cada mueble</h3><ol class="en-steps">' +
-      '<li>Abrir la <b>ficha de fabricación</b> del mueble (sección 2): medidas, materiales, pasos en el taller y en el local, herrajes y control de calidad.</li>' +
-      '<li>Con el <b>plano de ensamble</b> (lámina .1) entender el mueble completo: vistas, corte A–A, planta, isometría y cotas.</li>' +
-      '<li>Con el <b>despiece explosionado</b> (.2) identificar cada pieza por su marca; con las <b>láminas de piezas</b> (.5 en adelante) cortar cada una.</li>' +
-      '<li>Armar siguiendo la <b>secuencia de ensamble</b> (.3) y resolver cada unión con los <b>detalles constructivos</b> (.4) y la sección 3.</li>' +
-      '<li>Instalar la luz con la sección 4 y revisar el mueble con su lista de control de calidad.</li></ol>' +
-      '<div class="en-conv"><div><h5>Códigos de lámina</h5><p><b class="mono">' + v + '-07.3</b> = versión ' + v + ', mueble 7, lámina 3 (secuencia). G-00 es el índice y las convenciones de línea y rayado; A-01 la planta.</p></div>' +
-      '<div><h5>Tipo de dato</h5><p>' + tipoTag('fuente') + ' norma o ficha citada · ' + tipoTag('encargo') + ' lo pide el proyecto · ' + tipoTag('estimado') + ' criterio del grupo, con su método · ' + tipoTag('no') + ' pendiente.</p></div>' +
-      '<div><h5>Impresión</h5><p>Las láminas A3 van a tamaño real: imprimir al <b>100 %</b>, sin «ajustar a la página». Las páginas A4 se leen en pantalla o impresas.</p></div>' +
-      '<div><h5>Versión en línea</h5><p>Todo se dibuja desde el modelo 3D: <a href="' + esc(F.enlace) + '">' + esc(F.enlace) + '</a> (cada mueble se puede girar, desarmar y medir).</p></div></div>');
 
     /* 1 · ficha y planos */
     s += sec('v-1', '1 · Ficha del proyecto y planos a escala',
