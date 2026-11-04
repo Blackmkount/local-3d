@@ -40,7 +40,7 @@
       '<dl class="en-meta">' +
       '<div><dt>Proyecto</dt><dd>' + esc(N.ficha.nombre) + '</dd></div>' +
       '<div><dt>Curso</dt><dd>Diseño VIII · Producción · UPTC Duitama · guía «Del mueble a la planta»</dd></div>' +
-      (doc.ver ? '<div><dt>Espacio que se documenta</dt><dd>' + vtag(doc.ver) + ' ' + esc(vinfo(doc.ver).nombre) + ' — ' + esc(vinfo(doc.ver).titulo) + ' <small>(promedio en la matriz de selección: ' + best.avg[doc.ver].toFixed(2) + ' de 5; gana en ' + best.wins[doc.ver] + ' de ' + FABN.length + ' muebles)</small></dd></div>'
+      (doc.ver ? '<div><dt>Espacio que se documenta</dt><dd>' + vtag(doc.ver) + ' ' + esc(vinfo(doc.ver).nombre) + ' — ' + esc(vinfo(doc.ver).titulo) + (doc.req ? '' : ' <small>(promedio en la matriz de selección: ' + best.avg[doc.ver].toFixed(2) + ' de 5; gana en ' + best.wins[doc.ver] + ' de ' + FABN.length + ' muebles)</small>') + '</dd></div>'
         : '<div><dt>Versión que se desarrolla</dt><dd>' + vtag(DEV) + ' ' + esc(vinfo(DEV).nombre) + ' — ' + esc(vinfo(DEV).titulo) + ' <small>(mayor promedio en la matriz de selección: ' + best.avg[DEV].toFixed(2) + ' de 5; gana en ' + best.wins[DEV] + ' de ' + FABN.length + ' muebles)</small></dd></div>') +
       '<div><dt>Fecha</dt><dd>' + (doc.fecha || FECHA) + '</dd></div>' +
       '<div><dt>Modelo y planos interactivos</dt><dd><a href="' + esc(N.ficha.enlace) + '">' + esc(N.ficha.enlace) + '</a></dd></div>' +
@@ -551,8 +551,125 @@
     return { num: VDOC[v].num, ver: v, id: 'esp-' + v, file: 'espacio-' + VDOC[v].num + '-' + vi.nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), t: 'Espacio ' + VDOC[v].num + ' · ' + vi.nombre, label: 'Espacio ' + VDOC[v].num + ' · ' + vi.nombre,
       sub: 'Expediente de diseño y fabricación del mobiliario: ficha y planos a escala, planos técnicos, despiece y uniones, iluminación y equipo', kicker: 'Nota 1 · Diseño del mobiliario · Expediente del espacio ' + VDOC[v].num + ' de 3', fecha: FECHA_V };
   };
+  /* ================================================================ requisitos de un espacio
+     Un PDF por versión del local: los requisitos que pide un taller de impresión 3D en la vida real y,
+     para cada mueble de ese espacio, sus requisitos con su fuente y cómo los resuelve la propuesta.
+     No compara con los otros espacios. */
+  const RF = {
+    niosh: { t: 'NIOSH (2023). Approaches to Safe 3D Printing: A guide for makerspace users, schools, libraries, and small businesses. DHHS (NIOSH) Publicación 2024-103.', u: 'https://www.cdc.gov/niosh/docs/2024-103/pdfs/2024-103.pdf', tipo: 'fuente', s: 'NIOSH 2024-103' },
+    wki: { t: 'Fraunhofer WKI. 3D printer: emisiones de partículas ultrafinas y COV de impresoras FDM.', u: 'https://www.iaqip.wki.fraunhofer.de/en/all_topics/3d_printer.html', tipo: 'fuente', s: 'Fraunhofer WKI' },
+    box: { t: 'Bambu Lab Wiki. Sealed box: almacenamiento de filamento, humedad recomendada.', u: 'https://wiki.bambulab.com/en/filament-acc/acc/sealed-box', tipo: 'fuente', s: 'Bambu Lab Wiki' },
+    retilap: { t: 'RETILAP 2026, Libro 3, tabla 3.2.2.6 a: iluminancia media mantenida por espacio (tomado de la guía de Hegocom; confirmar en el PDF oficial del Ministerio de Minas y Energía).', u: 'https://hegocomca.com/guias/tabla-lux-retilap-2026', tipo: 'secundaria', s: 'RETILAP 2026' },
+    nfpa10: { t: 'NFPA 10 (2022), extintores portátiles: distancia de recorrido y altura de instalación (tomado de la cartilla de extintores de Seguros Sura).', u: 'https://www.segurossura.com.co/empresasura/Documentacion%20Formacion/cartilla-extintores.pdf', tipo: 'secundaria', s: 'NFPA 10' }
+  };
+  const rref = (k) => { if (RF[k]) return tipoTag(RF[k].tipo) + ' <span class="n1-fref">' + esc(RF[k].s) + '</span>'; if (k && N.fuentes[k]) return tipoTag(N.fuentes[k].tipo) + ' <span class="n1-fref">' + esc(h.SHORT[k] || k) + '</span>'; return tipoTag('estimado') + ' <span class="n1-fref">Criterio del grupo</span>'; };
+  /* requisitos generales de un taller de impresión 3D abierto al público */
+  function realGeneral(v) {
+    const it = (n) => itemOf(v, n).short;
+    const G = [
+      ['Aire y emisiones', [
+        ['Las impresoras FDM emiten partículas ultrafinas y compuestos orgánicos volátiles; más con ABS que con PLA o PETG.', 'Imprimir de preferencia PLA y PETG a la menor temperatura que funcione; ABS solo con el equipo cerrado.', 'wki'],
+        ['Ventilación general del área de impresión: mínimo 6 renovaciones de aire por hora, o un purificador portátil con filtro HEPA.', 'Se pide al centro comercial el caudal del local; si no llega, se suma un purificador HEPA junto al mueble ' + 7 + ' (' + it(7) + ').', 'niosh'],
+        ['Mantener la mayor distancia posible entre las impresoras y las personas; vigilar por cámara en vez de estar al lado.', 'El público ve las impresoras sin pararse sobre ellas; las P1S son cerradas, con filtro de carbón activado.', 'niosh'],
+        ['Esperar unos 20 minutos después de imprimir antes de abrir el equipo cerrado.', 'Se anota en el procedimiento de la dependienta: retirar piezas al terminar la ventilación.', 'niosh']]],
+      ['Filamento', [
+        ['Filamento abierto guardado en caja sellada con desecante, por debajo de 20 % de humedad relativa, con higrómetro.', 'Lo que se exhibe en la repisa (mueble 9) son carretes sellados; los abiertos van en cajas secas en la trastienda.', 'box'],
+        ['En el aire del local (45 a 65 % HR) un filamento recién secado pierde calidad en 2 a 12 horas.', 'Los carretes en uso quedan dentro del AMS de cada impresora, que es cerrado.', 'box']]],
+      ['Electricidad', [
+        ['Equipos puestos a tierra; no usar regletas para alimentar las impresoras.', 'Circuito propio para las cuatro impresoras con tomas fijas dentro del mueble ' + 7 + '.', 'niosh'],
+        ['La iluminación LED de 12 V de un local con público sigue el RETIE: fuentes certificadas, accesibles y protegidas.', 'Cada fuente va en un compartimento seco y registrable (expediente del espacio, sección 4).', 'retie'],
+        ['Cuatro impresoras de 350 W máximo a 110 V suman unos 12,7 A: circuito de 20 A cargado como máximo al 80 %.', 'Circuito dedicado de 20 A para el mueble de impresoras, con su propio interruptor en el tablero.', null]]],
+      ['Incendio', [
+        ['Impresoras en un área con detección de humo y alejadas de material combustible.', 'Detector de humo sobre el mueble de impresoras; nada de cartón ni filamento suelto encima de los equipos.', 'niosh'],
+        ['Extintor portátil a no más de 22,9 m de recorrido, con la parte superior a 1,53 m del piso como máximo y señalizado.', 'Extintor de CO₂ o agente limpio (fuego eléctrico, clase C) junto a la entrada de la trastienda, visible desde la sala.', 'nfpa10']]],
+      ['Iluminación', [
+        ['Área general de ventas: 300 lx con reproducción de color de 80 o más y luz vertical suficiente en los estantes.', 'Luz general del local más el LED propio de cada mueble de exhibición (2, 3, 4, 12, 13).', 'retilap'],
+        ['Caja y mesa de empaque: 500 lx; puesto de computador: 500 lx; montaje fino: 750 lx.', 'Barra de atención (5) y escritorio (17) con luz de tarea; panel de herramientas (11) junto al trabajo de mantenimiento.', 'retilap']]],
+      ['Personas y recorrido', [
+        ['Pasos para el público de 1,20 m de ancho.', 'Ver la tabla de normas de este espacio y los pasos acotados en la planta A-01.', 'ntc4140'],
+        ['Puerta de la trastienda con 0,80 m libres como mínimo.', 'Puerta de 0,90 m en la mampara.', 'nsr10k'],
+        ['Lo que el cliente toca entre la altura de alcance de la persona más baja y la de la más alta (Acopla95).', 'Producto principal entre 0,60 y 1,60 m en todos los muebles de exhibición.', 'acopla']]],
+      ['Mantenimiento y limpieza', [
+        ['Limpiar con paño húmedo o aspiradora con filtro HEPA; no barrer en seco ni usar aire comprimido.', 'Superficies lisas y lavables (melamina, laca, acero pintado); sin rincones que acumulen polvo bajo las impresoras.', 'niosh'],
+        ['Acceso para cambiar placa, boquilla y filamento sin mover el mueble.', 'Impresoras con el frente libre y espacio detrás para deslizarlas (mueble 7).', 'fichaP1S']]]
+    ];
+    return G.map((g) => '<h3>' + esc(g[0]) + '</h3><div class="n1-tbl"><table><thead><tr><th style="width:38%">Requisito</th><th style="width:16%">Fuente</th><th>Cómo lo resuelve este espacio</th></tr></thead><tbody>' +
+      g[1].map((r) => '<tr><td><b>' + esc(r[0]) + '</b></td><td>' + rref(r[2]) + '</td><td>' + esc(r[1]) + '</td></tr>').join('') + '</tbody></table></div>').join('');
+  }
+  /* requisitos de operación de cada mueble en un taller real (complemento de los del diseño) */
+  const ROLEREQ = {
+    2: [['Entrepaños con carga de producto sin flecharse; más de 1,20 m de alto: anclado al muro contra volcamiento.', null], ['Producto principal entre 0,60 y 1,60 m, a la altura de los ojos de la mayoría.', 'acopla'], ['Luz vertical en cada nivel con color fiel (80 o más de reproducción de color).', 'retilap'], ['Superficies lavables con paño húmedo.', 'niosh']],
+    3: [['Estable sin anclaje: no se voltea cuando alguien se apoya en un borde.', null], ['Paso libre alrededor para que dos personas se crucen.', 'ntc4140'], ['Esquinas redondeadas o romas: queda a la altura de la cadera de un adulto y la cabeza de un niño.', null], ['Tapa resistente al roce diario de piezas y manos.', null]],
+    4: [['Visible desde el pasillo del centro comercial: es la pieza que hace entrar al cliente.', null], ['Luz de acento sobre la pieza, más fuerte que la general del local.', null], ['Estable y sin bordes cortantes a la altura de las manos.', null]],
+    5: [['Altura de atención de pie entre 0,90 y 1,10 m y un tramo accesible más bajo con espacio para las rodillas.', null], ['Espacio para computador, pantalla y terminal de pago, con tomas de corriente y cables ocultos.', null], ['Luz de 500 lx en la caja y en la mesa donde se empaca.', 'retilap'], ['Asientos con los pies apoyados: altura del asiento según la poplítea de la persona más baja.', 'acopla']],
+    7: [['Superficie rígida que no vibre: las impresoras aceleran fuerte y una tapa que se mueve arruina la pieza.', null], ['Carga de cuatro impresoras con su AMS y su filamento, con margen.', 'fichaP1S'], ['Espacio detrás para cables y salida de aire, y encima para abrir el AMS.', 'fichaP1S'], ['Ventilación del área y distancia al público.', 'niosh'], ['Circuito propio, tomas fijas puestas a tierra, sin regletas.', 'niosh'], ['Detector de humo encima y nada combustible sobre los equipos.', 'niosh']],
+    9: [['Carretes sellados o en caja seca: el filamento absorbe humedad del aire.', 'box'], ['Sin sol directo ni fuentes de calor sobre los carretes.', null], ['El carrete más alto al alcance de la persona más baja, o con apoyo seguro para alcanzarlo.', 'acopla'], ['Rotación por fecha y etiqueta visible de material y color.', null]],
+    10: [['Cajones con rieles que aguanten repuestos metálicos (boquillas, placas, correas, herramientas).', null], ['Divisiones para piezas pequeñas y un cajón para el alcohol isopropílico de limpiar placas, lejos de las fuentes de calor.', null], ['Superficie de trabajo a la altura del codo para mantenimiento de pie.', 'acopla']],
+    11: [['Herramientas a la vista entre 0,90 y 1,70 m, junto a las impresoras.', 'acopla'], ['Puntas y cuchillas protegidas o colgadas hacia abajo.', null], ['Luz de tarea para trabajo fino (750 lx) donde se cambian boquillas y se ajustan piezas.', 'retilap']],
+    12: [['Vidrio templado si lleva vidrio; cerradura si exhibe piezas de valor.', 'nsr10k4'], ['Luz interna LED que no caliente el producto.', null], ['Centro de la vitrina a la altura de los ojos.', 'acopla']],
+    13: [['No reducir el ancho libre del acceso ni de la ruta de evacuación.', 'ntc4140'], ['Anclada si es alta; estable al roce de quien entra.', null], ['Producto de entrada visible desde el pasillo.', null]],
+    15: [['Separa la trastienda sin bloquear la circulación del aire del local.', null], ['Puerta con 0,80 m libres; franja de contraste si es de vidrio.', 'nsr10k'], ['Resistente a golpes de carros y cajas.', null]],
+    17: [['Puesto de computador con 500 lx sobre la mesa.', 'retilap'], ['Altura de mesa y espacio para las piernas según las medidas del cuerpo.', 'acopla'], ['Tomas y canaleta para computador, monitor e impresora de papel.', null]]
+  };
+  function hechos(v, n) {
+    const it = VS.items[v][n], io = itemOf(v, n), lz = h.luzDe(v, n), P = VS.precios, ids = it.herrajes.map((x) => x[0]), F = [];
+    F.push('Medidas: ' + io.dims + '.');
+    F.push('Materiales: ' + L.uniones.familias(v, n).map((x) => L.uniones.famT[x]).join(', ') + '.');
+    const ch = it.herrajes.find((x) => x[0] === 'chazo'); if (ch) F.push('Anclado al muro: ' + ch[1].toLowerCase() + ' (' + P.chazo.m + ').');
+    if (ids.indexOf('nivelador') >= 0 || ids.indexOf('pataNiv') >= 0) F.push('Niveladores para asentarlo en un piso irregular.');
+    if (ids.indexOf('riel45') >= 0) F.push('Cajones con ' + P.riel45.m.toLowerCase() + '.');
+    if (lz.m) F.push('Luz propia: ' + lz.m.toFixed(2).replace('.', ',') + ' m de LED, ' + Math.round(lz.W) + ' W a 12 V.');
+    return F;
+  }
+  function reqMueble(v, n, pre) {
+    const A = N.antro, M = N.muebles[n], reqs = VS.req[n] || [], io = itemOf(v, n), it = VS.items[v][n];
+    const rows = reqs.map((r, i) => { const s = M.src[i] || { tipo: 'no', d: '' }, c = VS.cumple(n, v)[i] || ['si', '']; return '<tr><td><b>' + esc(r) + '</b></td><td>' + tipoTag(s.tipo) + ' ' + fuenteRef(s.f) + (s.d ? '<small>' + esc(s.d) + '</small>' : '') + '</td><td class="rq-' + c[0] + '">' + stIcon(c[0]) + esc(c[1]) + '</td></tr>'; }).join('');
+    return '<section class="en-sec en-fab" id="r-m-' + n + '" data-title="' + esc(n + ' · ' + ROLE[n]) + '">' + (pre || '') +
+      '<header class="en-fab-h"><span class="en-fab-n">' + nn(n) + '</span><div><small>' + esc(ESP(n).t) + ' · requisitos</small><h2>' + esc(ROLE[n]) + '</h2><p>' + esc(io.name) + '</p></div>' + vtag(v) + '</header>' +
+      '<div class="en-fab-top"><div class="en-fab-iso">' + DW.isoSVG(v, n, 300, 220) + '</div><div><dl class="n1-dl sm">' +
+      '<div><dt>Quién lo usa</dt><dd>' + esc(M.usuario) + '</dd></div><div><dt>Para qué</dt><dd>' + esc(M.uso) + '</dd></div><div><dt>Espacio alrededor</dt><dd>' + esc(M.entorno) + '</dd></div><div><dt>Medidas</dt><dd class="mono">' + esc(io.dims) + '</dd></div></dl>' +
+      '<p class="en-fab-res">' + esc(io.it.resumen || base(n).resumen || '') + '</p></div></div>' +
+      '<h4 class="n1-h4">Medidas del cuerpo que lo condicionan</h4><ul class="n1-meds">' + M.medidas.map((m) => { const a = A[m[0]]; return '<li><b>' + esc(a.t) + '</b> <span class="mono">P5 ' + f1(a.p5) + ' · P95 ' + f1(a.p95) + ' cm</span><p>' + esc(m[1]) + '</p></li>'; }).join('') + '</ul>' +
+      '<h4 class="n1-h4">Requisitos de diseño y cómo los cumple la propuesta</h4><div class="n1-tbl"><table><thead><tr><th style="width:30%">Requisito</th><th style="width:28%">Fuente o dato</th><th>En esta propuesta</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="en-fab-cols"><div><h4 class="n1-h4">Requisitos de uso en un taller real</h4><div class="n1-tbl"><table><tbody>' + (ROLEREQ[n] || []).map((r) => '<tr><td>' + esc(r[0]) + '</td><td style="width:34%">' + rref(r[1]) + '</td></tr>').join('') + '</tbody></table></div></div>' +
+      '<div><h4 class="n1-h4">Cómo responde la propuesta</h4><ul class="en-ul">' + hechos(v, n).map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+      (it.why && it.why.length ? '<h4 class="n1-h4">Decisiones de diseño</h4><ul class="en-ul">' + it.why.map((w) => '<li><b>' + esc(w.t) + ':</b> ' + esc(w.d) + '</li>').join('') + '</ul>' : '') + '</div></div></section>';
+  }
+  function normasV(v) {
+    return '<div class="n1-tbl"><table><thead><tr><th style="width:34%">Requisito</th><th style="width:18%">Fuente</th><th>En este espacio</th></tr></thead><tbody>' +
+      N.normas.map((r) => '<tr><td><b>' + esc(r.t) + '</b><small>' + esc(r.d) + '</small></td><td>' + tipoTag(N.fuentes[r.f].tipo) + ' ' + fuenteRef(r.f) + '</td><td class="rq-' + r.v[v][0] + '">' + stIcon(r.v[v][0]) + esc(r.v[v][1]) + '</td></tr>').join('') + '</tbody></table></div>';
+  }
+  function docR(doc) {
+    const v = doc.ver, vi = vinfo(v);
+    const items = [{ id: 'r-1', t: '1 · El espacio y su mobiliario' }, { id: 'r-2', t: '2 · Lo que exige un taller de impresión 3D real' }, { id: 'r-3', t: '3 · Medidas del cuerpo y normas' }, { id: 'r-4', t: '4 · Requisitos de cada mueble' }];
+    FABN.forEach((n) => items.push({ id: 'r-m-' + n, t: v + '-' + nn(n) + ' · ' + ROLE[n] + ' · ' + itemOf(v, n).short, sub: true }));
+    items.push({ id: 'r-5', t: '5 · Fuentes' });
+    let s = cover(doc, '<div class="en-art-plan">' + L.plan.svg(v, { cotas: false, nums: true }) + '</div>') + toc(doc, items);
+    const sum = h.resumen();
+    s += sec('r-1', '1 · El espacio y su mobiliario',
+      lead('El espacio <b>' + v + ' · ' + esc(vi.nombre) + '</b> (' + esc(vi.titulo) + ') resuelve un local de 42 m² que vende impresoras, filamento y piezas impresas y que imprime a la vista del público. Este documento reúne lo que cada uno de sus ' + FABN.length + ' muebles tiene que cumplir y de dónde sale cada requisito.') +
+      '<p class="n1-box">' + esc(vi.concepto) + '</p>' +
+      '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Propuesta</th><th>Zona</th><th>Medidas (m)</th></tr></thead><tbody>' +
+      FABN.map((n) => '<tr><td><b>' + n + '</b> ' + esc(ROLE[n]) + '</td><td>' + esc(itemOf(v, n).name) + '</td><td>' + esc(ESP(n).t) + '</td><td class="mono nw">' + esc(itemOf(v, n).dims.replace(' m', '')) + '</td></tr>').join('') + '</tbody></table></div>' +
+      note('Cada requisito dice de dónde sale: ' + tipoTag('fuente') + ' norma, estudio o ficha citada · ' + tipoTag('secundaria') + ' fuente que cita a otra · ' + tipoTag('encargo') + ' lo pide el proyecto · ' + tipoTag('estimado') + ' criterio del grupo.'));
+    s += sec('r-2', '2 · Lo que exige un taller de impresión 3D real', lead('Antes de los muebles, el local: un taller de impresión abierto al público tiene que resolver el aire, el filamento, la electricidad, el fuego, la luz, el recorrido y la limpieza. Cada requisito lleva su fuente y cómo lo resuelve este espacio.') + realGeneral(v));
+    s += sec('r-3', '3 · Medidas del cuerpo y normas', '<h3>Medidas del cuerpo</h3>' + h.antro() + '<h3>Normas de accesibilidad, estructura y electricidad en este espacio</h3>' + normasV(v) +
+      note('Donde el espacio cumple con salvedad o no cumple, el ajuste queda anotado para decidirlo con el grupo antes de fabricar.'));
+    const pre = '<div id="r-4"><h2>4 · Requisitos de cada mueble</h2>' + lead('Para cada mueble: quién lo usa, para qué y en qué espacio; las medidas del cuerpo que lo condicionan; sus requisitos de diseño con la fuente y cómo los cumple la propuesta; y lo que pide su uso diario en un taller de impresión real.') + '</div>';
+    FABN.forEach((n, i) => { s += reqMueble(v, n, i ? '' : pre); });
+    const refs = Object.keys(RF).map((k) => '<li><b>' + esc(RF[k].s) + '.</b> ' + esc(RF[k].t) + ' <a href="' + esc(RF[k].u) + '">Enlace</a> <small>' + tipoTag(RF[k].tipo) + ' Consultado el 4 de noviembre de 2026.</small></li>').join('');
+    s += sec('r-5', '5 · Fuentes', '<h3>Fuentes del taller de impresión</h3><ol class="n1-refs">' + refs + '</ol><h3>Fuentes del diseño</h3>' + h.fuentes());
+    void sum;
+    return s;
+  }
+  EN.reqDoc = function (v) {
+    const vi = vinfo(v), num = VDOC[v].num;
+    return { num, ver: v, id: 'req-' + v, file: 'requisitos-espacio-' + num + '-' + vi.nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), t: 'Requisitos del mobiliario · Espacio ' + num + ' · ' + vi.nombre, label: 'Espacio ' + num + ' · ' + vi.nombre,
+      sub: 'Lo que exige un taller de impresión 3D real y los requisitos de cada mueble de este espacio, con su fuente y cómo los resuelve la propuesta', kicker: 'Nota 1 · Requisitos del mobiliario · Espacio ' + num + ' de 3', fecha: FECHA_V, req: true };
+  };
   /* ================================================================ armado */
   EN.html = function (num, opt) {
+    if (typeof num === 'string' && num[0] === 'R') { const doc = EN.reqDoc(num.slice(1)); return { doc, html: docR(doc) }; }
     if (typeof num === 'string') { const doc = EN.verDoc(num); return { doc, html: docV(doc) }; }
     const doc = DOCS.find((d) => d.num === num);
     return { doc, html: [doc1, doc2, doc3, doc4, doc5, doc6][num - 1](doc, opt) };
