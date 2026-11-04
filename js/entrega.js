@@ -34,14 +34,15 @@
     const best = h.resumen();
     return '<section class="en-cover' + pgCls(doc) + '">' +
       '<div class="en-brand"><b>BlackForge</b> 3D <span>Local de exhibición y taller de impresión 3D</span></div>' +
-      '<div class="en-kicker">Nota 1 · Diseño del mobiliario · Documento ' + doc.num + ' de ' + DOCS.length + '</div>' +
+      '<div class="en-kicker">' + (doc.kicker || 'Nota 1 · Diseño del mobiliario · Documento ' + doc.num + ' de ' + DOCS.length) + '</div>' +
       '<h1>' + esc(doc.t) + '</h1><p class="en-sub">' + esc(doc.sub) + '</p>' +
       '<div class="en-art">' + (art || '') + '</div>' +
       '<dl class="en-meta">' +
       '<div><dt>Proyecto</dt><dd>' + esc(N.ficha.nombre) + '</dd></div>' +
       '<div><dt>Curso</dt><dd>Diseño VIII · Producción · UPTC Duitama · guía «Del mueble a la planta»</dd></div>' +
-      '<div><dt>Versión que se desarrolla</dt><dd>' + vtag(DEV) + ' ' + esc(vinfo(DEV).nombre) + ' — ' + esc(vinfo(DEV).titulo) + ' <small>(mayor promedio en la matriz de selección: ' + best.avg[DEV].toFixed(2) + ' de 5; gana en ' + best.wins[DEV] + ' de ' + FABN.length + ' muebles)</small></dd></div>' +
-      '<div><dt>Fecha</dt><dd>' + FECHA + '</dd></div>' +
+      (doc.ver ? '<div><dt>Espacio que se documenta</dt><dd>' + vtag(doc.ver) + ' ' + esc(vinfo(doc.ver).nombre) + ' — ' + esc(vinfo(doc.ver).titulo) + ' <small>(promedio en la matriz de selección: ' + best.avg[doc.ver].toFixed(2) + ' de 5; gana en ' + best.wins[doc.ver] + ' de ' + FABN.length + ' muebles)</small></dd></div>'
+        : '<div><dt>Versión que se desarrolla</dt><dd>' + vtag(DEV) + ' ' + esc(vinfo(DEV).nombre) + ' — ' + esc(vinfo(DEV).titulo) + ' <small>(mayor promedio en la matriz de selección: ' + best.avg[DEV].toFixed(2) + ' de 5; gana en ' + best.wins[DEV] + ' de ' + FABN.length + ' muebles)</small></dd></div>') +
+      '<div><dt>Fecha</dt><dd>' + (doc.fecha || FECHA) + '</dd></div>' +
       '<div><dt>Modelo y planos interactivos</dt><dd><a href="' + esc(N.ficha.enlace) + '">' + esc(N.ficha.enlace) + '</a></dd></div>' +
       '<div><dt>Repositorio</dt><dd><a href="' + esc(N.ficha.repositorio) + '">' + esc(N.ficha.repositorio) + '</a></dd></div>' +
       '</dl>' +
@@ -95,7 +96,7 @@
     const ox = 20, oy = 40, s = 2, wx = sx(x0), wy = sy(d1);
     const dimH = (X0, X1, y, lab) => '<g class="dim"><line class="d-line" x1="' + (ox + (X0 - x0) * K) + '" y1="' + y + '" x2="' + (ox + (X1 - x0) * K) + '" y2="' + y + '"/><text class="d-txt" x="' + (ox + ((X0 + X1) / 2 - x0) * K) + '" y="' + (y - 1.2) + '">' + lab + '</text></g>';
     const dimV = (D0, D1, x, lab) => '<g class="dim"><line class="d-line" x1="' + x + '" y1="' + (oy + (d1 - D1) * K) + '" x2="' + x + '" y2="' + (oy + (d1 - D0) * K) + '"/><text class="d-txt" transform="translate(' + (x - 1.4) + ' ' + (oy + (d1 - (D0 + D1) / 2) * K) + ') rotate(-90)">' + lab + '</text></g>';
-    const vi = vinfo(v), lam = 'A-02.' + (idx + 1);
+    const vi = vinfo(v), lam = 'Z-0' + (idx + 1);
     let out = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 297" width="420mm" height="297mm" class="sheet" role="img" aria-label="Plano del espacio ' + esc(e.t) + ', versión ' + v + ', escala 1:25">';
     out += '<style>' + L.plan.css + '.sheet .win{fill:none;stroke:#111;stroke-width:.35;stroke-dasharray:2 1.2}.sheet .cl{fill:none}.sheet .big{font-size:3.4px}</style>';
     out += '<rect class="paper" x="0" y="0" width="420" height="297"/><rect class="frame" x="10" y="10" width="400" height="277"/>';
@@ -146,7 +147,7 @@
     const items = [{ id: 'd1-ficha', t: '1 · Ficha del proyecto' }, { id: 'd1-versiones', t: '2 · Las tres versiones del local' }, { id: 'd1-escala', t: '3 · Referencia de escalado' }, { id: 'd1-planos', t: '4 · Planta de distribución y mobiliario, escala 1:50' }];
     VER.forEach((v) => items.push({ id: 'd1-plan-' + v, t: 'A-01 · versión ' + v + ' · ' + vinfo(v).nombre, sub: true }));
     items.push({ id: 'd1-espacios', t: '5 · Plano de cada espacio, escala 1:25', sub: false });
-    VER.forEach((v) => items.push({ id: 'd1-esp-' + v, t: 'A-02 · versión ' + v + ' · ' + F.espacios.length + ' espacios', sub: true }));
+    VER.forEach((v) => items.push({ id: 'd1-esp-' + v, t: 'Z-01 a Z-04 · versión ' + v + ' · ' + F.espacios.length + ' espacios', sub: true }));
     items.push({ id: 'd1-hitos', t: '6 · Hitos de la guía y uso de inteligencia artificial' });
     let s = cover(doc, '<div class="en-art-plan">' + L.plan.svg(DEV, { cotas: false, nums: true }) + '</div>') + toc(doc, items);
     s += sec('d1-ficha', '1 · Ficha del proyecto',
@@ -182,7 +183,7 @@
       '<h3>Cómo leer las láminas a escala</h3>' +
       '<div class="n1-tbl"><table><thead><tr><th>Lámina</th><th>Escala</th><th>Equivalencia</th><th>Comprobación</th></tr></thead><tbody>' +
       '<tr><td><b>A-01</b> Planta de distribución y mobiliario</td><td class="mono">1:50 en A3 horizontal</td><td>20 mm en el papel = 1.00 m en el local; el frente de 6.00 m mide 120 mm</td><td>Escala gráfica de 3 m al pie de la lámina; el local dibujado mide 120 × 140 mm</td></tr>' +
-      '<tr><td><b>A-02</b> Plano de cada espacio</td><td class="mono">1:25 en A3 horizontal</td><td>40 mm en el papel = 1.00 m; recorte de A-01 al doble</td><td>Escala gráfica de 2 m; la ventana del recorte lleva sus dos cotas</td></tr>' +
+      '<tr><td><b>Z-01 a Z-04</b> Plano de cada espacio</td><td class="mono">1:25 en A3 horizontal</td><td>40 mm en el papel = 1.00 m; recorte de A-01 al doble</td><td>Escala gráfica de 2 m; la ventana del recorte lleva sus dos cotas</td></tr>' +
       '<tr><td><b>V-nn.1</b> a <b>V-nn.5</b> Planos de los muebles (documento 3)</td><td class="mono">1:10, 1:20, 1:5 según el mueble</td><td>Escala escrita en el rótulo de cada lámina y en cada vista</td><td>Las cotas mandan sobre la medida a escala</td></tr>' +
       '</tbody></table></div>' +
       note('Las láminas A3 van en este PDF a su tamaño real: deben imprimirse al 100 % (sin «ajustar a la página») para que la escala se conserve. Si se imprimen en A4, la escala pasa a ser aproximadamente 1:71 y 1:35; la escala gráfica sigue siendo válida.'));
@@ -191,7 +192,7 @@
       '<h3 id="d1-espacios">5 · Plano de cada espacio, escala 1:25</h3>' + lead('Cada espacio del local recortado de la planta al doble de la escala, con la posición del recorte en el local, la escala gráfica y el cuadro de sus muebles. ' + F.espacios.length + ' láminas A3 por versión, después de las tres plantas.') +
       '<div class="n1-tbl"><table><thead><tr><th>Lámina</th><th>Contenido</th><th>Versión</th><th>Escala</th></tr></thead><tbody>' +
       VER.map((v) => '<tr><td><b>A-01</b></td><td>Planta de distribución y mobiliario</td><td>' + vtag(v) + ' ' + esc(vinfo(v).nombre) + '</td><td class="mono">1:50</td></tr>').join('') +
-      VER.map((v) => F.espacios.map((e, i) => '<tr><td><b>A-02.' + (i + 1) + '</b></td><td>Espacio: ' + esc(e.t) + ' · muebles ' + e.n.join(', ') + '</td><td>' + vtag(v) + ' ' + esc(vinfo(v).nombre) + '</td><td class="mono">1:25</td></tr>').join('')).join('') + '</tbody></table></div>', 'en-sec-min');
+      VER.map((v) => F.espacios.map((e, i) => '<tr><td><b>Z-0' + (i + 1) + '</b></td><td>Espacio: ' + esc(e.t) + ' · muebles ' + e.n.join(', ') + '</td><td>' + vtag(v) + ' ' + esc(vinfo(v).nombre) + '</td><td class="mono">1:25</td></tr>').join('')).join('') + '</tbody></table></div>', 'en-sec-min');
     VER.forEach((v) => { s += a3(L.plan.svg(v, { cotas: true, nums: true }), 'd1-plan-' + v); });
     VER.forEach((v) => { F.espacios.forEach((e, i) => { s += a3(espacioSVG(v, e, i), i === 0 ? 'd1-esp-' + v : null); }); });
     // hitos + IA
@@ -375,8 +376,213 @@
     return s;
   }
 
+  /* ================================================================ expediente de un espacio (versión)
+     Un PDF por versión del local, con los cinco requisitos de la guía y lo necesario para que otra
+     persona fabrique cada mueble sin preguntar: guía de lectura, especificaciones generales, reglas de
+     perforación de los herrajes, ficha de fabricación por mueble con sus láminas y control de calidad. */
+  const VDOC = { A: { num: 1 }, B: { num: 2 }, C: { num: 3 } };
+  const FECHA_V = '4 de noviembre de 2026';
+  /* reglas de taller para perforar y montar cada herraje (práctica corriente; se confirman con la ficha del herraje) */
+  const HREG = {
+    bisagraCaz: ['Cazoleta Ø35 mm, 12–13 mm de profundidad, con el borde a 4 mm del canto de la puerta.', 'Primera y última bisagra a 100 mm de los extremos; 2 bisagras hasta 900 mm de alto, 3 hasta 1600 mm.', 'Base en el costado a 37 mm del canto frontal (sistema 32); tornillos 4 × 16 mm. Holgura entre puertas: 3 mm.'],
+    riel45: ['Riel de extensión total de 450 mm: el cajón mide el hueco menos 12,7 mm por lado (verificar con el riel).', 'Riel del costado a 37 mm del canto frontal, nivelado y paralelo al piso del cuerpo; tornillos 4 × 16 mm.', 'El frente se monta después, con 2 mm de luz entre frentes y 3 mm a los bordes del cuerpo.'],
+    manija: ['Dos perforaciones Ø5 mm a 128 mm entre ejes, centradas en el ancho del frente.', 'Eje a 40 mm del canto superior del frente (criterio del grupo); tornillo M4 × 25 mm por detrás.'],
+    tornEns: ['Tornillo de ensamble en tablero de 15 mm: broca escalonada Ø5/Ø7 mm en el eje del espesor (7,5 mm del canto).', 'A 50 mm de cada extremo y cada 200 mm como máximo; cabeza avellanada a ras y tapada con tapatornillo del color.'],
+    tornAuto: ['Fija lámina, tablero o herraje al tubo sin pretaladro; cada 300 mm como máximo y a 25 mm de los extremos.', 'En tablero de 15 mm, máximo 5/8" de largo para no pasar a la cara vista.'],
+    tornM6: ['Rosca M6 en el tubo: broca Ø5 mm y macho M6, o tuerca remachable M6 en broca Ø9 mm (tubo calibre 18).', 'Arandela plana bajo la cabeza; apriete moderado, sin aplastar el tablero.'],
+    chazo: ['Broca de concreto de 3/8" (10 mm), 55 mm de profundidad, a 100 mm o más del borde del muro.', 'Antes de perforar, verificar que no pase tubería ni cableado (detector).', 'Muro de bloque o drywall: cambiar por anclaje de expansión para el material (consultar al centro comercial).'],
+    nivelador: ['Tuerca de 5/16" soldada al tubo o placa de 3 mm con rosca en la pata; recorrido útil ±15 mm.', 'Se nivela con nivel de burbuja en dos direcciones antes de cargar el mueble.'],
+    pataNiv: ['Placa de la pata atornillada bajo el piso del cuerpo con 4 tornillos 4 × 16 mm, a 50 mm de las esquinas.', 'El zócalo se fija a las patas con su clip; se regula la altura antes de poner el zócalo.'],
+    bisagraSold: ['Se sueldan las dos mitades con la puerta montada y calzada a 3 mm de holgura, ejes alineados.', 'Se pule la soldadura, se pinta y se engrasa el pistón.'],
+    ganchos: ['Verificar que el diámetro y el paso de la perforación de la lámina coincidan con los ganchos antes de cortar la lámina.'],
+    pasacable: ['Perforación del tamaño del pasacable (medir la pieza comprada) en el eje de cada equipo, a 50 mm del fondo.'],
+    fuente3: ['Fuente fijada por sus orejas con 2 tornillos 4 × 16 mm, con 20 mm libres alrededor; nunca encerrada sin ventilación.', 'Clavija a una toma de 110 V propia; salida de 12 V al LED por el pasacable.'],
+    pegante: ['Capa delgada en las dos caras, prensado 30 min y curado de 24 h antes de cargar.'],
+    soporteInv: ['Perforación Ø10 mm × 140 mm en el canto trasero de la repisa, centrada en el espesor (repisa de 25 mm o más).', 'Tubo al muro con su chazo; la repisa entra a presión y se nivela.'],
+    kitBatiente: ['Se instala según el kit (bisagra, chapeta y manija); el vidrio templado llega perforado de fábrica: enviar el plano de perforación a la vidriería.'],
+    escuadra: ['Escuadra 3030 con tuercas en T de la ranura del perfil; tornillos M6 apretados en cruz.'],
+    kitRiel: ['Riel de 200 cm atornillado al muro o al marco cada 400 mm; holgura de 10 mm entre la puerta y el piso.']
+  };
+  HREG.fuente5 = HREG.fuente3; HREG.fuente8 = HREG.fuente3; HREG.fuente12 = HREG.fuente3;
+  function reglasHerrajes(v) {
+    const P = VS.precios, used = {};
+    FABN.forEach((n) => VS.items[v][n].herrajes.forEach((x) => { (used[x[0]] = used[x[0]] || new Set()).add(n); }));
+    return '<div class="n1-tbl"><table><thead><tr><th>Herraje</th><th>Muebles</th><th>Cómo se perfora y se monta</th></tr></thead><tbody>' +
+      (() => { const g = []; Object.keys(used).filter((k) => P[k]).sort((a, b) => P[a].m.localeCompare(P[b].m)).forEach((k) => { const r = HREG[k] || null, x = r && g.find((y) => y.r === r); if (x) { x.k.push(k); used[k].forEach((n) => x.n.add(n)); } else g.push({ r, k: [k], n: new Set(used[k]) }); }); return g; })()
+        .map((x) => '<tr><td>' + x.k.map((k) => '<b>' + esc(P[k].m) + '</b><small>' + esc(P[k].pres) + '</small>').join('') + '</td><td class="mono">' + Array.from(x.n).sort((a, b) => a - b).join(', ') + '</td><td>' + (x.r ? '<ul class="en-ul">' + x.r.map((r) => '<li>' + esc(r) + '</li>').join('') + '</ul>' : 'Según la ficha del herraje.') + '</td></tr>').join('') +
+      '</tbody></table></div>' + note('Reglas de taller (práctica corriente de carpintería y metalmecánica): antes de perforar la primera pieza se confirman con la ficha del herraje comprado. Las posiciones de cada herraje en el mueble están en el plano de ensamble (.1) y en los detalles (.4).');
+  }
+  function especificaciones(v) {
+    const vi = vinfo(v), fams = new Set(); FABN.forEach((n) => L.uniones.familias(v, n).forEach((f) => fams.add(f)));
+    const rows = [
+      ['Unidades y cotas', 'Todas las medidas en milímetros salvo que se indique. Las cotas mandan sobre la medida tomada a escala; si una cota falta o no cuadra, no se corta: se anota y se pregunta al diseñador (es un error del plano).'],
+      ['Tolerancias', 'Corte de tablero ±0,5 mm; corte de tubo y perfil ±1 mm; escuadra del mueble armado: diagonales iguales con ±2 mm; medida general ±2 mm; nivel ±1 mm por metro.'],
+      ['Tableros', 'Se piden cortados y enchapados al proveedor con la lista de piezas (documento, sección 4). Canto de PVC de 2 mm en los cantos vistos y de 0,45 mm en los ocultos; la veta del Rovere va a lo largo de la pieza, como marca cada lámina de piezas.'],
+      ['Metal', 'Tubo de acero calibre 18 cortado a 90° (o a 45° donde el plano lo indica), soldadura MIG continua en las uniones cargadas y por puntos en las demás; se pule, se desengrasa y se pintan dos manos de anticorrosivo y el acabado.'],
+      ['Tornillería', 'Zincada; los tornillos de ensamble van con tapatornillo del color del tablero. Ninguna punta puede salir a una cara vista.'],
+      ['Iluminación', 'Perfil y tira LED a 12 V con su fuente propia; cada tramo en estrella hasta la fuente, con la sección de cable de la sección 5. La fuente queda accesible y ventilada.'],
+      ['Montaje en sitio', 'Se nivela cada mueble antes de anclarlo; los anclajes a muro se hacen después de verificar con detector que no pase tubería; los muebles altos van anclados al muro siempre.'],
+      ['Entrega', 'Cada mueble se revisa con su lista de control de calidad (ficha de fabricación) antes de recibirlo; se protegen cantos y vidrios para el transporte.']
+    ];
+    return '<div class="n1-tbl"><table><tbody>' + rows.map((r) => '<tr><th style="width:30mm">' + r[0] + '</th><td>' + esc(r[1]) + '</td></tr>').join('') + '</tbody></table></div>' +
+      note('Familias de materiales de la versión ' + v + ' · ' + esc(vi.nombre) + ': ' + Array.from(fams).map((f) => esc(L.uniones.famT[f])).join(' · ') + '. Tolerancias y cantos: criterio del grupo con base en la práctica de taller; se ajustan con el fabricante si su maquinaria trabaja con otras.');
+  }
+  function controlCalidad(v, n) {
+    const it = VS.items[v][n], ids = new Set(it.herrajes.map((x) => x[0])), txt = it.piezas.map((p) => p[0]).join(' ');
+    const c = ['Medidas generales como en el plano de ensamble (±2 mm) y diagonales iguales (±2 mm).'];
+    if (/tubo|perfil3030|perforada/.test(txt)) c.push('Soldaduras o uniones de perfil completas, sin escoria ni filos; pintura pareja, sin chorreos.');
+    if (/rovere|blanca|mdf|fondo/.test(txt)) c.push('Cantos pegados sin desprendimientos; ninguna punta de tornillo en caras vistas; tapatornillos puestos.');
+    if (ids.has('riel45')) c.push('Cada cajón abre y cierra completo sin roce, con 2 mm de luz pareja entre frentes.');
+    if (ids.has('bisagraCaz') || ids.has('bisagraSold') || ids.has('kitBatiente') || ids.has('kitRiel')) c.push('Puertas a escuadra, con holgura pareja de 3 mm, sin roce al abrir.');
+    if (h.luzDe(v, n).m) c.push('La luz enciende en todos sus tramos, sin parpadeo; la fuente se alcanza sin desarmar el mueble.');
+    if (ids.has('nivelador') || ids.has('pataNiv')) c.push('Mueble nivelado en las dos direcciones, sin cojear.');
+    if (ids.has('chazo')) c.push('Anclado al muro con todos sus chazos; no se mueve al empujarlo.');
+    if (n === 7) c.push('Las cuatro impresoras caben con su AMS, abren su puerta y se pueden deslizar hacia adelante para mantenimiento.');
+    return '<ul class="en-qc">' + c.map((x) => '<li><i></i>' + esc(x) + '</li>').join('') + '</ul>';
+  }
+  function fichaFab(v, n, sheets) {
+    const it = VS.items[v][n], io = itemOf(v, n), f = L.n1.matrix(n).F[v], lz = h.luzDe(v, n), un = L.uniones.of(v, n), P = VS.precios;
+    const fams = L.uniones.familias(v, n).map((x) => '<span class="n1-chip">' + esc(L.uniones.famT[x].split(' (')[0]) + '</span>').join(' ');
+    const pend = (VS.req[n] || []).map((r, i) => [r, (VS.cumple(n, v)[i] || ['si', ''])]).filter((x) => x[1][0] !== 'si');
+    const cam = N.cambios.filter((c) => c.v === v && c.n === n);
+    return '<section class="en-sec en-fab" id="v-fab-' + n + '" data-title="' + esc(n + ' · ' + ROLE[n]) + '">' +
+      '<header class="en-fab-h"><span class="en-fab-n">' + nn(n) + '</span><div><small>' + esc(ESP(n).t) + ' · ficha de fabricación</small><h2>' + esc(ROLE[n]) + '</h2><p>' + esc(io.name) + '</p></div>' + vtag(v) + '</header>' +
+      '<div class="en-fab-top"><div class="en-fab-iso">' + DW.isoSVG(v, n, 300, 220) + '</div><dl class="n1-dl sm">' +
+      '<div><dt>Medidas (L × F × H)</dt><dd class="mono">' + esc(io.dims) + '</dd></div><div><dt>Cantidad</dt><dd>' + esc(it.cant || '1') + '</dd></div>' +
+      '<div><dt>Ubicación</dt><dd>' + esc(it.ubic || ESP(n).d) + '</dd></div><div><dt>Materiales</dt><dd>' + fams + '</dd></div>' +
+      '<div><dt>Piezas · oficios</dt><dd>' + f.piezas + ' piezas · ' + f.oficios.length + ' oficios (' + esc(f.oficios.join(', ')) + ')</dd></div>' +
+      '<div><dt>Uniones · pasos de montaje</dt><dd>' + un.length + ' tipos de unión · ' + f.ens + ' pasos</dd></div>' +
+      '<div><dt>Luz propia</dt><dd>' + (lz.m ? lz.m.toFixed(2).replace('.', ',') + ' m de LED · ' + Math.round(lz.W) + ' W' : 'No lleva') + '</dd></div>' +
+      '<div><dt>Costo de materiales</dt><dd class="mono">' + cop(f.costo) + '</dd></div></dl></div>' +
+      '<p class="en-fab-res">' + esc(io.it.resumen || base(n).resumen || '') + '</p>' +
+      '<div class="en-fab-cols"><div><h4 class="n1-h4">1 · Fabricación en el taller</h4><ol class="en-steps">' + it.fab.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ol></div>' +
+      '<div><h4 class="n1-h4">2 · Montaje en el local</h4><ol class="en-steps">' + it.ens.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ol></div></div>' +
+      '<h4 class="n1-h4">3 · Herrajes y tornillería</h4><div class="n1-tbl"><table><thead><tr><th>Elemento</th><th class="r">Cant.</th><th>Dónde va</th><th>Se compra por</th></tr></thead><tbody>' +
+      it.herrajes.map((x) => '<tr><td><b>' + esc(P[x[0]].m) + '</b></td><td class="r mono">' + x[2] + '</td><td>' + esc(x[1]) + '</td><td>' + esc(P[x[0]].pres) + '</td></tr>').join('') + '</tbody></table></div>' +
+      '<div class="en-fab-cols"><div><h4 class="n1-h4">4 · Láminas de este mueble</h4><div class="n1-tbl"><table><tbody>' +
+      sheets.map((sh) => '<tr><td class="mono"><a href="#v-sh-' + sh.id + '"><b>' + esc(sh.code) + '</b></a></td><td>' + esc(sh.title) + '<small>' + esc(sh.sub || '') + '</small></td><td class="r mono"><span data-pg="v-sh-' + sh.id + '"></span></td></tr>').join('') + '</tbody></table></div>' +
+      note('Despiece completo, uniones y luz de este mueble: secciones 4 y 5.') + '</div>' +
+      '<div><h4 class="n1-h4">5 · Control de calidad antes de entregar</h4>' + controlCalidad(v, n) +
+      (pend.length || cam.length ? '<h4 class="n1-h4">Observaciones</h4><ul class="en-ul">' + cam.map((c) => '<li><b>Cambio:</b> ' + esc(c.antes) + ' → ' + esc(c.despues) + '. ' + esc(c.causa) + '</li>').join('') + pend.map((x) => '<li><b>' + (x[1][0] === 'no' ? 'No cumple' : 'Con salvedad') + ':</b> ' + esc(x[0]) + ' — ' + esc(x[1][1]) + '</li>').join('') + '</ul>' : '') +
+      '</div></div></section>';
+  }
+  const base = (n) => h.base[n] || {};
+  function docV(doc) {
+    const v = doc.ver, vi = vinfo(v), F = N.ficha, E = N.escalado, best = h.resumen(), list = PN.sheets(v), fab = PN.fab(v).map((d) => d.n);
+    const row = (t, d, cls) => '<div class="' + (cls || '') + '"><dt>' + esc(t) + '</dt><dd>' + d + '</dd></div>';
+    const items = [
+      { id: 'v-guia', t: 'Cómo usar este documento' },
+      { id: 'v-1', t: '1 · Ficha del proyecto y planos a escala' }, { id: 'v-1-plan', t: 'A-01 · Planta de distribución y mobiliario, 1:50', sub: true }, { id: 'v-1-esp', t: 'Z-01 a Z-04 · Plano de cada zona, 1:25', sub: true },
+      { id: 'v-2', t: '2 · Requisitos, alternativas y matriz de selección' }, { id: 'v-2-req', t: 'Requisitos de cada mueble, con su fuente', sub: true }, { id: 'v-2-mx', t: 'Tres alternativas y matriz de cada mueble', sub: true },
+      { id: 'v-3', t: '3 · Planos técnicos y fichas de fabricación' }, { id: 'v-3-esp', t: 'Especificaciones generales y reglas de herrajes', sub: true }
+    ];
+    fab.forEach((n) => items.push({ id: 'v-fab-' + n, t: v + '-' + nn(n) + ' · ' + ROLE[n] + ' · ' + itemOf(v, n).short, sub: true }));
+    items.push({ id: 'v-4', t: '4 · Despiece, materiales, herrajes, cableado y uniones' }, { id: 'v-4-desp', t: 'Despiece de cada mueble', sub: true }, { id: 'v-4-un', t: 'Detalle de cada unión', sub: true },
+      { id: 'v-5', t: '5 · Iluminación y equipo' }, { id: 'v-5-aloj', t: 'Alojamiento, cableado, ventilación y acceso', sub: true }, { id: 'v-5-imp', t: 'Impresoras y pantallas', sub: true },
+      { id: 'v-6', t: '6 · Verificación final y fuentes' });
+    let s = cover(doc, '<div class="en-art-plan">' + L.plan.svg(v, { cotas: false, nums: true }) + '</div>') + toc(doc, items);
+
+    /* guía de lectura */
+    s += sec('v-guia', 'Cómo usar este documento',
+      lead('Este expediente reúne todo lo necesario para fabricar y montar el mobiliario del espacio <b>' + v + ' · ' + esc(vi.nombre) + '</b>: ' + fab.length + ' muebles, cada uno con su ficha de fabricación, sus láminas técnicas, su despiece, sus uniones y su iluminación. Está pensado para que un carpintero, un soldador o un electricista lo lean sin explicación adicional.') +
+      '<div class="en-guide">' +
+      [['1', 'Ficha y planos a escala', 'Qué es el proyecto, dónde está cada mueble y cómo se escaló el local.'], ['2', 'Requisitos y alternativas', 'Por qué cada mueble es como es: requisitos con su fuente y la matriz que compara las tres alternativas.'], ['3', 'Planos y fichas de fabricación', 'Para el taller: una ficha por mueble (pasos, herrajes, control de calidad) seguida de sus láminas A3.'], ['4', 'Despiece y uniones', 'Para comprar y cortar: lista de piezas, compras consolidadas, herrajes, cableado y el detalle de cada unión.'], ['5', 'Iluminación y equipo', 'Para el electricista: fichas técnicas, fuentes, cables, ventilación y acceso para mantenimiento.'], ['6', 'Verificación final', 'Lista de lo que está listo y de lo que queda por confirmar antes de fabricar.']]
+        .map((x) => '<div><b>' + x[0] + '</b><h4>' + x[1] + '</h4><p>' + x[2] + '</p></div>').join('') + '</div>' +
+      '<h3>Cómo se lee cada mueble</h3><ol class="en-steps">' +
+      '<li>Abrir la <b>ficha de fabricación</b> del mueble (sección 3): medidas, materiales, pasos en el taller y en el local, herrajes y control de calidad.</li>' +
+      '<li>Con el <b>plano de ensamble</b> (lámina .1) entender el mueble completo: vistas, corte A–A, planta, isometría y cotas.</li>' +
+      '<li>Con el <b>despiece explosionado</b> (.2) identificar cada pieza por su marca; con las <b>láminas de piezas</b> (.5 en adelante) cortar cada una.</li>' +
+      '<li>Armar siguiendo la <b>secuencia de ensamble</b> (.3) y resolver cada unión con los <b>detalles constructivos</b> (.4) y la sección 4.</li>' +
+      '<li>Instalar la luz con la sección 5 y revisar el mueble con su lista de control de calidad.</li></ol>' +
+      '<div class="en-conv"><div><h5>Códigos de lámina</h5><p><b class="mono">' + v + '-07.3</b> = versión ' + v + ', mueble 7, lámina 3 (secuencia). G-00 es el índice y las convenciones de línea y rayado; A-01 la planta.</p></div>' +
+      '<div><h5>Tipo de dato</h5><p>' + tipoTag('fuente') + ' norma o ficha citada · ' + tipoTag('encargo') + ' lo pide el proyecto · ' + tipoTag('estimado') + ' criterio del grupo, con su método · ' + tipoTag('no') + ' pendiente.</p></div>' +
+      '<div><h5>Impresión</h5><p>Las láminas A3 van a tamaño real: imprimir al <b>100 %</b>, sin «ajustar a la página». Las páginas A4 se leen en pantalla o impresas.</p></div>' +
+      '<div><h5>Versión en línea</h5><p>Todo se dibuja desde el modelo 3D: <a href="' + esc(F.enlace) + '">' + esc(F.enlace) + '</a> (cada mueble se puede girar, desarmar y medir).</p></div></div>');
+
+    /* 1 · ficha y planos */
+    s += sec('v-1', '1 · Ficha del proyecto y planos a escala',
+      lead(esc(F.encargo)) +
+      '<dl class="n1-dl">' + row('Proyecto', esc(F.nombre)) + row('Tipo', esc(F.tipo)) + row('Ubicación', esc(F.ubicacion), /confirmar/.test(F.ubicacion) ? 'is-todo' : '') + row('Ciudad', esc(F.ciudad), /confirmar/i.test(F.ciudad) ? 'is-todo' : '') +
+      row('Áreas', esc(F.area)) + row('Fachada', esc(F.fachada)) + row('Fuente del plano', esc(F.fuentePlano)) + row('Fecha de consulta', esc(F.consulta)) + '</dl>' +
+      '<h3>El espacio ' + v + ' · ' + esc(vi.nombre) + ' <small>' + esc(vi.titulo) + '</small></h3>' +
+      '<div class="en-ver is-win" style="--vc:' + vi.color + '"><div class="en-ver-l"><div class="en-ver-iso">' + DW.isoSVG(v, 3, 300, 200) + '</div><p class="en-ver-sc"><b>' + best.avg[v].toFixed(2) + '</b> de 5 en promedio en la matriz · gana en ' + best.wins[v] + ' de ' + FABN.length + ' muebles · materiales ' + cop(VS.calc(v).total) + '</p></div>' +
+      '<div class="en-ver-r"><p>' + esc(vi.concepto) + '</p><div class="en-ver-cols"><div><h5>Distribución</h5><ul>' + vi.distribucion.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul><h5>Materiales</h5><ul>' + vi.materiales.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></div>' +
+      '<div><h5>A favor</h5><ul>' + vi.ventajas.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul><h5>En contra</h5><ul>' + vi.contras.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul></div></div></div></div>' +
+      '<h3>Zonas y muebles</h3><div class="n1-tbl"><table><thead><tr><th>Zona</th><th>Qué pasa ahí</th><th>Muebles</th><th>Lámina</th></tr></thead><tbody>' +
+      F.espacios.map((e, i) => '<tr><td><b>' + esc(e.t) + '</b></td><td>' + esc(e.d) + '</td><td>' + e.n.map((k) => '<span class="n1-chip">' + k + ' · ' + esc(itemOf(v, k).short) + '</span>').join(' ') + '</td><td class="mono">Z-0' + (i + 1) + '</td></tr>').join('') + '</tbody></table></div>' +
+      '<h3>Referencia de escalado</h3>' + note(esc(E.texto)) +
+      '<div class="n1-tbl"><table><thead><tr><th>Referencia</th><th>Cómo se usó</th><th>Dato</th></tr></thead><tbody>' +
+      E.refs.map((r) => '<tr><td><b>' + esc(r.t) + '</b></td><td>' + esc(r.d) + '</td><td>' + tipoTag(r.tipo) + ' ' + esc(h.SHORT[r.f] || r.f) + '</td></tr>').join('') + '</tbody></table></div>' + note(esc(E.nota)) +
+      '<div class="n1-tbl"><table><thead><tr><th>Lámina</th><th>Escala</th><th>Equivalencia</th><th>Comprobación</th></tr></thead><tbody>' +
+      '<tr><td><b>A-01</b> Planta de distribución</td><td class="mono">1:50 en A3</td><td>20 mm = 1,00 m; el frente de 6,00 m mide 120 mm</td><td>Escala gráfica de 3 m</td></tr>' +
+      '<tr><td><b>Z-01 a Z-04</b> Plano de cada zona</td><td class="mono">1:25 en A3</td><td>40 mm = 1,00 m</td><td>Escala gráfica de 2 m y cotas de la ventana</td></tr>' +
+      '<tr><td><b>' + v + '-nn.1 a .n</b> Planos de los muebles</td><td class="mono">1:5 a 1:25</td><td>Escrita en el rótulo y en cada vista</td><td>Las cotas mandan</td></tr></tbody></table></div>' +
+      note('Los planos de los otros dos espacios están en sus propios expedientes; aquí, la planta A-01 de este espacio y sus cuatro zonas a 1:25 (láminas Z-01 a Z-04).'));
+    s += a3(L.plan.svg(v, { cotas: true, nums: true }), 'v-1-plan');
+    F.espacios.forEach((e, i) => { s += a3(espacioSVG(v, e, i), i === 0 ? 'v-1-esp' : null); });
+
+    /* 2 · requisitos y matriz */
+    s += sec('v-2', '2 · Requisitos, alternativas y matriz de selección',
+      lead('Antes de dibujar se escribió qué tiene que resolver cada mueble y de dónde sale cada requisito. Cada mueble tiene tres alternativas —una por espacio del local— comparadas con seis criterios con peso. Este expediente desarrolla la alternativa <b>' + v + '</b> de los doce muebles: la matriz la elige en ' + best.wins[v] + ' de ' + FABN.length + '; en los demás se indica cuál ganó y por qué se mantiene la del espacio (el local se arma por versiones completas).') +
+      '<h3>Medidas del cuerpo</h3>' + h.antro() + '<h3>Requisitos que salen de las normas</h3>' + h.normas() +
+      '<h3>Criterios de la matriz</h3><div class="n1-tbl"><table><thead><tr><th>Criterio</th><th class="r">Peso</th><th>Cómo se puntúa (0 a 5)</th></tr></thead><tbody>' + N.criterios.map((c) => '<tr><td><b>' + esc(c.t) + '</b></td><td class="r mono">' + c.peso + ' %</td><td>' + esc(c.d) + '</td></tr>').join('') + '</tbody></table></div>' +
+      '<h3>Resultado por mueble</h3>' + h.sumTable(0));
+    s += '<section class="en-sec" id="v-2-req" data-title="Requisitos de cada mueble"><h2>Requisitos de cada mueble, con su fuente</h2>' + FABN.map((n) => '<div class="en-mueble">' + h.reqCard(n) + '</div>').join('') + '</section>';
+    s += '<section class="en-sec" id="v-2-mx" data-title="Alternativas y matriz"><h2>Tres alternativas y matriz de cada mueble</h2>' + FABN.map((n, i) => { const m = L.n1.matrix(n); return '<div class="en-mueble' + (i ? ' en-page' : '') + '"><h3>' + n + ' · ' + esc(ROLE[n]) + ' <small>gana ' + m.win + ' · ' + m.sc[m.win].total.toFixed(2) + (m.win === v ? ' · es la de este espacio' : ' · este espacio usa ' + v + ' (' + m.sc[v].total.toFixed(2) + ')') + '</small></h3>' + h.altBlock(n) + '</div>'; }).join('') +
+      '<h3>Durabilidad por material <small>criterio del grupo</small></h3>' + h.duraTable() + '</section>';
+
+    /* 3 · planos y fichas de fabricación */
+    s += sec('v-3', '3 · Planos técnicos y fichas de fabricación', lead('Primero las especificaciones que valen para todos los muebles; después, para cada mueble, su ficha de fabricación seguida de sus láminas A3: plano de ensamble (vistas, corte, planta, isometría, cotas, escala y rótulo), despiece explosionado, secuencia de ensamble, detalles constructivos y piezas con sus medidas de corte.') +
+      '<h3 id="v-3-esp">Especificaciones generales de fabricación</h3>' + especificaciones(v) +
+      '<h3>Reglas de perforación y montaje de los herrajes</h3>' + reglasHerrajes(v));
+    s += a3(DW.indice(v), 'v-sh-g');
+    fab.forEach((n) => {
+      const sh = list.filter((x) => x.n === n);
+      s += fichaFab(v, n, sh);
+      sh.forEach((x) => { s += a3(PN.draw(v, x), 'v-sh-' + x.id); });
+    });
+
+    /* 4 · despiece */
+    s += sec('v-4', '4 · Despiece, materiales, herrajes, cableado y uniones', lead('Para comprar y cortar. La regla de materiales de la guía, la tabla de materiales con su formato y proveedor, la lista consolidada de compras, los herrajes sumados y el cableado; después, el despiece y las uniones de cada mueble.') +
+      '<h3>Regla de los materiales</h3>' + h.regla(v) + '<h3>Tabla de materiales</h3>' + h.mats(v) + '<h3>Lista consolidada de compras</h3>' + compras(v) +
+      '<h3>Herrajes y tornillería consolidados</h3><div class="n1-tbl"><table><thead><tr><th>Elemento</th><th class="r">Cant.</th><th>Unidad de venta</th><th>Muebles</th><th>Usos</th></tr></thead><tbody>' +
+      herrajesTot(v).map((r) => { const P = VS.precios; return '<tr><td><b>' + esc(P[r.id].m) + '</b></td><td class="r mono">' + r.q + '</td><td>' + esc(P[r.id].pres) + '</td><td>' + Array.from(r.m).sort((a, b) => a - b).join(', ') + '</td><td>' + Array.from(r.usos).map(esc).join(' · ') + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+      '<h3>Cableado</h3>' + cableado(v));
+    s += '<section class="en-sec" id="v-4-desp" data-title="Despiece de cada mueble"><h2>Despiece de cada mueble</h2>' + note('Marcas de pieza como en el despiece explosionado (.2). Medidas de corte: largo × ancho × espesor para tableros; largo para tubos y perfiles.') +
+      FABN.map((n) => '<div class="en-mueble">' + h.despiece(v, n).replace(/<p class="n1-note">Medidas de corte[\s\S]*?<\/p>$/, '') + '</div>').join('') + '</section>';
+    s += '<section class="en-sec" id="v-4-un" data-title="Detalle de cada unión"><h2>Detalle de cada unión</h2>' + note('Detalle a escala 1:2, medidas en mm: por qué se eligió, cómo se hace y qué herraje lleva. Los detalles en corte y en su sitio están en la lámina .4 de cada mueble.') +
+      FABN.map((n) => { const un = L.uniones.of(v, n); return '<div class="en-mueble"><h3>' + mueble(v, n) + ' <small>' + un.length + ' uniones</small></h3>' + h.uniones(v, n) + '</div>'; }).join('') + '</section>';
+
+    /* 5 · iluminación y equipo */
+    s += sec('v-5', '5 · Iluminación y equipo', lead('La iluminación (perfil LED, tira COB y sus fuentes) y el equipo (impresoras Bambu Lab P1S y pantallas) se compran y se integran. Cada dato de ficha dice si se verificó en la del fabricante, si no está publicado, si es un cálculo o si las fuentes no coinciden.') +
+      '<p class="n1-note">' + Object.keys(h.EST).map((k) => '<span class="n1-es e-' + k + '">' + h.EST[k] + '</span>').join(' ') + '</p>' + h.fichas() +
+      '<h3>Luz de cada mueble</h3>' + h.luzCalc(v) + h.cambios(v));
+    s += '<section class="en-sec" id="v-5-aloj" data-title="Alojamiento, cableado y acceso"><h2>Alojamiento, cableado, ventilación y acceso</h2>' + alojamiento(v) + '</section>';
+    s += '<section class="en-sec" id="v-5-imp" data-title="Impresoras y pantallas"><h2>Impresoras y pantallas</h2><h3>Impresoras integradas al mueble 7</h3>' + h.impresoras(v) +
+      note('Las impresoras tienen cámara cerrada con filtro de carbón y toman el aire del local: el mueble no lleva extracción. Se dejan como mínimo 100 mm detrás para cables y salida de aire; las holguras no están publicadas por el fabricante.') +
+      '<h3>Pantallas de 75" y 55"</h3>' + pantallas() + '</section>';
+
+    /* 6 · verificación */
+    const ver = FABN.map((n) => { const pend = (VS.req[n] || []).filter((r, i) => (VS.cumple(n, v)[i] || ['si'])[0] !== 'si').length; return '<tr><td><b>' + n + '</b> ' + esc(itemOf(v, n).short) + '</td>' + ['Ficha', 'Láminas', 'Despiece', 'Uniones', 'Luz'].map((k) => '<td class="rq-si">' + stIcon('si') + '</td>').join('') + '<td class="' + (pend ? 'rq-parcial' : 'rq-si') + '">' + stIcon(pend ? 'parcial' : 'si') + (pend ? pend + ' requisito' + (pend > 1 ? 's' : '') + ' con salvedad' : 'Cumple') + '</td></tr>'; }).join('');
+    s += sec('v-6', '6 · Verificación final y fuentes',
+      lead('Qué está completo para cada mueble y qué queda por confirmar antes de mandar a fabricar.') +
+      '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Ficha</th><th>Láminas</th><th>Despiece</th><th>Uniones</th><th>Luz y equipo</th><th>Requisitos</th></tr></thead><tbody>' + ver + '</tbody></table></div>' +
+      '<h3>Antes de fabricar, confirmar</h3><ul class="en-ul">' +
+      '<li>Medir el local en sitio (las medidas salen de la imagen del proyecto, escalada con el frente de 6,00 m).</li>' +
+      '<li>Nombre del centro comercial y ciudad, y su reglamento para anclar a muros y a la losa.</li>' +
+      '<li>Confirmar cada herraje con su ficha antes de perforar la primera pieza (reglas de la sección 3).</li>' +
+      '<li>Lo que la tabla de rastreo deja por decidir con el grupo:</li></ul>' + h.rastreo() +
+      '<h3>Uso de inteligencia artificial</h3><p class="n1-box">' + esc(F.ia) + '</p><h3>Fuentes</h3>' + h.fuentes());
+    return s;
+  }
+  EN.verDoc = function (v) {
+    const vi = vinfo(v);
+    return { num: VDOC[v].num, ver: v, id: 'esp-' + v, file: 'espacio-' + VDOC[v].num + '-' + vi.nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), t: 'Espacio ' + VDOC[v].num + ' · ' + vi.nombre, label: 'Espacio ' + VDOC[v].num + ' · ' + vi.nombre,
+      sub: 'Expediente de diseño y fabricación del mobiliario: ficha y planos a escala, requisitos y matriz, planos técnicos, despiece y uniones, iluminación y equipo', kicker: 'Nota 1 · Diseño del mobiliario · Expediente del espacio ' + VDOC[v].num + ' de 3', fecha: FECHA_V };
+  };
   /* ================================================================ armado */
   EN.html = function (num, opt) {
+    if (typeof num === 'string') { const doc = EN.verDoc(num); return { doc, html: docV(doc) }; }
     const doc = DOCS.find((d) => d.num === num);
     return { doc, html: [doc1, doc2, doc3, doc4, doc5, doc6][num - 1](doc, opt) };
   };
@@ -391,7 +597,7 @@
     $$('.en-a3 > svg', root).forEach((sv, i) => { sv.dataset.sheet = i + 1; });
     $$('.n1-tbl', root).forEach((t) => { if (t.offsetHeight < 380) t.style.breakInside = 'avoid'; });
     document.body.classList.add('en-pdf'); document.documentElement.classList.add('en-pdf');
-    document.title = 'BlackForge 3D · Documento ' + doc.num + ' · ' + doc.t;
+    document.title = 'BlackForge 3D · ' + (doc.label || 'Documento ' + doc.num) + ' · ' + doc.t;
     return { doc, pages: $$('.en-a3', root).length, ids: $$('[id]', root).map((e) => e.id) };
   };
   EN.setPages = function (map) {
