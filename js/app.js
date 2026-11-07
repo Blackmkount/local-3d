@@ -375,6 +375,35 @@
     }
     return null;
   }
+  /* pieza del despiece bajo el puntero (explosionado): marca, material, medidas, cantidad en el mueble y precio */
+  const pzCache = {};
+  function pieceInfo(n, part) {
+    const it = F.items[n]; if (!it || !L.dwg || !L.dwg.parts) return null;
+    const o = it.insts.find((x) => x.parts.indexOf(part) >= 0); if (!o) return null;
+    const idx = o.parts.indexOf(part), key = S.ver + n;
+    let G = pzCache[key];
+    if (!G) { try { G = pzCache[key] = L.dwg.parts(S.ver, n); } catch (e) { return null; } }
+    const g = G.find((x) => x.sol.some((q) => q.idx === idx)); if (!g) return null;
+    const P = VS.precios[g.mk], d = g.dims, mm = d.join(' × ') + ' mm';
+    let pu = null, base = '';
+    if (P) {
+      if (P.tipo === 'lamina') { pu = (d[0] * d[1] / 1e6) / P.area * P.precio; base = cop(P.precio) + ' la lámina'; }
+      else if (P.tipo === 'm2') { pu = (d[0] * d[1] / 1e6) * P.precio; base = cop(P.precio) + ' el m²'; }
+      else if (P.tipo === 'barra') { pu = (d[0] / 1000) / P.largo * P.precio; base = cop(P.precio) + ' la barra de ' + P.largo + ' m'; }
+      else if (P.tipo === 'm') { pu = (d[0] / 1000) * P.precio; base = cop(P.precio) + ' el metro'; }
+      else if (P.tipo === 'unidad') { pu = P.precio; base = P.pres.toLowerCase(); }
+      else base = VS.precioTxt(P);
+    }
+    return { mark: g.mark, name: g.name, mat: g.mat, mm, cant: g.cant, pu, tot: pu == null ? null : pu * g.cant, base, origen: g.origen };
+  }
+  function pieceTip(pi) {
+    return '<i>P' + pi.mark + '</i><b>' + esc(pi.name) + '</b><span>' + esc(pi.mat) + '</span>' +
+      '<em class="tip-row"><span>Medidas</span><b>' + esc(pi.mm) + '</b></em>' +
+      '<em class="tip-row"><span>Cantidad en este mueble</span><b>' + pi.cant + (pi.cant === 1 ? ' pieza' : ' piezas') + '</b></em>' +
+      (pi.pu != null ? '<em class="tip-row"><span>Precio por pieza</span><b>≈ ' + cop(Math.round(pi.pu)) + '</b></em>' +
+        (pi.cant > 1 ? '<em class="tip-row"><span>Total de esta pieza</span><b>≈ ' + cop(Math.round(pi.tot)) + '</b></em>' : '') : '') +
+      '<em class="tip-note">' + esc({ Fabrica: 'Se fabrica', Compra: 'Se compra', 'Compra, se corta': 'Se compra y se corta' }[pi.origen] || pi.origen) + (pi.base ? ' · material a ' + esc(pi.base) : '') + '</em>';
+  }
   let hoverRaf = 0, lastMove = null;
   function onHover(e) {
     lastMove = e;
@@ -391,9 +420,10 @@
       const d = byN[hit.n];
       let html;
       if (S.sel && S.sel.n === hit.n && hit.part && S.mode !== 'solid') {
-        const u = hit.part.userData, row = d.mats.find((m) => m.key === u.mk);
-        html = '<b>' + esc(u.name) + '</b><span>' + esc(row ? row.m : d.name) + '</span>';
-      } else html = '<i>' + d.n + '</i><b>' + esc(d.short) + '</b><span>' + cop(d.total) + ' · ' + (d.origen === 'fabrica' ? 'se fabrica' : 'se compra') + '</span>';
+        const u = hit.part.userData, pi = S.mode === 'exploded' ? pieceInfo(hit.n, hit.part) : null, row = d.mats.find((m) => m.key === u.mk);
+        html = pi ? pieceTip(pi) : '<b>' + esc(u.name) + '</b><span>' + esc(row ? row.m : d.name) + '</span>';
+        tip.classList.toggle('is-piece', !!pi);
+      } else { html = '<i>' + d.n + '</i><b>' + esc(d.short) + '</b><span>' + cop(d.total) + ' · ' + (d.origen === 'fabrica' ? 'se fabrica' : 'se compra') + '</span>'; tip.classList.remove('is-piece'); }
       tip.innerHTML = html; tip.hidden = false;
       const r = $('#stage').getBoundingClientRect();
       const x = Math.min(ev.clientX - r.left + 16, r.width - tip.offsetWidth - 8), y = Math.min(ev.clientY - r.top + 18, r.height - tip.offsetHeight - 8);
@@ -403,6 +433,17 @@
   function onClick(e) {
     if (S.mont) return;
     const hit = pickAt(e);
+    if (hit && hit.part && S.mode === 'exploded' && S.sel && S.sel.n === hit.n && e.pointerType === 'touch') {
+      const pi = pieceInfo(hit.n, hit.part), tip = $('#tip');
+      if (pi) {
+        tip.innerHTML = pieceTip(pi); tip.classList.add('is-piece'); tip.hidden = false;
+        const r = $('#stage').getBoundingClientRect();
+        const x = Math.max(8, Math.min(e.clientX - r.left - tip.offsetWidth / 2, r.width - tip.offsetWidth - 8)), y = Math.max(8, Math.min(e.clientY - r.top - tip.offsetHeight - 24, r.height - tip.offsetHeight - 8));
+        tip.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+        S.hover = hit; refreshEdges();
+        return;
+      }
+    }
     if (hit) select(hit.n, hit.inst);
     else if (S.sel && S.mode === 'solid') deselect();
   }
@@ -1412,6 +1453,6 @@
       });
     }));
   }
-  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openSpot, downloadGLB, closeSpot, toggleInv, layout, setVersion, openPlan, closePlan, openReqs, openVersions, planFit, state: S };
+  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openSpot, downloadGLB, closeSpot, toggleInv, layout, setVersion, openPlan, closePlan, openReqs, openVersions, planFit, state: S, pieceInfo };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
