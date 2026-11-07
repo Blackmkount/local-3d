@@ -248,3 +248,17 @@ body.en-pdf #app { display: none !important; }
 .en-f1-plan svg { display: block; width: 100%; height: auto; }
 .en-f1-plan figcaption { font-size: 9.6px; color: #6e6e73; margin-top: 4px; text-align: center; }
 .en-f1-cols { display: grid; grid-template-columns: 1fr 1.25fr; gap: 12px; }
+
+/* Nota 2 */
+#entrega .en-n2 .n1-badge { display: none; }
+#entrega .n1-sh { margin-bottom: 10px; break-after: avoid; }
+#entrega .n1-sh h2 { font-size: 21px; }
+#entrega .n1-sh .n1-letter { width: 36px; height: 36px; font-size: 16px; border-radius: 10px; }
+#entrega .en-cont { break-before: page; }
+#entrega .en-n2m > h3 { margin-top: 4px; }
+#entrega .n2-diag { overflow: visible; }
+#entrega .n2-diag svg { display: block; width: 100%; height: auto; max-height: 150mm; }
+#entrega .n2-kpi > div { box-shadow: 0 0 0 0.6px #c9c8c4; border-radius: 10px; padding: 9px 12px; }
+#entrega .n2-kpi b { font-size: 18px; }
+#entrega .n2-boards svg { max-width: 100%; height: auto; }
+#entrega svg { max-width: 100%; }
