@@ -783,8 +783,52 @@
   EN.fichaDoc = function () {
     return { num: 0, id: 'ficha', file: 'ficha-del-proyecto', t: 'Ficha del proyecto', label: 'Ficha del proyecto', sub: '', fecha: FECHA_V, sec2: 'BlackForge 3D', single: true };
   };
+  /* ================================================================ Nota 2 en PDF (sistema de producción, versión B) */
+  function docN2(doc) {
+    const M = L.notaMods[2], ST2 = M.state, keep = ST2.n;
+    const ORDER = ['J', 'K', 'N', 'O', '2', '3', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17'];
+    const SE = (id) => M.secs.find((x) => x.id === id);
+    const items = [];
+    let s = '';
+    const frag = (html) => { const d = document.createElement('div'); d.innerHTML = html; return d; };
+    const wrap = (id, html, title) => '<section class="en-sec en-n2" id="n2-' + id + '" data-title="' + esc(title) + '">' + html + '</section>';
+    try {
+      ORDER.forEach((id) => {
+        const S = SE(id); if (!S) return;
+        const title = (/^\d+$/.test(id) ? 'Ítem ' + id : 'Elemento ' + id) + ' · ' + S.t;
+        items.push({ id: 'n2-' + id, t: title });
+        if (id === '8' || id === '9') {
+          ST2.n = FABN[0];
+          let html = M.render(id);
+          FABN.forEach((n, i) => {
+            ST2.n = n;
+            const d = frag(M.render(id));
+            let part;
+            if (id === '8') part = $('.n2-diag', d) ? $('.n2-diag', d).outerHTML : '';
+            else { const k = $('.n2-kpi', d), t = $('.n2-cur', d); part = (k ? k.outerHTML : '') + (t ? t.closest('.n1-tbl').outerHTML : ''); }
+            const blk = '<div class="en-n2m' + (i || id === '8' ? ' en-page' : '') + '" id="n2-' + id + '-' + n + '"><h3>' + (id === '8' ? 'Diagrama de operaciones' : 'Cursograma analítico') + ' · mueble ' + n + ' · ' + esc(ROLE[n]) + ' <small>' + esc(itemOf('B', n).name) + '</small></h3>' + part + '</div>';
+            items.push({ id: 'n2-' + id + '-' + n, t: n + ' · ' + ROLE[n], sub: true });
+            if (i === 0) {
+              // la sección completa una vez (resumen, notas, examen crítico) con el primer mueble en su sitio
+              const d0 = frag(html);
+              if (id === '8') { const g = $('.n2-diag', d0); if (g) { const h3 = g.previousElementSibling; if (h3 && h3.tagName === 'H3') h3.remove(); g.outerHTML = blk; } }
+              else { const k = $('.n2-kpi', d0), t = $('.n2-cur', d0); if (t) t.closest('.n1-tbl').remove(); if (k) k.outerHTML = blk; }
+              html = d0.innerHTML;
+              s += wrap(id, html, title);
+            } else s += wrap(id + '-' + n, blk, title).replace('class="en-sec en-n2"', 'class="en-sec en-n2 en-cont"');
+          });
+        } else s += wrap(id, M.render(id), title);
+      });
+    } finally { ST2.n = keep; }
+    return cover(doc, '<div class="en-art-row">' + [7, 5, 2].map((n) => '<div>' + DW.isoSVG('B', n, 260, 170) + '</div>').join('') + '</div>') + toc(doc, items) + s;
+  }
+  EN.n2Doc = function () {
+    return { num: 0, ver: 'B', id: 'nota2', file: 'nota-2-sistema-de-produccion-galeria', t: 'Nota 2 · Sistema de producción', label: 'Nota 2', sec2: 'Sistema de producción · Galería',
+      sub: 'Planta de Villanueva (Casanare) que fabrica los 12 juegos de muebles del espacio Galería en 2027: empresa, volumen y ritmo, fabricar o comprar, tipo de producción, hipótesis, análisis del producto y planes de corte, diagramas de operaciones y de flujo, métodos, tiempos y capacidad', kicker: 'Nota 2 · Sistema de producción · Espacio 2 · Galería', fecha: '7 de noviembre de 2026', req: true, land: true, serie: '' };
+  };
   /* ================================================================ armado */
   EN.html = function (num, opt) {
+    if (num === 'N2') { const doc = EN.n2Doc(); return { doc, html: docN2(doc) }; }
     if (num === 'F') { const doc = EN.fichaDoc(); return { doc, html: docF(doc) }; }
     if (typeof num === 'string' && num[0] === 'P') { const doc = EN.provDoc(num.slice(1)); return { doc, html: docP(doc) }; }
     if (typeof num === 'string' && num[0] === 'R') { const doc = EN.reqDoc(num.slice(1)); return { doc, html: docR(doc) }; }
@@ -802,6 +846,7 @@
     $$('[data-thumb]', root).forEach((el) => { const p = el.dataset.thumb.split('-'); el.innerHTML = DW.isoSVG(p[0], +p[1], 320, 240); });
     $$('.en-a3 > svg', root).forEach((sv, i) => { sv.dataset.sheet = i + 1; });
     $$('.n1-tbl', root).forEach((t) => { if (t.offsetHeight < 380) t.style.breakInside = 'avoid'; });
+    if ($('[data-cut]', root) && L.corte) { const pl = L.corte.plan('B'); $$('[data-cut]', root).forEach((el) => { const p = el.dataset.cut.split(':'); el.innerHTML = L.corte.svg(pl[+p[0]], +p[1]); }); }
     document.body.classList.add('en-pdf'); document.documentElement.classList.add('en-pdf');
     document.title = 'BlackForge 3D · ' + (doc.label || 'Documento ' + doc.num) + ' · ' + doc.t;
     return { doc, pages: $$('.en-a3', root).length, ids: $$('[id]', root).map((e) => e.id) };
