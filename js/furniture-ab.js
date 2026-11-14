@@ -99,6 +99,10 @@
     const zr = G.planShape(Lx, Fz, r, 0.05); zr.holes.push(holeOf(Lx, Fz, r, 0.065));
     h.P(o, name + ': zócalo', 'negro', x0, 0, z0, 0, 0, 0, step0, [ex[0], ex[1] - 0.15, ex[2]], { geo: G.slab(zr, yb), mk: 'mdf15',
       cut: [[name + ': zócalo (desarrollo)', 1, mm(perim(Lx, Fz, r, 0.05)), yb]] });
+    // para los planos: radio de cada punta (centro del arco y hacia dónde abre) y desarrollos
+    const cur = (o.curvas = o.curvas || { radios: [], filas: [] });
+    [['fl', 1, 1, -1, 1], ['fr', -1, 1, 1, 1], ['bl', 1, -1, -1, -1], ['br', -1, -1, 1, -1]].forEach((c) => { const rr = r[c[0]]; if (rr) cur.radios.push({ x: x0 + (c[1] > 0 ? rr : Lx - rr), z: z0 + (c[2] > 0 ? Fz - rr : rr), r: rr, dx: c[3], dz: c[4], t: 'R' + Math.round(rr * 1000) }); });
+    cur.filas.push(name + ': puntas R' + Math.round(Math.max(r.fl || 0, r.fr || 0, r.bl || 0, r.br || 0) * 1000) + ' · desarrollo de la piel ' + Math.round(perim(Lx, Fz, r) * 1000) + ' × ' + Math.round(hp * 1000) + ' (2 capas de 5.5) · tira del zócalo ' + Math.round(perim(Lx, Fz, r, 0.05) * 1000) + ' × 80');
     return shp;
   }
   /* agujero (Path) con la misma planta, metida hacia adentro */
@@ -119,6 +123,9 @@
       cut: [[name + ': zócalo (desarrollo)', 1, mm(2 * PI * (rad - 0.04)), yb]] });
     const l = []; l.push({ g: new T.TorusGeometry(rad - 0.035, 0.004, 4, 40), m: G.mat(cx, yb - 0.006, cz, PI / 2, 0, 0), c: 0xffffff });
     h.PM(o, name + ': tira COB', 'led', l, 3, [ex[0], ex[1] - 0.2, ex[2]], { mk: 'cob', noShadow: true, cut: [[name + ': aro de tira COB', 1, mm(2 * PI * (rad - 0.035))]] });
+    const cur = (o.curvas = o.curvas || { radios: [], filas: [] });
+    cur.radios.push({ x: cx, z: cz, r: rad, dx: 1, dz: 1, t: 'Ø' + Math.round(rad * 2000), dia: true });
+    cur.filas.push(name + ': Ø' + Math.round(rad * 2000) + ' · desarrollo de la piel ' + Math.round(2 * PI * rad * 1000) + ' × ' + Math.round(hp * 1000) + ' (2 capas de 5.5) · tira del zócalo ' + Math.round(2 * PI * (rad - 0.04) * 1000) + ' × 70');
   }
 
   /* ================================================== VERSIÓN A · TALLER A LA VISTA */
@@ -285,16 +292,19 @@
       bl(o, 'Piso', x0 + 0.015, y0, 0.006, 0.57, 0.015, 0.474, 1, [dx, -0.05, 0.4]);
       bl(o, 'Amarre', x0 + 0.015, yT - 0.015, 0.006, 0.57, 0.015, 0.1, 1, [dx, 0.12, 0.4]);
       fo(o, 'Fondo 6 mm', x0 + 0.005, y0, 0, 0.59, yT - y0, 0.006, 1, [dx, 0, -0.3]);
+      const cs = [], cf = [], cb = [];               // cajas de los tres cajones: costados, frente y trasera, fondos
       for (let j = 0; j < 3; j++) {
-        const y = y0 + 0.003 + j * 0.246, bx = [];
-        G.pushBox(bx, x0 + 0.03, y + 0.04, 0.03, 0.015, 0.17, 0.44, 0xf2f0eb); G.pushBox(bx, x0 + 0.555, y + 0.04, 0.03, 0.015, 0.17, 0.44, 0xf2f0eb);
-        G.pushBox(bx, x0 + 0.045, y + 0.04, 0.03, 0.51, 0.17, 0.015, 0xf2f0eb); G.pushBox(bx, x0 + 0.045, y + 0.04, 0.455, 0.51, 0.17, 0.015, 0xf2f0eb);
-        G.pushBox(bx, x0 + 0.031, y + 0.034, 0.03, 0.538, 0.006, 0.44, 0xf6f4ef);
-        h.PM(o, 'Caja de cajón', 'decor', bx, 2, [dx, 0, 0.95], { mk: 'blanca15' });
+        const y = y0 + 0.003 + j * 0.246;
+        G.pushBox(cs, x0 + 0.03, y + 0.04, 0.03, 0.015, 0.17, 0.44, 0xf2f0eb); G.pushBox(cs, x0 + 0.555, y + 0.04, 0.03, 0.015, 0.17, 0.44, 0xf2f0eb);
+        G.pushBox(cf, x0 + 0.045, y + 0.04, 0.03, 0.51, 0.17, 0.015, 0xf2f0eb); G.pushBox(cf, x0 + 0.045, y + 0.04, 0.455, 0.51, 0.17, 0.015, 0xf2f0eb);
+        G.pushBox(cb, x0 + 0.031, y + 0.034, 0.03, 0.538, 0.006, 0.44, 0xf6f4ef);
         G.pushBox(rl, x0 + 0.016, y + 0.09, 0.03, 0.012, 0.036, 0.44, 0xc6c8cb); G.pushBox(rl, x0 + 0.572, y + 0.09, 0.03, 0.012, 0.036, 0.44, 0xc6c8cb);
         rv(o, 'Frente de Rovere', x0 + 0.002, y, 0.48, 0.596, 0.242, 0.015, 3, [dx, 0, 1.4]);
         st(o, 'Manija negra', 'manija', x0 + 0.23, y + 0.17, 0.495, 0.14, 0.01, 0.014, 3, [dx, 0.04, 1.5], { noShadow: true });
       }
+      h.PM(o, 'Caja de cajón: costado', 'decor', cs, 2, [dx, 0, 0.95], { mk: 'blanca15' });
+      h.PM(o, 'Caja de cajón: frente y trasera', 'decor', cf, 2, [dx, 0, 0.95], { mk: 'blanca15' });
+      h.PM(o, 'Caja de cajón: fondo de 6 mm', 'decor', cb, 2, [dx, 0, 0.95], { mk: 'fondo6' });
       h.PM(o, 'Rieles de extensión total', 'alu', rl, 2, [dx, 0, 0.4], { mk: 'riel45', noShadow: true, exA: [0, 0, 0.5] });
     }
     [0, 1].forEach((i) => tapaDoble(rv, o, 'Tapa de Rovere', i * 1.5, yT, 0, 1.5, Fz, 4, [i ? 0.3 : -0.3, 0.4, 0.3]));
@@ -464,7 +474,9 @@
     const ll = []; tiers.forEach((tr) => { const pts = G.planShape(tr.Lx, tr.Fz, tr.r, 0.057).getPoints(8); for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], len = Math.hypot(b.x - a.x, b.y - a.y); if (len < 1e-4) continue; ll.push({ g: new T.BoxGeometry(len, 0.004, 0.008), m: G.mat(tr.x0 + (a.x + b.x) / 2, 0.075, tr.z0 - (a.y + b.y) / 2, 0, -Math.atan2(-(b.y - a.y), b.x - a.x), 0), c: 0xffffff }); } });
     h.PM(o, 'Tira COB en el zócalo', 'led', ll, 3, [0, -0.3, 0], { mk: 'cob', noShadow: true, cut: tiers.map((tr) => [tr.name + ': tira COB del zócalo', 1, mm(perim(tr.Lx, tr.Fz, tr.r, 0.057))]) });
     K.glow(o, 1.2, 1.6, 0.25, 0.6, 0.8);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.5, 0.1, 0.1, 0.187, 0.019, 0.055, 3, [0, 0, -0.5], { mk: 'fuente8' });
+    // compartimento de la fuente: dentro del volumen alto, sobre el piso, con una tapa de registro atornillada en el costado recto
+    h.P(o, 'Fuente 12 V', 'equipo', 0.05, 0.105, 0.12, 0.187, 0.019, 0.055, 3, [-0.55, 0.1, -0.2], { mk: 'fuente8' });
+    h.P(o, 'Tapa de registro de la fuente', 'laca', -0.0003, 0.2, 0.06, 0.0055, 0.2, 0.3, 3, [-0.4, 0.1, -0.2], { mk: 'mdf55' });   // a ras de la piel
     const dec = [];
     fig(dec, [[0.3, 0.3, 'conejo', 0.36, 0xf4f2ee], [0.62, 0.22, 'torre', 0.46, 0x232326], [0.92, 0.36, 'jarron', 0.24, 0xc9a579]], 0.92);
     fig(dec, [[0.35, 0.86, 'busto', 0.34, 0xf4f2ee], [0.75, 0.84, 'nudo', 0.2, 0xf08a24]], 0.70);
@@ -479,6 +491,8 @@
     const o = h.inst(4, 2.55, 0, 1.05, 0);
     const cs = [[0.18, 0.38, 0.17, 0.62, [-0.35, 0, 0.1]], [0.47, 0.2, 0.17, 0.86, [0, 0.1, -0.35]], [0.73, 0.42, 0.15, 1.06, [0.35, 0.2, 0.15]]];
     cs.forEach((c, i) => cilindro(o, 'Pedestal ' + (i + 1), c[0], c[1], c[2], c[3], c[4]));
+    // compartimento de la fuente: dentro del pedestal 3, sobre su piso; la tapa de ese pedestal no se pega y se levanta para llegar a ella
+    h.P(o, 'Fuente 12 V', 'equipo', 0.6365, 0.09, 0.3925, 0.187, 0.019, 0.055, 3, [0.35, 0.45, 0.15], { mk: 'fuente3' });
     K.glow(o, 0.9, 0.6, 0.25, 0.45, 0.3);
     const dec = [];
     // cada figura sobre su pedestal
@@ -502,6 +516,9 @@
     h.PM(o, 'Soportes del reposapiés', 'acero', so, 2, [0, 0, -0.65], { mk: 'tubo1', noShadow: true });
     tapaRB(o, 'Tapa', 0, yT, 0, Lx, Fz, 3, [0, 0.6, 0]);
     led(o, 'Tira COB bajo el voladizo', 'cob', 0.05, yT - 0.006, zB - 0.02, Lx - 0.1, 0.004, 0.008, 4, [0, -0.2, -0.35]);
+    // compartimento de la fuente: entre el costado y la primera costilla, con una tapa de registro atornillada en el fondo (lado del asesor)
+    h.P(o, 'Fuente 12 V', 'equipo', 0.15, 0.08 + t + 0.01, Fz - 0.1, 0.187, 0.019, 0.055, 4, [0, 0, 0.75], { mk: 'fuente3' });
+    h.P(o, 'Tapa de registro de la fuente', 'laca', 0.1, 0.2, Fz - 0.0052, 0.3, 0.2, 0.0055, 4, [0, 0, 0.6], { mk: 'mdf55' });   // a ras del fondo
     h.PM(o, 'Pasacable', 'plastico', [{ g: G.cyl(), m: h.cylM(1.5, yT + 0.031, 0.55, 0.03, 0.004), c: 0x111113 }], 4, [0, 0.8, 0], { mk: 'pasacable', noShadow: true });
     const dec = []; G.pushBox(dec, 0.5, yT + 0.03, 0.18, 0.3, 0.012, 0.21, 0x1a1b1e, 0.15); G.pushBox(dec, 0.95, yT + 0.03, 0.25, 0.22, 0.008, 0.15, 0xe9e7e2, -0.2);
     h.D(o, dec); h.sombra(o, 0, zB, Lx, Fz - zB, 0.18);
@@ -526,6 +543,8 @@
     [0, 1].forEach((i) => tapaRB(o, 'Tapa', i * 1.6, yT, 0, 1.6, Fz, 2, [i ? 0.3 : -0.3, 0.45, 0.4]));
     const pc = []; [0.4, 1.2, 2.0, 2.8].forEach((x) => pc.push({ g: G.cyl(), m: h.cylM(x, yT + 0.031, 0.1, 0.03, 0.004), c: 0x111113 }));
     h.PM(o, 'Pasacables', 'plastico', pc, 2, [0, 0.8, 0.4], { mk: 'pasacable', noShadow: true });
+    // compartimento de la fuente: primer módulo, sobre el piso y contra el fondo; se llega abriendo las puertas
+    h.P(o, 'Fuente 12 V', 'equipo', 0.1, 0.1 + t + 0.01, 0.03, 0.187, 0.019, 0.055, 4, [-0.3, 0, 1.25], { mk: 'fuente8' });
     // marco del nicho: dos costados altos y un dintel con luz
     lq(o, 'Costado del nicho', -t, 0, 0, t, 2.25, Fz + 0.04, 3, [-0.55, 0, 0.3]);
     lq(o, 'Costado del nicho', 3.2, 0, 0, t, 2.25, Fz + 0.04, 3, [0.55, 0, 0.3]);

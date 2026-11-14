@@ -70,7 +70,8 @@
 
   /* ------------------------------------------------- plano de un espacio a 1:25 */
   function espacioSVG(v, e, idx) {
-    const T = THREE, K = 40, full = L.plan.svg(v, { cotas: false, nums: true });
+    const T = THREE, full = L.plan.svg(v, { cotas: false, nums: true });
+    void T;
     const doc = new DOMParser().parseFromString(full, 'image/svg+xml');
     const draw = doc.querySelector('.draw');
     $$('.zonas, .cotas, .pasos', draw).forEach((g) => g.remove());
@@ -79,63 +80,106 @@
     const prevVer = L.api.state.ver;
     if (prevVer !== v) L.api.setVersion(v, { quiet: true });
     let x0 = 9, x1 = -9, d0 = 9, d1 = -9;
-    const rows = [];
+    const rows = [], boxes = [];
     e.n.forEach((n) => {
       const it = L.furn.items[n]; if (!it) return;
-      it.insts.forEach((o) => { const b = o.box; x0 = Math.min(x0, b.min.x + 3); x1 = Math.max(x1, b.max.x + 3); d0 = Math.min(d0, 3.5 - b.max.z); d1 = Math.max(d1, 3.5 - b.min.z); });
+      it.insts.forEach((o) => { const b = o.box, B = { n, x0: b.min.x + 3, x1: b.max.x + 3, d0: 3.5 - b.max.z, d1: 3.5 - b.min.z }; boxes.push(B); x0 = Math.min(x0, B.x0); x1 = Math.max(x1, B.x1); d0 = Math.min(d0, B.d0); d1 = Math.max(d1, B.d1); });
       const io = itemOf(v, n); rows.push([n, io.name, io.dims]);
     });
+    // todos los elementos del local, como vecinos para acotar la posición
+    const todos = [];
+    Object.keys(L.furn.items).forEach((n) => L.furn.items[n].insts.forEach((o) => { const b = o.box; todos.push({ n: +n, x0: b.min.x + 3, x1: b.max.x + 3, d0: 3.5 - b.max.z, d1: 3.5 - b.min.z, y0: b.min.y }); }));
     if (prevVer !== v) L.api.setVersion(prevVer, { quiet: true });
     const M = 0.55;
-    x0 = Math.max(-0.25, x0 - M); x1 = Math.min(6.25, x1 + M); d0 = Math.max(-0.35, d0 - M); d1 = Math.min(7.25, d1 + M);
-    if (x1 - x0 < 2.4) { const c = (x0 + x1) / 2; x0 = Math.max(-0.25, c - 1.2); x1 = Math.min(6.25, c + 1.2); }
+    x0 = Math.max(-0.1, x0 - M); x1 = Math.min(6.1, x1 + M); d0 = Math.max(-0.35, d0 - M); d1 = Math.min(7.25, d1 + M);
+    if (x1 - x0 < 2.4) { const c = (x0 + x1) / 2; x0 = Math.max(-0.1, c - 1.2); x1 = Math.min(6.1, c + 1.2); }
     if (d1 - d0 < 2.4) { const c = (d0 + d1) / 2; d0 = Math.max(-0.35, c - 1.2); d1 = Math.min(7.25, c + 1.2); }
-    const W = (x1 - x0) * K, H = (d1 - d0) * K;
-    // la lámina de 1:50 usa 20 mm/m con origen (56, 222): el mismo dibujo a 2× es 1:25
+    // escala: 1:25 si la ventana cabe junto al cuadro de la derecha; si no, 1:50
+    const ox = 20, oy = 40, PMIN = 114;
+    const den = [25, 50].find((d) => (x1 - x0) * 1000 / d <= 400 - ox - 16 - PMIN && (d1 - d0) * 1000 / d <= 232) || 50;
+    const K = 1000 / den, W = (x1 - x0) * K, H = (d1 - d0) * K, esc1 = '1:' + den;
+    // la lámina de 1:50 usa 20 mm/m con origen (56, 222): el mismo dibujo ampliado K/20 veces
     const sx = (X) => 56 + X * 20, sy = (D) => 222 - D * 20;
-    const ox = 20, oy = 40, s = 2, wx = sx(x0), wy = sy(d1);
-    const dimH = (X0, X1, y, lab) => '<g class="dim"><line class="d-line" x1="' + (ox + (X0 - x0) * K) + '" y1="' + y + '" x2="' + (ox + (X1 - x0) * K) + '" y2="' + y + '"/><text class="d-txt" x="' + (ox + ((X0 + X1) / 2 - x0) * K) + '" y="' + (y - 1.2) + '">' + lab + '</text></g>';
-    const dimV = (D0, D1, x, lab) => '<g class="dim"><line class="d-line" x1="' + x + '" y1="' + (oy + (d1 - D1) * K) + '" x2="' + x + '" y2="' + (oy + (d1 - D0) * K) + '"/><text class="d-txt" transform="translate(' + (x - 1.4) + ' ' + (oy + (d1 - (D0 + D1) / 2) * K) + ') rotate(-90)">' + lab + '</text></g>';
+    const s = K / 20, wx = sx(x0), wy = sy(d1);
+    const PX = (X) => ox + (X - x0) * K, PY = (D) => oy + (d1 - D) * K, f2 = (m) => m.toFixed(2);
+    const dimH = (X0, X1, y, lab) => '<g class="dim"><line class="d-line" x1="' + PX(X0) + '" y1="' + y + '" x2="' + PX(X1) + '" y2="' + y + '"/><text class="d-txt" x="' + PX((X0 + X1) / 2) + '" y="' + (y - 1.2) + '">' + lab + '</text></g>';
+    const dimV = (D0, D1, x, lab) => '<g class="dim"><line class="d-line" x1="' + x + '" y1="' + PY(D1) + '" x2="' + x + '" y2="' + PY(D0) + '"/><text class="d-txt" transform="translate(' + (x - 1.4) + ' ' + PY((D0 + D1) / 2) + ') rotate(-90)">' + lab + '</text></g>';
+    // cotas de cada mueble: tamaño (largo y fondo en planta) y distancia al muro y a la fachada o mampara más cercanos
+    const tk = (x, y) => '<line class="cz-t" x1="' + (x - 0.9).toFixed(2) + '" y1="' + (y + 0.9).toFixed(2) + '" x2="' + (x + 0.9).toFixed(2) + '" y2="' + (y - 0.9).toFixed(2) + '"/>';
+    const cH = (Xa, Xb, D, off, lab) => {
+      const y = PY(D) + off, xa = PX(Xa), xb = PX(Xb), short = xb - xa < 9;
+      return (off ? '<line class="cz-e" x1="' + xa.toFixed(2) + '" y1="' + PY(D).toFixed(2) + '" x2="' + xa.toFixed(2) + '" y2="' + (y + Math.sign(off)).toFixed(2) + '"/><line class="cz-e" x1="' + xb.toFixed(2) + '" y1="' + PY(D).toFixed(2) + '" x2="' + xb.toFixed(2) + '" y2="' + (y + Math.sign(off)).toFixed(2) + '"/>' : '') +
+        '<line class="cz-l" x1="' + xa.toFixed(2) + '" y1="' + y.toFixed(2) + '" x2="' + xb.toFixed(2) + '" y2="' + y.toFixed(2) + '"/>' + tk(xa, y) + tk(xb, y) +
+        '<text class="cz-x' + (short ? ' l' : '') + '" x="' + (short ? xb + 1.6 : (xa + xb) / 2).toFixed(2) + '" y="' + (y - 1).toFixed(2) + '">' + lab + '</text>';
+    };
+    const cV = (Da, Db, X, off, lab) => {
+      const x = PX(X) + off, ya = PY(Da), yb = PY(Db), short = Math.abs(ya - yb) < 9;
+      return (off ? '<line class="cz-e" x1="' + PX(X).toFixed(2) + '" y1="' + ya.toFixed(2) + '" x2="' + (x + Math.sign(off)).toFixed(2) + '" y2="' + ya.toFixed(2) + '"/><line class="cz-e" x1="' + PX(X).toFixed(2) + '" y1="' + yb.toFixed(2) + '" x2="' + (x + Math.sign(off)).toFixed(2) + '" y2="' + yb.toFixed(2) + '"/>' : '') +
+        '<line class="cz-l" x1="' + x.toFixed(2) + '" y1="' + ya.toFixed(2) + '" x2="' + x.toFixed(2) + '" y2="' + yb.toFixed(2) + '"/>' + tk(x, ya) + tk(x, yb) +
+        '<text class="cz-x' + (short ? ' l' : '') + '" transform="translate(' + (x - 1).toFixed(2) + ' ' + (short ? Math.min(ya, yb) - 1.6 : (ya + yb) / 2).toFixed(2) + ') rotate(-90)">' + lab + '</text>';
+    };
+    let cz = '';
+    boxes.forEach((B) => {
+      const tras = B.d0 >= 5.55, w0 = tras ? 5.6 : 0, w1 = tras ? 7 : 5.5;            // la trastienda se acota desde la mampara y el muro del fondo
+      // tamaño: del lado donde hay más sitio libre en la ventana
+      cz += B.d0 - d0 >= d1 - B.d1 ? cH(B.x0, B.x1, B.d0, 4.2, f2(B.x1 - B.x0)) : cH(B.x0, B.x1, B.d1, -4.2, f2(B.x1 - B.x0));
+      cz += x1 - B.x1 >= B.x0 - x0 ? cV(B.d0, B.d1, B.x1, 4.2, f2(B.d1 - B.d0)) : cV(B.d0, B.d1, B.x0, -4.2, f2(B.d1 - B.d0));
+      // posición: al muro o al mueble más cercano en cada dirección (sin cota = adosado)
+      const xm = (B.x0 + B.x1) / 2, dm = (B.d0 + B.d1) / 2;
+      const vec = todos.filter((O) => O.n !== B.n && O.y0 < 1.0);                       // lo que está en el piso (no lo colgado del muro)
+      const enD = vec.filter((O) => O.d0 < dm && O.d1 > dm), enX = vec.filter((O) => O.x0 < xm && O.x1 > xm);
+      const L0 = Math.max(0, ...enD.filter((O) => O.x1 <= B.x0 + 0.02).map((O) => O.x1)), R0 = Math.min(6, ...enD.filter((O) => O.x0 >= B.x1 - 0.02).map((O) => O.x0));
+      const F0 = Math.max(w0, ...enX.filter((O) => O.d1 <= B.d0 + 0.02).map((O) => O.d1)), K0 = Math.min(w1, ...enX.filter((O) => O.d0 >= B.d1 - 0.02).map((O) => O.d0));
+      const gl = B.x0 - L0, gr = R0 - B.x1, gf = B.d0 - F0, gb = K0 - B.d1;
+      if (Math.min(gl, gr) > 0.05) cz += gl <= gr ? cH(L0, B.x0, dm, 0, f2(gl)) : cH(B.x1, R0, dm, 0, f2(gr));
+      if (Math.min(gf, gb) > 0.05) cz += gf <= gb ? cV(F0, B.d0, xm, 0, f2(gf)) : cV(B.d1, K0, xm, 0, f2(gb));
+    });
     const vi = vinfo(v), lam = 'Z-0' + (idx + 1);
-    let out = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 297" width="420mm" height="297mm" class="sheet" role="img" aria-label="Plano del espacio ' + esc(e.t) + ', versión ' + v + ', escala 1:25">';
-    out += '<style>' + L.plan.css + '.sheet .win{fill:none;stroke:#111;stroke-width:.35;stroke-dasharray:2 1.2}.sheet .cl{fill:none}.sheet .big{font-size:3.4px}</style>';
+    let out = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 297" width="420mm" height="297mm" class="sheet" role="img" aria-label="Plano del espacio ' + esc(e.t) + ', versión ' + v + ', escala ' + esc1 + '">';
+    out += '<style>' + L.plan.css + '.sheet .win{fill:none;stroke:#111;stroke-width:.35;stroke-dasharray:2 1.2}.sheet .cl{fill:none}.sheet .big{font-size:3.4px}' +
+      '.sheet .cz-l{stroke:#111;stroke-width:.18}.sheet .cz-e{stroke:#111;stroke-width:.1}.sheet .cz-t{stroke:#111;stroke-width:.28}.sheet .cz-x{font-size:2.7px;font-weight:600;text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:.9px;stroke-linejoin:round}.sheet .cz-x.l{text-anchor:start}</style>';
     out += '<rect class="paper" x="0" y="0" width="420" height="297"/><rect class="frame" x="10" y="10" width="400" height="277"/>';
     out += '<text class="title" x="20" y="24">Espacio: ' + esc(e.t) + '</text>';
-    out += '<text class="subtitle" x="20" y="30.5">' + esc(e.d) + ' Versión ' + v + ' · ' + esc(vi.nombre) + '. Ventana de ' + (x1 - x0).toFixed(2) + ' × ' + (d1 - d0).toFixed(2) + ' m del local de 6.00 × 7.00 m, medidas en metros.</text>';
+    out += '<text class="subtitle" x="20" y="30.5">' + esc(e.d) + ' Versión ' + v + ' · ' + esc(vi.nombre) + '. Ventana de ' + (x1 - x0).toFixed(2) + ' × ' + (d1 - d0).toFixed(2) + ' m del local de 6.00 × 7.00 m, escala ' + esc1 + ', cotas en metros.</text>';
     out += '<defs><clipPath id="cw' + v + idx + '"><rect x="' + ox + '" y="' + oy + '" width="' + W.toFixed(2) + '" height="' + H.toFixed(2) + '"/></clipPath></defs>';
     out += '<g clip-path="url(#cw' + v + idx + ')"><g transform="translate(' + ox + ' ' + oy + ') scale(' + s + ') translate(' + (-wx).toFixed(2) + ' ' + (-wy).toFixed(2) + ')">' + inner + '</g></g>';
+    out += '<g class="cz" clip-path="url(#cw' + v + idx + ')">' + cz + '</g>';
     out += '<rect class="win" x="' + ox + '" y="' + oy + '" width="' + W.toFixed(2) + '" height="' + H.toFixed(2) + '"/>';
-    out += dimH(x0, x1, oy + H + 8, (x1 - x0).toFixed(2)) + dimV(d0, d1, ox + W + 8, (d1 - d0).toFixed(2));
-    // posición en el local (clave a 1:200) y escala gráfica
-    const kx = 262, ky = 40, kk = 5;
+    out += dimH(x0, x1, oy + H + 7, (x1 - x0).toFixed(2)) + dimV(d0, d1, ox + W + 8, (d1 - d0).toFixed(2));
+    // cuadro de la derecha: posición en el local (clave a 1:200), escala gráfica, muebles y cajetín
+    const px = Math.max(262, ox + W + 16), pw = 400 - px;
+    const kx = px, ky = 40, kk = 5;
     out += '<g class="key"><text class="h2" x="' + kx + '" y="' + ky + '">Posición en el local</text><rect class="wall-l" x="' + kx + '" y="' + (ky + 5) + '" width="' + (6 * kk) + '" height="' + (7 * kk) + '"/>' +
       '<line class="thin" x1="' + kx + '" y1="' + (ky + 5 + 1.5 * kk) + '" x2="' + (kx + 6 * kk) + '" y2="' + (ky + 5 + 1.5 * kk) + '"/>' +
-      '<rect x="' + (kx + x0 * kk).toFixed(2) + '" y="' + (ky + 5 + (7 - d1) * kk).toFixed(2) + '" width="' + ((x1 - x0) * kk).toFixed(2) + '" height="' + ((d1 - d0) * kk).toFixed(2) + '" fill="#111" fill-opacity=".12" stroke="#111" stroke-width=".3"/>' +
-      '<text class="lbl" x="' + kx + '" y="' + (ky + 5 + 7 * kk + 4) + '">Acceso abajo (pasillo del centro comercial) · trastienda arriba · 1:200</text></g>';
-    const bx = 262, by = 100;
-    out += '<g class="scalebar"><text class="lbl" x="' + bx + '" y="' + (by - 4) + '">Escala gráfica 1:25</text>';
-    for (let i = 0; i < 4; i++) out += '<rect x="' + (bx + i * K / 2) + '" y="' + by + '" width="' + K / 2 + '" height="1.6" class="' + (i % 2 ? 'sb-w' : 'sb-b') + '"/>';
-    out += [0, 0.5, 1, 1.5, 2].map((m, i) => '<text class="sb-t" x="' + (bx + i * K / 2) + '" y="' + (by + 5.2) + '">' + String(m).replace('.', ',') + (i === 4 ? ' m' : '') + '</text>').join('') + '</g>';
+      '<rect x="' + (kx + Math.max(0, x0) * kk).toFixed(2) + '" y="' + (ky + 5 + (7 - Math.min(7, d1)) * kk).toFixed(2) + '" width="' + ((Math.min(6, x1) - Math.max(0, x0)) * kk).toFixed(2) + '" height="' + ((Math.min(7, d1) - Math.max(0, d0)) * kk).toFixed(2) + '" fill="#111" fill-opacity=".12" stroke="#111" stroke-width=".3"/>' +
+      '<text class="lbl" x="' + (kx + 6 * kk + 4) + '" y="' + (ky + 10) + '">Clave 1:200</text><text class="lbl" x="' + (kx + 6 * kk + 4) + '" y="' + (ky + 14.5) + '">Arriba: trastienda</text><text class="lbl" x="' + (kx + 6 * kk + 4) + '" y="' + (ky + 19) + '">Abajo: acceso (pasillo</text><text class="lbl" x="' + (kx + 6 * kk + 4) + '" y="' + (ky + 23.5) + '">del centro comercial)</text></g>';
+    const bx = px, by = 96, seg = K / 2;
+    out += '<g class="scalebar"><text class="lbl" x="' + bx + '" y="' + (by - 4) + '">Escala gráfica ' + esc1 + '</text>';
+    for (let i = 0; i < 4; i++) out += '<rect x="' + (bx + i * seg) + '" y="' + by + '" width="' + seg + '" height="1.6" class="' + (i % 2 ? 'sb-w' : 'sb-b') + '"/>';
+    out += [0, 0.5, 1, 1.5, 2].map((m, i) => '<text class="sb-t" x="' + (bx + i * seg) + '" y="' + (by + 5.2) + '">' + String(m).replace('.', ',') + (i === 4 ? ' m' : '') + '</text>').join('') + '</g>';
     // cuadro de muebles del espacio
-    const tx = 262, ty = 120, rh = 7;
+    const tx = px, ty = 114, rh = 7, cD = pw - 36, mx = Math.max(18, Math.floor((cD - 12) / 1.45));
     out += '<g class="table"><text class="h2" x="' + tx + '" y="' + ty + '">Muebles del espacio</text>' +
-      '<text class="th" x="' + tx + '" y="' + (ty + 7) + '">N.º</text><text class="th" x="' + (tx + 9) + '" y="' + (ty + 7) + '">MUEBLE</text><text class="th" x="' + (tx + 100) + '" y="' + (ty + 7) + '">L × F × H (m)</text>' +
-      '<line class="rule" x1="' + tx + '" y1="' + (ty + 9) + '" x2="' + (tx + 138) + '" y2="' + (ty + 9) + '"/>';
+      '<text class="th" x="' + tx + '" y="' + (ty + 7) + '">N.º</text><text class="th" x="' + (tx + 9) + '" y="' + (ty + 7) + '">MUEBLE</text><text class="th" x="' + (tx + cD) + '" y="' + (ty + 7) + '">L × F × H (m)</text>' +
+      '<line class="rule" x1="' + tx + '" y1="' + (ty + 9) + '" x2="' + (tx + pw) + '" y2="' + (ty + 9) + '"/>';
     rows.forEach((r, i) => {
       const y = ty + 9 + (i + 1) * rh - 1.9, nm = r[1];
-      out += '<text class="td num-c" x="' + (tx + 2.6) + '" y="' + y + '">' + r[0] + '</text><text class="td" x="' + (tx + 9) + '" y="' + y + '">' + esc(nm.length > 44 ? nm.slice(0, 42) + '…' : nm) + '</text><text class="td mono" x="' + (tx + 100) + '" y="' + y + '">' + esc(r[2].replace(' m', '').replace(/ de frente.*$/, '').replace(/ \(.*$/, '')) + '</text>' +
-        '<line class="rule-t" x1="' + tx + '" y1="' + (ty + 9 + (i + 1) * rh) + '" x2="' + (tx + 138) + '" y2="' + (ty + 9 + (i + 1) * rh) + '"/>';
+      out += '<text class="td num-c" x="' + (tx + 2.6) + '" y="' + y + '">' + r[0] + '</text><text class="td" x="' + (tx + 9) + '" y="' + y + '">' + esc(nm.length > mx ? nm.slice(0, mx - 2) + '…' : nm) + '</text><text class="td mono" x="' + (tx + cD) + '" y="' + y + '">' + esc(r[2].replace(' m', '').replace(/ de frente.*$/, '').replace(/ \(.*$/, '').replace(/, a .*$/, '')) + '</text>' +
+        '<line class="rule-t" x1="' + tx + '" y1="' + (ty + 9 + (i + 1) * rh) + '" x2="' + (tx + pw) + '" y2="' + (ty + 9 + (i + 1) * rh) + '"/>';
     });
+    const ny = ty + 9 + rows.length * rh + 6;
+    out += ['Cotas en metros. De cada mueble: su largo y su fondo en planta, y la distancia', 'al muro o al mueble más cercano en cada dirección.', 'Sin cota de posición, el mueble va adosado.'].map((t, i) => '<text class="c-note" x="' + tx + '" y="' + (ny + i * 3.3) + '">' + t + '</text>').join('');
     out += '</g>';
     // cajetín
-    const cx = 222, cy = 202, cw = 178;
+    const cx = px, cy = 208, cw = pw;
     const cell = (x, y, w, hh, lab, val, cls) => '<rect class="cell" x="' + x + '" y="' + y + '" width="' + w + '" height="' + hh + '"/><text class="c-lab" x="' + (x + 2) + '" y="' + (y + 3.6) + '">' + esc(lab) + '</text><text class="c-val ' + (cls || '') + '" x="' + (x + 2) + '" y="' + (y + hh - 2.4) + '">' + esc(val) + '</text>';
-    out += '<g class="block">' + cell(cx, cy, cw, 13, 'PROYECTO', 'BlackForge · Local de exhibición y taller de impresión 3D', 'big') +
+    out += '<g class="block">' + cell(cx, cy, cw, 13, 'PROYECTO', 'BlackForge · Local de exhibición y taller de impresión 3D', pw > 130 ? 'big' : '') +
       cell(cx, cy + 13, cw * 0.62, 11, 'PLANO', 'Espacio: ' + e.t) + cell(cx + cw * 0.62, cy + 13, cw * 0.38, 11, 'LÁMINA', lam) +
-      cell(cx, cy + 24, cw * 0.62, 11, 'VERSIÓN DEL MOBILIARIO', v + ' · ' + vi.nombre + ' — ' + vi.titulo) + cell(cx + cw * 0.62, cy + 24, cw * 0.38, 11, 'ESCALA', '1:25 en A3 horizontal') +
+      cell(cx, cy + 24, cw * 0.62, 11, 'VERSIÓN DEL MOBILIARIO', v + ' · ' + vi.nombre) + cell(cx + cw * 0.62, cy + 24, cw * 0.38, 11, 'ESCALA', esc1 + ' en A3 horizontal') +
       cell(cx, cy + 35, cw * 0.31, 11, 'UNIDADES', 'metros') + cell(cx + cw * 0.31, cy + 35, cw * 0.31, 11, 'FECHA', FECHA_C) + cell(cx + cw * 0.62, cy + 35, cw * 0.38, 11, 'MUEBLES', rows.map((r) => r[0]).join(', ')) +
-      '<text class="c-note" x="' + cx + '" y="' + (cy + 52) + '">Recorte de la planta A-01 al doble de su escala; los muebles numerados se detallan en los documentos 2 a 6.</text>' +
-      '<text class="c-note" x="' + cx + '" y="' + (cy + 56.5) + '">Medidas del local estimadas desde la imagen del proyecto (frente de 6.00 m); verificar en sitio antes de pedir el corte.</text></g>';
+      '<text class="c-note" x="' + cx + '" y="' + (cy + 51) + '">Recorte de la planta A-01; cada mueble se detalla en sus propias láminas.</text>' +
+      '<text class="c-note" x="' + cx + '" y="' + (cy + 54.6) + '">Medidas del local estimadas desde la imagen del proyecto (frente de 6.00 m):</text>' +
+      '<text class="c-note" x="' + cx + '" y="' + (cy + 58.2) + '">verificar en sitio antes de pedir el corte.</text></g>';
     return out + '</svg>';
   }
   EN.espacioSVG = espacioSVG;
@@ -398,6 +442,10 @@
     pasacable: ['Perforación del tamaño del pasacable (medir la pieza comprada) en el eje de cada equipo, a 50 mm del fondo.'],
     fuente3: ['Fuente fijada por sus orejas con 2 tornillos 4 × 16 mm, con 20 mm libres alrededor; nunca encerrada sin ventilación.', 'Clavija a una toma de 110 V propia; salida de 12 V al LED por el pasacable.'],
     pegante: ['Capa delgada en las dos caras, prensado 30 min y curado de 24 h antes de cargar.'],
+    cableDuplex16: ['Del borne de 12 V de la fuente a cada tira: un tramo por tira, con el positivo marcado; empalmes soldados y con termoencogible, nunca a la vista.', 'El cordón de la fuente (1.5 m) lleva la clavija y sale por el pasacable del fondo; el cable sobrante se recoge con amarras dentro del compartimento.'],
+    clavija15: ['Una por fuente, en el cordón de 110 V: fase y neutro a los bornes de la fuente, apretados y con el prensacable cerrado.'],
+    supresor6: ['Atornillada dentro del mueble, a 100 mm o más del piso y con el interruptor a la mano; conectada a una toma con polo a tierra.', 'En el mueble de las impresoras, dos impresoras por regleta: cada regleta carga 6.4 A de sus 15 A.'],
+    canaleta10: ['Pegada a plomo sobre el muro limpio, del mueble a la toma; el cable entra por detrás del mueble y la tapa se cierra a presión.'],
     soporteInv: ['Perforación Ø10 mm × 140 mm en el canto trasero de la repisa, centrada en el espesor (repisa de 25 mm o más).', 'Tubo al muro con su chazo; la repisa entra a presión y se nivela.'],
     kitBatiente: ['Se instala según el kit (bisagra, chapeta y manija); el vidrio templado llega perforado de fábrica: enviar el plano de perforación a la vidriería.'],
     escuadra: ['Escuadra 3030 con tuercas en T de la ranura del perfil; tornillos M6 apretados en cruz.'],
@@ -477,7 +525,7 @@
     fab.forEach((n) => items.push({ id: 'v-fab-' + n, t: v + '-' + nn(n) + ' · ' + ROLE[n] + ' · ' + itemOf(v, n).short, sub: true }));
     items.push({ id: 'v-4', t: '3 · Despiece, materiales, herrajes, cableado y uniones' }, { id: 'v-4-desp', t: 'Despiece de cada mueble', sub: true }, { id: 'v-4-un', t: 'Detalle de cada unión', sub: true },
       { id: 'v-5', t: '4 · Iluminación y equipo' }, { id: 'v-5-aloj', t: 'Alojamiento, cableado, ventilación y acceso', sub: true }, { id: 'v-5-imp', t: 'Impresoras y pantallas', sub: true },
-      { id: 'v-6', t: '5 · Verificación final y fuentes' });
+      { id: 'v-m', t: '5 · Matriz de selección completa' }, { id: 'v-6', t: '6 · Verificación final y fuentes' });
     let s = cover(doc, '<div class="en-art-plan">' + L.plan.svg(v, { cotas: false, nums: true }) + '</div>') + toc(doc, items);
 
     /* 1 · ficha y planos */
@@ -496,7 +544,7 @@
       E.refs.map((r) => '<tr><td><b>' + esc(r.t) + '</b></td><td>' + esc(r.d) + '</td><td>' + tipoTag(r.tipo) + ' ' + esc(h.SHORT[r.f] || r.f) + '</td></tr>').join('') + '</tbody></table></div>' + note(esc(E.nota)) +
       '<div class="n1-tbl"><table><thead><tr><th>Lámina</th><th>Escala</th><th>Equivalencia</th><th>Comprobación</th></tr></thead><tbody>' +
       '<tr><td><b>A-01</b> Planta de distribución</td><td class="mono">1:50 en A3</td><td>20 mm = 1,00 m; el frente de 6,00 m mide 120 mm</td><td>Escala gráfica de 3 m</td></tr>' +
-      '<tr><td><b>Z-01 a Z-04</b> Plano de cada zona</td><td class="mono">1:25 en A3</td><td>40 mm = 1,00 m</td><td>Escala gráfica de 2 m y cotas de la ventana</td></tr>' +
+      '<tr><td><b>Z-01 a Z-04</b> Plano de cada zona</td><td class="mono">1:25 en A3</td><td>40 mm = 1,00 m</td><td>Escala gráfica de 2 m; cotas de cada mueble y de su posición</td></tr>' +
       '<tr><td><b>' + v + '-nn.1 a .n</b> Planos de los muebles</td><td class="mono">1:5 a 1:25</td><td>Escrita en el rótulo y en cada vista</td><td>Las cotas mandan</td></tr></tbody></table></div>' +
       note('Los planos de los otros dos espacios están en sus propios expedientes; aquí, la planta A-01 de este espacio y sus cuatro zonas a 1:25 (láminas Z-01 a Z-04).'));
     s += a3(L.plan.svg(v, { cotas: true, nums: true }), 'v-1-plan');
@@ -535,7 +583,18 @@
 
     /* 6 · verificación */
     const ver = FABN.map((n) => { const pend = (VS.req[n] || []).filter((r, i) => (VS.cumple(n, v)[i] || ['si'])[0] !== 'si').length; return '<tr><td><b>' + n + '</b> ' + esc(itemOf(v, n).short) + '</td>' + ['Ficha', 'Láminas', 'Despiece', 'Uniones', 'Luz'].map((k) => '<td class="rq-si">' + stIcon('si') + '</td>').join('') + '<td class="' + (pend ? 'rq-parcial' : 'rq-si') + '">' + stIcon(pend ? 'parcial' : 'si') + (pend ? pend + ' requisito' + (pend > 1 ? 's' : '') + ' con salvedad' : 'Cumple') + '</td></tr>'; }).join('');
-    s += sec('v-6', '5 · Verificación final y fuentes',
+    /* matriz de selección completa: criterio por criterio, no solo el promedio */
+    const CR = N.criterios, otrasV = VER.filter((x) => x !== v), n2 = (x) => x.toFixed(2).replace('.', ',');
+    s += sec('v-m', '5 · Matriz de selección completa',
+      lead('Cada mueble se diseñó en tres alternativas, una por espacio, y se puntuó de 1 a 5 con seis criterios ponderados. Aquí está la matriz completa de este espacio: el puntaje de cada criterio en cada mueble, el total ponderado y el total de las otras dos alternativas.') +
+      '<h3>Criterios y pesos</h3><div class="n1-tbl"><table><thead><tr><th>Criterio</th><th class="r">Peso</th><th>Cómo se puntúa</th></tr></thead><tbody>' +
+      CR.map((c) => '<tr><td><b>' + esc(c.t) + '</b></td><td class="r mono">' + c.peso + ' %</td><td>' + esc(c.d) + '</td></tr>').join('') + '</tbody></table></div>' +
+      '<h3>Puntaje de la alternativa ' + v + ' · ' + esc(vi.nombre) + ', mueble por mueble</h3><div class="n1-tbl en-mat"><table><thead><tr><th>Mueble</th>' + CR.map((c) => '<th class="r">' + ({ req: 'Requisitos', costo: 'Costo', fab: 'Fabric.', dura: 'Durab.', mont: 'Montaje', marca: 'Marca' }[c.id] || c.id) + '<br>' + c.peso + ' %</th>').join('') +
+      '<th class="r">Total ' + v + '</th>' + otrasV.map((x) => '<th class="r">Total ' + x + '</th>').join('') + '<th>Mayor puntaje</th></tr></thead><tbody>' +
+      FABN.map((n) => { const m = L.n1.matrix(n); return '<tr><td><b>' + n + '</b> ' + esc(itemOf(v, n).short) + '</td>' + CR.map((c) => '<td class="r mono">' + n2(m.sc[v][c.id]) + '</td>').join('') + '<td class="r mono"><b>' + n2(m.sc[v].total) + '</b></td>' + otrasV.map((x) => '<td class="r mono">' + n2(m.sc[x].total) + '</td>').join('') + '<td>' + vtag(m.win) + (m.win === v ? ' esta' : ' ' + esc(itemOf(m.win, n).short)) + '</td></tr>'; }).join('') +
+      '<tr><td><b>Promedio</b></td>' + CR.map((c) => '<td class="r mono">' + n2(FABN.reduce((a, n) => a + L.n1.matrix(n).sc[v][c.id], 0) / FABN.length) + '</td>').join('') + '<td class="r mono"><b>' + n2(best.avg[v]) + '</b></td>' + otrasV.map((x) => '<td class="r mono">' + n2(best.avg[x]) + '</td>').join('') + '<td>Gana en ' + best.wins[v] + ' de ' + FABN.length + '</td></tr></tbody></table></div>' +
+      note('Total = suma de (puntaje × peso) ÷ 100. Los datos de cada puntaje (requisitos cumplidos, costo, oficios y piezas, material de la superficie, pasos de montaje) y las tres alternativas dibujadas de cada mueble están en el documento 02 · Requisitos, alternativas y matriz de selección; los requisitos de cada mueble con su fuente, en el documento de requisitos de este espacio. El local se arma por espacios completos: se desarrolla el de mayor promedio, que es el ' + best.best + ' · ' + esc(vinfo(best.best).nombre) + '.'));
+    s += sec('v-6', '6 · Verificación final y fuentes',
       lead('Qué está completo para cada mueble y qué queda por confirmar antes de mandar a fabricar.') +
       '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Ficha</th><th>Láminas</th><th>Despiece</th><th>Uniones</th><th>Luz y equipo</th><th>Requisitos</th></tr></thead><tbody>' + ver + '</tbody></table></div>' +
       '<h3>Antes de fabricar, confirmar</h3><ul class="en-ul">' +

@@ -448,6 +448,18 @@
   const nn = (n) => (n < 10 ? '0' : '') + n;
 
   /* ------------------------------------------------ lámina de conjunto */
+  /* equipo comprado que recibe el mueble (impresoras, pantalla): su caja en las coordenadas del mueble */
+  function equipos(v, n, S) {
+    if (!L.api || !L.api.boughtBoxes) return [];
+    const inv = new T.Matrix4().copy(S.o.group.matrixWorld).invert(), out = [], bb = S.bb;
+    [[8, 'Impresora 3D con AMS'], [1, 'Pantalla de 75″']].forEach((d) => L.api.boughtBoxes(v, d[0]).forEach((e) => {
+      const b = e.box.clone().applyMatrix4(inv);
+      const ox = Math.min(b.max.x, bb.max.x) - Math.max(b.min.x, bb.min.x), oz = Math.min(b.max.z, bb.max.z + 0.05) - Math.max(b.min.z, bb.min.z - 0.05);
+      if (ox > 0.6 * (b.max.x - b.min.x) && oz > 0.3 * (b.max.z - b.min.z) && b.min.y > bb.min.y + 0.3 && b.min.y < bb.max.y + 0.25) out.push({ k: d[0], t: d[1], b });
+    }));
+    return out.sort((a, c) => a.b.min.x - c.b.min.x);
+  }
+  DW.equipos = function (v, n) { const S = solids(v, n); return S ? equipos(v, n, S) : []; };
   DW.conjunto = function (v, n, opt) {
     opt = opt || {};
     const S = solids(v, n);
@@ -513,6 +525,55 @@
     s += label(lx, fy + PL.h + 8.5, 'VISTA LATERAL', 'Desde la izquierda');
     s += label(sx, fy + PS.h + 8.5, 'CORTE A–A', 'Sección rayada');
     s += label(fx, py + PP.h + 15, 'PLANTA', 'Vista superior');
+    // curvas: radio de cada punta en la planta y, debajo, el desarrollo de las pieles y de los zócalos
+    const cur = S.o.curvas, legend = [];
+    if (cur) {
+      cur.radios.forEach((c) => {
+        const k2 = Math.SQRT1_2, ax = fx + PP.toX(c.x + c.dx * c.r * k2), ay = py + PP.toY(-(c.z + c.dz * c.r * k2)), ex = ax + c.dx * 5, ey = ay + c.dz * 5;
+        s += '<g class="rad"><line x1="' + ax.toFixed(2) + '" y1="' + ay.toFixed(2) + '" x2="' + ex.toFixed(2) + '" y2="' + ey.toFixed(2) + '"/><circle class="dot" cx="' + ax.toFixed(2) + '" cy="' + ay.toFixed(2) + '" r=".35"/>' +
+          '<text x="' + (ex + c.dx * 0.8).toFixed(2) + '" y="' + (ey + (c.dz > 0 ? 2.2 : -0.5)).toFixed(2) + '" text-anchor="' + (c.dx > 0 ? 'start' : 'end') + '">' + esc(c.t) + '</text></g>';
+      });
+      s += '<text class="v-sub" x="' + fx + '" y="' + (py + PP.h + 24).toFixed(2) + '">CURVAS · radios y desarrollos (mm). El desarrollo es la tira plana que se corta antes de curvarla.</text>';
+      cur.filas.forEach((t, i) => { s += '<text class="c-note" x="' + fx + '" y="' + (py + PP.h + 28 + i * 3.4).toFixed(2) + '">' + esc(t) + '</text>'; });
+    }
+    // fuente de alimentación y su registro: se señalan en el alzado y en la planta
+    const marks = S.list.filter((q) => /^fuente/.test(q.mk) || /registro/i.test(q.name));
+    marks.forEach((q) => {
+      const c = q.bb.getCenter(V3()), t = /^fuente/.test(q.mk) ? 'F' : 'R';
+      [[X(c.x), Yf(c.y)], [fx + PP.toX(c.x), py + PP.toY(-c.z)]].forEach((pt) => { s += '<g class="mk"><circle cx="' + pt[0].toFixed(2) + '" cy="' + pt[1].toFixed(2) + '" r="2.1"/><text x="' + pt[0].toFixed(2) + '" y="' + (pt[1] + 0.95).toFixed(2) + '">' + t + '</text></g>'; });
+    });
+    if (marks.length) {
+      const hasR = marks.some((q) => /registro/i.test(q.name)), nF = marks.filter((q) => /^fuente/.test(q.mk)).length;
+      const itv = L.versions.items[v] && L.versions.items[v][n], acc = itv ? (itv.ens.find((t) => /fuente/i.test(t)) || '') : '';
+      legend.push('F · Compartimento de la fuente de 12 V (' + nF + (nF === 1 ? ' fuente' : ' fuentes') + '; en trazos si queda dentro): fijada por sus orejas, con 20 mm libres alrededor y dos ranuras de ventilación de 60 × 8.' +
+        (hasR ? ' R · Tapa de registro de 300 × 200 con cuatro tornillos de cabeza visible, sobre una abertura de 260 × 160.' : acc ? ' Acceso: ' + acc.charAt(0).toLowerCase() + acc.slice(1).replace(/\.$/, '') + '.' : ''));
+    }
+    // equipo que recibe el mueble: en línea de trazo y punto, con su medida
+    const eq = equipos(v, n, S);
+    if (eq.length) {
+      const rect = (x0e, y0e, x1e, y1e) => '<rect class="eq" x="' + Math.min(x0e, x1e).toFixed(2) + '" y="' + Math.min(y0e, y1e).toFixed(2) + '" width="' + Math.abs(x1e - x0e).toFixed(2) + '" height="' + Math.abs(y1e - y0e).toFixed(2) + '"/>';
+      const rL = (z) => lx + PL.toX(z * PL.B.r.z);
+      eq.forEach((e, i) => {
+        const b = e.b, dentro = b.max.y <= bb.max.y + 0.02;
+        s += rect(fx + PP.toX(b.min.x), py + PP.toY(-b.min.z), fx + PP.toX(b.max.x), py + PP.toY(-b.max.z));
+        s += '<text class="eq-t" x="' + (fx + PP.toX((b.min.x + b.max.x) / 2)).toFixed(2) + '" y="' + (py + PP.toY(-(b.min.z + b.max.z) / 2) + 0.9).toFixed(2) + '">' + e.k + '</text>';
+        if (!dentro) return;
+        s += rect(X(b.min.x), Yf(b.min.y), X(b.max.x), Yf(b.max.y)) + rect(rL(b.min.z), fy + PL.toY(b.min.y), rL(b.max.z), fy + PL.toY(b.max.y));
+        s += '<text class="eq-t" x="' + X((b.min.x + b.max.x) / 2).toFixed(2) + '" y="' + (Yf((b.min.y + b.max.y) / 2) + 0.9).toFixed(2) + '">' + e.k + '</text>';
+        if (i === 0) s += dimH(X(b.min.x), X(b.max.x), Yf(b.max.y) - 4.5, Yf(b.max.y), mmTxt(b.max.x - b.min.x)) + dimV(Yf(b.max.y), Yf(b.min.y), X(b.max.x) + 4.5, X(b.max.x), mmTxt(b.max.y - b.min.y));
+      });
+      const byK = {}; eq.forEach((e) => { (byK[e.k] = byK[e.k] || []).push(e); });
+      Object.keys(byK).forEach((k) => {
+        const g0 = byK[k], b = g0[0].b, sz = [b.max.x - b.min.x, b.max.z - b.min.z, b.max.y - b.min.y].map(mmTxt);
+        const im = +k === 8 && L.nota1 && L.nota1.impresoras && L.nota1.impresoras[v];
+        legend.push(k + ' · Equipo comprado, en trazo y punto: ' + g0.length + ' × ' + g0[0].t + ', ' + sz[0] + ' × ' + sz[1] + ' × ' + sz[2] + ' (ancho × fondo × alto)' +
+          (b.max.y <= bb.max.y + 0.02 ? ', sobre la tapa' + (g0.length > 1 ? ', con ejes cada ' + mmTxt((g0[1].b.min.x + g0[1].b.max.x) / 2 - (b.min.x + b.max.x) / 2) : '') + '.' : ', fijada al muro sobre el mueble, con la base a ' + mmTxt(b.min.y - bb.min.y) + ' del piso.') + (im ? ' ' + im.sobre : ''));
+      });
+    }
+    // la leyenda va sobre la nota del pie, partida en renglones que no lleguen al rótulo
+    const lines = [];
+    legend.forEach((t) => { let l = ''; t.split(' ').forEach((w) => { if ((l + ' ' + w).length > 172) { lines.push(l); l = '   ' + w; } else l = l ? l + ' ' + w : w; }); if (l) lines.push(l); });
+    lines.slice(0, 7).forEach((t, i, a) => { s += '<text class="c-note" x="20" y="' + (283 - (a.length - i) * 3.2).toFixed(2) + '" xml:space="preserve">' + esc(t) + '</text>'; });
     // isometría en el mayor de los dos huecos: a la derecha del corte o a la derecha de la planta
     const pre = project(S, 'iso', 1, { hidden: false, ppm: 2 });
     const zones = [[sx + PS.w + 16, 36, 404 - (sx + PS.w + 16), 228 - 36], [fx + PP.w + g, py - 4, 404 - (fx + PP.w + g), 230 - (py - 4)]]
@@ -742,6 +803,7 @@
     '.v-lab{font-size:3.1px;font-weight:700;letter-spacing:.04em}.v-sub{font-size:2.4px;fill:#555}',
     '.cell{fill:none;stroke:#111;stroke-width:.25}.c-lab{font-size:1.9px;fill:#666;letter-spacing:.06em}.c-val{font-size:3px}.c-val.big{font-size:3.5px;font-weight:600}.c-note{font-size:2.3px;fill:#555}',
     '.proj path,.proj circle{fill:none;stroke:#111;stroke-width:.22}',
+    '.eq{fill:none;stroke:#111;stroke-width:.2;stroke-dasharray:4 .8 .8 .8}.eq-t{font-size:2.6px;font-weight:600;text-anchor:middle;fill:#333}.rad line{stroke:#111;stroke-width:.13}.rad .dot{fill:#111}.rad text{font-size:2.5px}.mk circle{fill:#fff;stroke:#111;stroke-width:.25}.mk text{font-size:2.6px;font-weight:700;text-anchor:middle}',
     '.balloon line{stroke:#111;stroke-width:.13}.balloon circle{fill:#fff;stroke:#111;stroke-width:.22}.balloon .dot{fill:#111;stroke:none}.balloon text{font-size:2.8px;font-weight:600;text-anchor:middle}',
     '.h2{font-size:3.6px;font-weight:600}.th{font-size:1.9px;fill:#666;letter-spacing:.06em}.td{font-size:2.45px}.td.sm{font-size:1.9px;fill:#666}.td.mono{font-variant-numeric:tabular-nums}.num-c{text-anchor:middle;font-weight:600}',
     '.rule{stroke:#111;stroke-width:.25}.rule-t{stroke:#ccc;stroke-width:.12}',
