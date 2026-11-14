@@ -13,7 +13,7 @@
   const $ = (s, el) => (el || document).querySelector(s);
   const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
   const DEV = 'B';                                   // versión que se desarrolla (mayor promedio en la matriz)
-  const FECHA = '28 de octubre de 2026', FECHA_C = '28 oct. 2026';
+  const FECHA = '28 de octubre de 2026', FECHA_C = '28 oct. 2026', REV = '14 de noviembre de 2026';     // REV: última revisión de los documentos
   const nn = (n) => (n < 10 ? '0' : '') + n;
   const ESP = (n) => N.ficha.espacios.find((e) => e.n.indexOf(n) >= 0);
   const otras = VER.filter((v) => v !== DEV);
@@ -42,7 +42,7 @@
       '<div><dt>Curso</dt><dd>Diseño VIII · Producción · UPTC Duitama · guía «Del mueble a la planta»</dd></div>' +
       (doc.ver ? '<div><dt>Espacio que se documenta</dt><dd>' + vtag(doc.ver) + ' ' + esc(vinfo(doc.ver).nombre) + ' — ' + esc(vinfo(doc.ver).titulo) + (doc.req ? '' : ' <small>(promedio en la matriz de selección: ' + best.avg[doc.ver].toFixed(2) + ' de 5; gana en ' + best.wins[doc.ver] + ' de ' + FABN.length + ' muebles)</small>') + '</dd></div>'
         : '<div><dt>Versión que se desarrolla</dt><dd>' + vtag(DEV) + ' ' + esc(vinfo(DEV).nombre) + ' — ' + esc(vinfo(DEV).titulo) + ' <small>(mayor promedio en la matriz de selección: ' + best.avg[DEV].toFixed(2) + ' de 5; gana en ' + best.wins[DEV] + ' de ' + FABN.length + ' muebles)</small></dd></div>') +
-      '<div><dt>Fecha</dt><dd>' + (doc.fecha || FECHA) + '</dd></div>' +
+      '<div><dt>Fecha</dt><dd>' + (doc.fecha || FECHA) + ' <small>· revisado el ' + REV + '</small></dd></div>' +
       '<div><dt>Modelo y planos interactivos</dt><dd><a href="' + esc(N.ficha.enlace) + '">' + esc(N.ficha.enlace) + '</a></dd></div>' +
       '<div><dt>Repositorio</dt><dd><a href="' + esc(N.ficha.repositorio) + '">' + esc(N.ficha.repositorio) + '</a></dd></div>' +
       '</dl>' +

@@ -297,7 +297,7 @@
     ['¿Las impresoras son parte del mueble?', 'Sí: el laboratorio de impresión (mueble 7) se diseñó alrededor de cuatro impresoras, que se compran y se instalan en él. La guía pide costear la iluminación y el equipo dentro de las materias primas.', 'Nota 1 · H; Nota 3 · HC'],
     ['¿Qué pasa si los tiempos están mal?', 'La mano de obra y los indirectos se reparten por horas. Si los tiempos suben 30 %, la planta sigue por debajo del ritmo; lo que cambia es la tasa de reparto, no el total del año, porque la nómina es fija.', 'Nota 2 · 11; Nota 3 · CI'],
     ['¿Por qué la planta sigue en Villanueva si la tabla favorece a Villavicencio?', 'Por decisión del grupo (el inmueble). La Nota 3 lo cuantifica: el arriendo en Villanueva es más bajo, pero cada compra viaja 115 km desde Villavicencio.', 'Nota 2 · 3 y 17'],
-    ['¿Por qué una persona y media si el cálculo da 0,56?', 'El tablero de 50 kg se carga entre dos (GTC 45) y nadie laca solo en la cabina. El tiempo pagado de más está en los indirectos y es el primer ahorro si crece el volumen.', 'Nota 2 · 11 y 14']
+    ['¿Por qué una persona y media si el cálculo da 0,61?', 'El tablero de 50 kg se carga entre dos (GTC 45) y nadie laca solo en la cabina. El tiempo pagado de más está en los indirectos y es el primer ahorro si crece el volumen.', 'Nota 2 · 11 y 14']
   ];
 
   /* ---------------------------------------------------- lo que el diseño ahorra (guía, 7.2) */
@@ -312,7 +312,7 @@
       ahorro: (t) => t.nJ * L.costos.pu('mdf15') }
   ];
   const SUPUESTOS = [
-    ['Tiempos de fabricación', 'Unas 82 h por juego (datos tipo de la Nota 2)', 'Cronometrar el primer juego y entrevistar al ebanista (guion en la Nota 2, ítem 11)'],
+    ['Tiempos de fabricación', 'Unas 89 h por juego (datos tipo de la Nota 2)', 'Cronometrar el primer juego y entrevistar al ebanista (guion en la Nota 2, ítem 11)'],
     ['Salario del ebanista', '$1.776.103 (promedio de Indeed en Colombia)', 'Preguntar el salario en dos talleres de Villanueva o Yopal'],
     ['Arriendo de la bodega', '8.000 $/m² al mes', 'Pedir el canon de una bodega real en Villanueva'],
     ['Rendimiento de la laca', '45 m²/gal × 65 % de eficiencia de la pistola', 'Medir los galones que se gastan en el primer juego'],
