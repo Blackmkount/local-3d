@@ -17,6 +17,12 @@ body.en-pdf #app { display: none !important; }
 #entrega .n1-tbl td.rq-si, #entrega .n1-tbl td.rq-parcial, #entrega .n1-tbl td.rq-no { padding-left: 24px; }
 #entrega .n1-tbl td .n1-st { left: 7px; top: 7px; width: 11px; height: 11px; }
 #entrega .n1-tbl tr { break-inside: avoid; }
+/* matriz de selección: once columnas en A4 vertical, sin desbordar (si desborda, Chromium encoge todo el documento) */
+#entrega .en-mat table { table-layout: fixed; width: 100%; font-size: 9.6px; }
+#entrega .en-mat th { white-space: normal; padding: 5px 3px; font-size: 7.6px; letter-spacing: 0; line-height: 1.25; }
+#entrega .en-mat td { padding: 4px 3px; }
+#entrega .en-mat th:first-child, #entrega .en-mat td:first-child { width: 24%; padding-left: 8px; }
+#entrega .en-mat th:last-child, #entrega .en-mat td:last-child { width: 17%; }
 #entrega .n1-tbl thead { display: table-header-group; }
 #entrega .n1-lead { font-size: 13.5px; max-width: none; margin-bottom: 12px; }
 #entrega .n1-note { font-size: 11px; max-width: none; margin-top: 8px; }

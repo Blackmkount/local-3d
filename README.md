@@ -137,6 +137,25 @@ cuánto se vende (guía, numeral 7).
 Cálculos en `js/costos.js`; datos en `js/nota3-data.js`. La Nota 3 le cambió al mueble las tapas de 30 mm (capa de abajo
 en melamina blanca y canto Rovere de 33 mm), la gola de la cajonera (596 mm) y los perfiles LED del laboratorio (1.49 m).
 
+## Una sola fuente de medidas (versión B · Galería)
+
+En la versión que se desarrolla, las medidas de corte salen del modelo 3D y de ningún otro sitio:
+
+- La tabla de piezas de cada mueble (`piezas` en `js/versions.js`) se vuelca desde el modelo con
+  `node tools/medidas.js --write`. No se edita a mano: se cambia el mueble en `js/furniture-ab.js` y se vuelve a volcar.
+- `node tools/medidas.js` comprueba que la tabla, el despiece explosionado y las hojas de piezas sigan diciendo lo mismo
+  (nombre, cantidad, largo, ancho y espesor de cada pieza). Sale con error si hay una sola diferencia. La Nota 1 imprime
+  el resultado de esa comprobación bajo cada tabla de despiece.
+- Cada pieza lleva la misma marca (P1, P2…) en el explosionado, en las hojas de piezas y en la tabla.
+- Las piezas curvas (pieles y zócalos de la isla y de los pedestales, tiras COB) se dan por su desarrollo: la tira plana
+  antes de curvarla. El plano de conjunto acota además el radio de cada punta.
+- El cable, las clavijas, las regletas y la canaleta de cada mueble con luz salen del despiece (tiras y fuentes) con las
+  reglas escritas en `js/versions.js` («instalación eléctrica»), y entran al presupuesto y a la lista de compras.
+- Los planos de conjunto dibujan el equipo que recibe cada mueble (impresoras, pantalla) en trazo y punto, y señalan el
+  compartimento de la fuente (F) y su tapa de registro (R).
+
+Las versiones A y C son las alternativas que no se desarrollan: conservan su tabla de piezas escrita a mano.
+
 ## Juego de planos
 
 El Plano 2D es un juego de planos completo por versión (68 láminas A3 en cada una), con una barra lateral

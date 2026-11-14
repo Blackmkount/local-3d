@@ -56,7 +56,7 @@
         M = new T.Matrix4().compose(pos, p.quaternion, p.scale);
       } else { p.updateMatrixWorld(true); M = inv.clone().multiply(p.matrixWorld); }
       const g = isPlainBox(p.geometry) ? sharpBox(p.geometry.parameters) : p.geometry;
-      list.push(Object.assign({ g, rg: p.geometry, M, name: u.name, mk: u.mk, step: u.step, idx }, mesh(g, M)));
+      list.push(Object.assign({ g, rg: p.geometry, M, name: u.name, mk: u.mk, step: u.step, idx, cut: u.cut || null }, mesh(g, M)));
     });
     const bb = new T.Box3();
     list.forEach((s) => bb.union(s.bb));
@@ -448,6 +448,18 @@
   const nn = (n) => (n < 10 ? '0' : '') + n;
 
   /* ------------------------------------------------ lámina de conjunto */
+  /* equipo comprado que recibe el mueble (impresoras, pantalla): su caja en las coordenadas del mueble */
+  function equipos(v, n, S) {
+    if (!L.api || !L.api.boughtBoxes) return [];
+    const inv = new T.Matrix4().copy(S.o.group.matrixWorld).invert(), out = [], bb = S.bb;
+    [[8, 'Impresora 3D con AMS'], [1, 'Pantalla de 75″']].forEach((d) => L.api.boughtBoxes(v, d[0]).forEach((e) => {
+      const b = e.box.clone().applyMatrix4(inv);
+      const ox = Math.min(b.max.x, bb.max.x) - Math.max(b.min.x, bb.min.x), oz = Math.min(b.max.z, bb.max.z + 0.05) - Math.max(b.min.z, bb.min.z - 0.05);
+      if (ox > 0.6 * (b.max.x - b.min.x) && oz > 0.3 * (b.max.z - b.min.z) && b.min.y > bb.min.y + 0.3 && b.min.y < bb.max.y + 0.25) out.push({ k: d[0], t: d[1], b });
+    }));
+    return out.sort((a, c) => a.b.min.x - c.b.min.x);
+  }
+  DW.equipos = function (v, n) { const S = solids(v, n); return S ? equipos(v, n, S) : []; };
   DW.conjunto = function (v, n, opt) {
     opt = opt || {};
     const S = solids(v, n);
@@ -513,6 +525,55 @@
     s += label(lx, fy + PL.h + 8.5, 'VISTA LATERAL', 'Desde la izquierda');
     s += label(sx, fy + PS.h + 8.5, 'CORTE A–A', 'Sección rayada');
     s += label(fx, py + PP.h + 15, 'PLANTA', 'Vista superior');
+    // curvas: radio de cada punta en la planta y, debajo, el desarrollo de las pieles y de los zócalos
+    const cur = S.o.curvas, legend = [];
+    if (cur) {
+      cur.radios.forEach((c) => {
+        const k2 = Math.SQRT1_2, ax = fx + PP.toX(c.x + c.dx * c.r * k2), ay = py + PP.toY(-(c.z + c.dz * c.r * k2)), ex = ax + c.dx * 5, ey = ay + c.dz * 5;
+        s += '<g class="rad"><line x1="' + ax.toFixed(2) + '" y1="' + ay.toFixed(2) + '" x2="' + ex.toFixed(2) + '" y2="' + ey.toFixed(2) + '"/><circle class="dot" cx="' + ax.toFixed(2) + '" cy="' + ay.toFixed(2) + '" r=".35"/>' +
+          '<text x="' + (ex + c.dx * 0.8).toFixed(2) + '" y="' + (ey + (c.dz > 0 ? 2.2 : -0.5)).toFixed(2) + '" text-anchor="' + (c.dx > 0 ? 'start' : 'end') + '">' + esc(c.t) + '</text></g>';
+      });
+      s += '<text class="v-sub" x="' + fx + '" y="' + (py + PP.h + 24).toFixed(2) + '">CURVAS · radios y desarrollos (mm). El desarrollo es la tira plana que se corta antes de curvarla.</text>';
+      cur.filas.forEach((t, i) => { s += '<text class="c-note" x="' + fx + '" y="' + (py + PP.h + 28 + i * 3.4).toFixed(2) + '">' + esc(t) + '</text>'; });
+    }
+    // fuente de alimentación y su registro: se señalan en el alzado y en la planta
+    const marks = S.list.filter((q) => /^fuente/.test(q.mk) || /registro/i.test(q.name));
+    marks.forEach((q) => {
+      const c = q.bb.getCenter(V3()), t = /^fuente/.test(q.mk) ? 'F' : 'R';
+      [[X(c.x), Yf(c.y)], [fx + PP.toX(c.x), py + PP.toY(-c.z)]].forEach((pt) => { s += '<g class="mk"><circle cx="' + pt[0].toFixed(2) + '" cy="' + pt[1].toFixed(2) + '" r="2.1"/><text x="' + pt[0].toFixed(2) + '" y="' + (pt[1] + 0.95).toFixed(2) + '">' + t + '</text></g>'; });
+    });
+    if (marks.length) {
+      const hasR = marks.some((q) => /registro/i.test(q.name)), nF = marks.filter((q) => /^fuente/.test(q.mk)).length;
+      const itv = L.versions.items[v] && L.versions.items[v][n], acc = itv ? (itv.ens.find((t) => /fuente/i.test(t)) || '') : '';
+      legend.push('F · Compartimento de la fuente de 12 V (' + nF + (nF === 1 ? ' fuente' : ' fuentes') + '; en trazos si queda dentro): fijada por sus orejas, con 20 mm libres alrededor y dos ranuras de ventilación de 60 × 8.' +
+        (hasR ? ' R · Tapa de registro de 300 × 200 con cuatro tornillos de cabeza visible, sobre una abertura de 260 × 160.' : acc ? ' Acceso: ' + acc.charAt(0).toLowerCase() + acc.slice(1).replace(/\.$/, '') + '.' : ''));
+    }
+    // equipo que recibe el mueble: en línea de trazo y punto, con su medida
+    const eq = equipos(v, n, S);
+    if (eq.length) {
+      const rect = (x0e, y0e, x1e, y1e) => '<rect class="eq" x="' + Math.min(x0e, x1e).toFixed(2) + '" y="' + Math.min(y0e, y1e).toFixed(2) + '" width="' + Math.abs(x1e - x0e).toFixed(2) + '" height="' + Math.abs(y1e - y0e).toFixed(2) + '"/>';
+      const rL = (z) => lx + PL.toX(z * PL.B.r.z);
+      eq.forEach((e, i) => {
+        const b = e.b, dentro = b.max.y <= bb.max.y + 0.02;
+        s += rect(fx + PP.toX(b.min.x), py + PP.toY(-b.min.z), fx + PP.toX(b.max.x), py + PP.toY(-b.max.z));
+        s += '<text class="eq-t" x="' + (fx + PP.toX((b.min.x + b.max.x) / 2)).toFixed(2) + '" y="' + (py + PP.toY(-(b.min.z + b.max.z) / 2) + 0.9).toFixed(2) + '">' + e.k + '</text>';
+        if (!dentro) return;
+        s += rect(X(b.min.x), Yf(b.min.y), X(b.max.x), Yf(b.max.y)) + rect(rL(b.min.z), fy + PL.toY(b.min.y), rL(b.max.z), fy + PL.toY(b.max.y));
+        s += '<text class="eq-t" x="' + X((b.min.x + b.max.x) / 2).toFixed(2) + '" y="' + (Yf((b.min.y + b.max.y) / 2) + 0.9).toFixed(2) + '">' + e.k + '</text>';
+        if (i === 0) s += dimH(X(b.min.x), X(b.max.x), Yf(b.max.y) - 4.5, Yf(b.max.y), mmTxt(b.max.x - b.min.x)) + dimV(Yf(b.max.y), Yf(b.min.y), X(b.max.x) + 4.5, X(b.max.x), mmTxt(b.max.y - b.min.y));
+      });
+      const byK = {}; eq.forEach((e) => { (byK[e.k] = byK[e.k] || []).push(e); });
+      Object.keys(byK).forEach((k) => {
+        const g0 = byK[k], b = g0[0].b, sz = [b.max.x - b.min.x, b.max.z - b.min.z, b.max.y - b.min.y].map(mmTxt);
+        const im = +k === 8 && L.nota1 && L.nota1.impresoras && L.nota1.impresoras[v];
+        legend.push(k + ' · Equipo comprado, en trazo y punto: ' + g0.length + ' × ' + g0[0].t + ', ' + sz[0] + ' × ' + sz[1] + ' × ' + sz[2] + ' (ancho × fondo × alto)' +
+          (b.max.y <= bb.max.y + 0.02 ? ', sobre la tapa' + (g0.length > 1 ? ', con ejes cada ' + mmTxt((g0[1].b.min.x + g0[1].b.max.x) / 2 - (b.min.x + b.max.x) / 2) : '') + '.' : ', fijada al muro sobre el mueble, con la base a ' + mmTxt(b.min.y - bb.min.y) + ' del piso.') + (im ? ' ' + im.sobre : ''));
+      });
+    }
+    // la leyenda va sobre la nota del pie, partida en renglones que no lleguen al rótulo
+    const lines = [];
+    legend.forEach((t) => { let l = ''; t.split(' ').forEach((w) => { if ((l + ' ' + w).length > 172) { lines.push(l); l = '   ' + w; } else l = l ? l + ' ' + w : w; }); if (l) lines.push(l); });
+    lines.slice(0, 7).forEach((t, i, a) => { s += '<text class="c-note" x="20" y="' + (283 - (a.length - i) * 3.2).toFixed(2) + '" xml:space="preserve">' + esc(t) + '</text>'; });
     // isometría en el mayor de los dos huecos: a la derecha del corte o a la derecha de la planta
     const pre = project(S, 'iso', 1, { hidden: false, ppm: 2 });
     const zones = [[sx + PS.w + 16, 36, 404 - (sx + PS.w + 16), 228 - 36], [fx + PP.w + g, py - 4, 404 - (fx + PP.w + g), 230 - (py - 4)]]
@@ -536,23 +597,58 @@
     S.list.forEach((q) => {
       const nm = q.name || 'Pieza';
       const d = q.comps.length ? q.comps[0] : q.bb, sz = d.getSize(V3());
-      const dims = [sz.x, sz.y, sz.z].map((x) => Math.round(x * 1000)).sort((a, b) => b - a);
+      const dims = [sz.x, sz.y, sz.z].map((x) => (x < 0.01 ? Math.round(x * 2000) / 2 : Math.round(x * 1000))).sort((a, b) => b - a);   // los espesores finos conservan el medio milímetro (5.5)
       const key = nm + '|' + dims.join('x') + '|' + q.mk;
       let gr = by[key];
       if (!gr) { gr = by[key] = { name: nm, mk: q.mk, dims, cant: 0, sol: [] }; groups.push(gr); }
-      gr.cant += Math.max(1, q.comps.length); gr.sol.push(q);
+      gr.cant += q.cut ? 1 : Math.max(1, q.comps.length); gr.sol.push(q);
+      if (q.cut) gr.cut = (gr.cut || []).concat(q.cut);      // tableros reales de una pieza curva o desarrollada
     });
     groups.forEach((gr) => {
       const p = P[gr.mk];
       gr.mat = p ? p.m : gr.mk;
       gr.origen = p ? (p.tipo === 'unidad' || /Herrajes|iluminación/i.test(p.cat) && p.tipo !== 'barra' ? 'Compra' : 'Fabrica') : 'Fabrica';
       if (p && (gr.mk === 'perfilLed' || gr.mk === 'cob')) gr.origen = 'Compra, se corta';
+      if (gr.cut) {                                         // pieza curva: se da su desarrollo (la tira plana), que es lo que se corta
+        const flat = p && (p.tipo === 'lamina' || p.tipo === 'm2'), e = p ? espesor(p) : null, r = (x) => Math.round(x * 1000);
+        gr.dimTxt = flat ? gr.cut.map((c) => r(c[2]) + ' × ' + r(c[3]) + (e ? ' × ' + e : '')).join(' + ') : 'L = ' + gr.cut.map((c) => r(c[2])).join(' + ');
+        gr.cantCut = gr.cut.length === 1 ? gr.cut[0][1] : gr.cant;
+      }
     });
     groups.sort((a, b) => (a.sol[0].step - b.sol[0].step) || (a.sol[0].idx - b.sol[0].idx));
     groups.forEach((g, i) => { g.mark = i + 1; });
     return groups;
   }
   DW.parts = function (v, n) { const S = solids(v, n); return S ? partsTable(S) : []; };
+  /* Medidas de corte que salen del modelo: una fila por pieza de tablero, lámina, tubo, perfil o tira,
+     con el formato del despiece [material, nombre, cantidad, largo, ancho, marca]. Es la fuente de la tabla
+     de piezas de la versión B (tools/medidas.js la vuelca en versions.js y comprueba que sigan iguales). */
+  const CUT_T = /^(lamina|m2|barra|m)$/;
+  DW.cutRows = function (v, n) {
+    const P = L.versions.precios, rows = [];
+    DW.parts(v, n).forEach((g) => {
+      const p = P[g.mk]; if (!p || !CUT_T.test(p.tipo)) return;
+      const flat = p.tipo === 'lamina' || p.tipo === 'm2';
+      if (g.cut) g.cut.forEach((c) => rows.push(flat ? [c[4] || g.mk, c[0], c[1], c[2], c[3], g.mark] : [c[4] || g.mk, c[0], c[1], c[2], undefined, g.mark]));
+      else rows.push(flat ? [g.mk, g.name, g.cant, g.dims[0] / 1000, g.dims[1] / 1000, g.mark] : [g.mk, g.name, g.cant, g.dims[0] / 1000, undefined, g.mark]);
+    });
+    return rows.map((r) => (r[4] === undefined ? [r[0], r[1], r[2], r[3]].concat(r[5] ? [0, r[5]] : []) : r));
+  };
+  /* diferencias entre la tabla de piezas (versions.js) y el modelo: vacío = coinciden */
+  DW.check = function (v) {
+    const P = L.versions.precios, out = [];
+    const esp = (p) => { const m = /(\d+(?:\.\d+)?) mm/.exec(p.m); return m ? +m[1] : null; };
+    Object.keys(L.versions.items[v]).forEach((n) => {
+      const it = L.versions.items[v][n], parts = DW.parts(v, +n), model = DW.cutRows(v, +n), inModel = new Set(model.map((r) => r[0]));
+      const key = (r) => r[0] + '|' + r[1] + '|' + r[2] + '|' + Math.round(r[3] * 1000) + '|' + Math.round((r[4] || 0) * 1000);
+      const tabla = it.piezas.filter((r) => inModel.has(r[0]) || (P[r[0]] && CUT_T.test(P[r[0]].tipo) && !/^canto/.test(r[0])));
+      const A = new Set(tabla.map(key)), B = new Set(model.map(key));
+      tabla.forEach((r) => { if (!B.has(key(r))) out.push({ n: +n, donde: 'solo en la tabla', fila: r.slice(0, 5).join(' | ') }); });
+      model.forEach((r) => { if (!A.has(key(r))) out.push({ n: +n, donde: 'solo en el modelo', fila: r.slice(0, 5).join(' | ') }); });
+      parts.forEach((g) => { const p = P[g.mk]; if (!p || p.tipo !== 'lamina' || g.cut) return; const e = esp(p); if (e && Math.abs(g.dims[2] - e) > 0.6) out.push({ n: +n, donde: 'espesor', fila: g.name + ': modelo ' + g.dims[2] + ' mm, material ' + e + ' mm' }); });
+    });
+    return out;
+  };
   DW.explosion = function (v, n) {
     const S = solids(v, n, true), S0 = solids(v, n);
     if (!S) return '';
@@ -599,17 +695,21 @@
       const nm = g.name.length > 34 ? g.name.slice(0, 33) + '…' : g.name, mt = g.mat.length > 40 ? g.mat.slice(0, 39) + '…' : g.mat;
       s += '<text class="td num-c" x="' + (tx + 3) + '" y="' + (y - 1.2) + '">' + g.mark + '</text>';
       s += '<text class="td" x="' + (tx + 11) + '" y="' + (y - 1.2) + '">' + esc(nm) + '</text><text class="td sm" x="' + (tx + 11) + '" y="' + (y + 1.5) + '">' + esc(mt) + '</text>';
-      s += '<text class="td" x="' + (tx + 77) + '" y="' + (y - 1.2) + '">' + g.cant + '</text>';
-      s += '<text class="td mono" x="' + (tx + 86) + '" y="' + (y - 1.2) + '">' + g.dims.join(' × ') + '</text>';
+      s += '<text class="td" x="' + (tx + 77) + '" y="' + (y - 1.2) + '">' + (g.cut ? g.cantCut : g.cant) + '</text>';
+      s += '<text class="td mono" x="' + (tx + 86) + '" y="' + (y - 1.2) + '">' + (g.cut ? g.dimTxt + ' ◠' : g.dims.join(' × ')) + '</text>';
       s += '<text class="td sm" x="' + (tx + 118) + '" y="' + (y - 1.2) + '">' + esc(g.origen) + '</text>';
       s += '<line class="rule-t" x1="' + tx + '" y1="' + (ty + 8 + (i + 1) * rh) + '" x2="' + (tx + 138) + '" y2="' + (ty + 8 + (i + 1) * rh) + '"/>';
     });
     if (G.length > rows) s += '<text class="c-note" x="' + tx + '" y="' + (ty + 12 + rows * rh) + '">… y ' + (G.length - rows) + ' grupos más: ver la tabla de despiece.</text>';
     s += '</g>';
-    s += '<text class="c-note" x="20" y="283">Medidas de cada pieza: largo × ancho × espesor de su caja envolvente, en milímetros. Las piezas de forma se cortan según el plano de conjunto.</text>';
+    s += '<text class="c-note" x="20" y="283">Medidas de corte en mm (largo × ancho × espesor): las mismas de las hojas de piezas y de la tabla. ◠ pieza curva: desarrollo antes de curvar.</text>';
     s += rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.2', contenido: 'Despiece explosionado', escala: 'Sin escala', version: v + ' · ' + I.vi.nombre, fecha: L.nota1 ? L.nota1.fechaCorta : '17 oct. 2026' });
     return s + '</svg>';
   };
+
+  const okCache = {};
+  /* ¿la tabla de piezas de la versión coincide con el modelo? (se calcula una vez) */
+  DW.coincide = function (v) { if (!(v in okCache)) { try { okCache[v] = DW.check(v).length === 0; } catch (e) { okCache[v] = false; } } return okCache[v]; };
 
   /* ------------------------------------------------ láminas de piezas: cada pieza fabricada con sus medidas de corte */
   const SEC = { tubo1: [25.4, 25.4, 1.2], tubo15: [38.1, 38.1, 1.1], tuboRect: [50, 25, 1.1], perfil3030: [30, 30, 0], cob: [8, 2, 0] };
@@ -623,7 +723,7 @@
     const it = L.versions.items[v] && L.versions.items[v][n]; if (!it) return [];
     const P = L.versions.precios;
     return it.piezas.filter((p) => { const t = P[p[0]].tipo; return t === 'lamina' || t === 'm2' || t === 'barra' || (t === 'm' && !/^canto/.test(p[0])); })
-      .map((p, i) => ({ i: i + 1, mk: p[0], P: P[p[0]], name: cap(p[1]), cant: p[2], a: p[3], b: p[4] || null }));
+      .map((p, i) => ({ i: p[5] || i + 1, mk: p[0], P: P[p[0]], name: cap(p[1]), cant: p[2], a: p[3], b: p[4] || null }));
   }
   DW.nPiezas = function (v, n) { return Math.max(1, Math.ceil(piezasDe(v, n).length / 6)); };
   function celda(pz, x, y, w, h) {
@@ -703,6 +803,7 @@
     '.v-lab{font-size:3.1px;font-weight:700;letter-spacing:.04em}.v-sub{font-size:2.4px;fill:#555}',
     '.cell{fill:none;stroke:#111;stroke-width:.25}.c-lab{font-size:1.9px;fill:#666;letter-spacing:.06em}.c-val{font-size:3px}.c-val.big{font-size:3.5px;font-weight:600}.c-note{font-size:2.3px;fill:#555}',
     '.proj path,.proj circle{fill:none;stroke:#111;stroke-width:.22}',
+    '.eq{fill:none;stroke:#111;stroke-width:.2;stroke-dasharray:4 .8 .8 .8}.eq-t{font-size:2.6px;font-weight:600;text-anchor:middle;fill:#333}.rad line{stroke:#111;stroke-width:.13}.rad .dot{fill:#111}.rad text{font-size:2.5px}.mk circle{fill:#fff;stroke:#111;stroke-width:.25}.mk text{font-size:2.6px;font-weight:700;text-anchor:middle}',
     '.balloon line{stroke:#111;stroke-width:.13}.balloon circle{fill:#fff;stroke:#111;stroke-width:.22}.balloon .dot{fill:#111;stroke:none}.balloon text{font-size:2.8px;font-weight:600;text-anchor:middle}',
     '.h2{font-size:3.6px;font-weight:600}.th{font-size:1.9px;fill:#666;letter-spacing:.06em}.td{font-size:2.45px}.td.sm{font-size:1.9px;fill:#666}.td.mono{font-variant-numeric:tabular-nums}.num-c{text-anchor:middle;font-weight:600}',
     '.rule{stroke:#111;stroke-width:.25}.rule-t{stroke:#ccc;stroke-width:.12}',

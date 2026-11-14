@@ -213,6 +213,7 @@
       hpl: 'Se compra · se corta y se pega en el taller', pvc10: 'Se fabrica · corte CNC encargado', pvc5: 'Se fabrica · corte CNC encargado', acril3: 'Se fabrica · corte láser encargado', opal3: 'Se fabrica · corte láser encargado', perforada: 'Se fabrica · corte y doblez en el taller',
       tubo1: 'Se fabrica · corte, soldadura y pintura en el taller', tubo15: 'Se fabrica · corte, soldadura y pintura en el taller', tuboRect: 'Se fabrica · corte, soldadura y pintura en el taller', perfil3030: 'Se compra cortado a medida', perfilLed: 'Se compra · se corta en el taller', cob: 'Se compra · se corta en el taller', vidrio10: 'Se encarga a la vidriería (templado a medida)', vidrio6: 'Se encarga a la vidriería (templado a medida)', petg: 'Se fabrica · impresión 3D en el taller' };
     const origen = (k) => ORIG[k] || ({ lamina: 'Se fabrica', barra: 'Se fabrica · corte en el taller', m: 'Se compra y se corta', m2: 'Se encarga', kg: 'Se fabrica' }[P[k].tipo]);
+    const hasMark = it.piezas.some((p) => p[5]);          // marca del despiece (P1, P2…): la misma del explosionado y de las hojas de piezas
     const rows = it.piezas.map((p) => {
       const pr = P[p[0]];
       let med = '', cant = p[2];
@@ -220,15 +221,16 @@
       else if (pr.tipo === 'kg') { med = f1(p[2]) + ' kg de filamento'; cant = '—'; }
       else med = 'L = ' + Math.round(p[3] * 1000);
       if (pr.tipo === 'm' && p[0].startsWith('canto')) { med = Math.round(p[3] * 1000) / 1000 + ' m de canto'; cant = '—'; }
-      return '<tr><td><b>' + esc(p[1]) + '</b></td><td class="r mono">' + cant + '</td><td>' + esc(pr.m) + '</td><td class="mono">' + esc(med) + '</td><td>' + esc(pr.pres) + '</td><td>' + esc(pr.tipo === 'm' && p[0].startsWith('canto') ? 'Se compra; lo pega el servicio de enchape' : origen(p[0])) + '</td></tr>';
+      return '<tr>' + (hasMark ? '<td class="mono">' + (p[5] ? 'P' + p[5] : '') + '</td>' : '') + '<td><b>' + esc(p[1]) + '</b></td><td class="r mono">' + cant + '</td><td>' + esc(pr.m) + '</td><td class="mono">' + esc(med) + '</td><td>' + esc(pr.pres) + '</td><td>' + esc(pr.tipo === 'm' && p[0].startsWith('canto') ? 'Se compra; lo pega el servicio de enchape' : origen(p[0])) + '</td></tr>';
     }).join('');
     const herr = it.herrajes.map((h) => { const pr = P[h[0]]; return '<tr><td><b>' + esc(pr.m) + '</b></td><td class="r mono">' + h[2] + '</td><td>' + esc(h[1]) + '</td><td>' + esc(pr.pres) + '</td><td>Se compra</td></tr>'; }).join('');
     const acab = it.acabados.map((a) => { const pr = P[a[0]]; return '<tr><td><b>' + esc(pr.m) + '</b></td><td class="r mono">' + f1(a[2]) + ' m² × ' + a[3] + '</td><td>' + esc(a[1]) + '</td><td>' + esc(pr.pres) + '</td><td>Se compra</td></tr>'; }).join('');
     const c = VS.calc(v).items[n];
     return '<h3>' + n + ' · ' + esc(I.name) + ' <small>' + esc(I.dims) + ' · materiales ' + cop(c.total) + '</small></h3>' +
-      '<h4 class="n1-h4">Piezas</h4><div class="n1-tbl"><table><thead><tr><th>Pieza</th><th class="r">Cant.</th><th>Material</th><th>Medidas (mm)</th><th>Formato comercial</th><th>Origen</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<h4 class="n1-h4">Piezas</h4><div class="n1-tbl"><table><thead><tr>' + (hasMark ? '<th>Marca</th>' : '') + '<th>Pieza</th><th class="r">Cant.</th><th>Material</th><th>Medidas (mm)</th><th>Formato comercial</th><th>Origen</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<h4 class="n1-h4">Herrajes, tornillería e iluminación</h4><div class="n1-tbl"><table><thead><tr><th>Elemento</th><th class="r">Cant.</th><th>Uso</th><th>Unidad de venta</th><th>Origen</th></tr></thead><tbody>' + herr + '</tbody></table></div>' +
       (acab ? '<h4 class="n1-h4">Acabados e insumos</h4><div class="n1-tbl"><table><thead><tr><th>Insumo</th><th class="r">Área × manos</th><th>Uso</th><th>Unidad de venta</th><th>Origen</th></tr></thead><tbody>' + acab + '</tbody></table></div>' : '') +
+      (L.dwg && L.dwg.coincide && L.dwg.coincide(v) ? '<p class="n1-note n1-okline"><b>Una sola fuente de medidas.</b> Esta tabla sale del modelo 3D: es la misma lista del despiece explosionado y de las hojas de piezas, con la misma marca (P1, P2…), cantidad y medida. Comprobación automática de la versión ' + v + ': 0 diferencias entre la tabla y el modelo. Las piezas curvas se dan por su desarrollo (la tira plana antes de curvarla).</p>' : '') +
       '<p class="n1-note">Medidas de corte: largo × ancho × espesor para tableros y láminas; largo para tubos y perfiles. El costo de cada material está en el presupuesto de la versión. El cable de la luz (sección y caída de tensión) está en el elemento H; los insumos de taller (lija, discos, brocas) van en la lista de compras de la Nota 3.</p>';
   }
   function secF() {

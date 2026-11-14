@@ -57,6 +57,18 @@
     fn(o, name + ' (capa inferior)', x, y, z, sx, 0.015, sz, step, [ex[0], ex[1], ex[2]], opt);
     fn(o, name + ' (capa superior)', x, y + 0.015, z, sx, 0.015, sz, step, [ex[0], ex[1] + 0.16, ex[2]], opt);
   }
+  /* tapa doble de la versión B: Rovere arriba y melamina blanca abajo (30 mm), como dice el despiece */
+  function tapaRB(o, name, x, y, z, sx, sz, step, ex) {
+    h.P(o, name + ' (capa inferior, blanca)', 'melBlanca', x, y, z, sx, 0.015, sz, step, [ex[0], ex[1], ex[2]], { mk: 'blanca15v' });
+    rv(o, name + ' (capa superior, Rovere)', x, y + 0.015, z, sx, 0.015, sz, step, [ex[0], ex[1] + 0.16, ex[2]]);
+  }
+  /* perímetro de la planta redondeada (m): el desarrollo de una piel o de un zócalo curvo */
+  function perim(Lx, Fz, r, inset) {
+    inset = inset || 0;
+    const rs = ['bl', 'br', 'fr', 'fl'].map((k) => Math.max(0, (r[k] || 0) - inset));
+    return 2 * (Lx - 2 * inset) + 2 * (Fz - 2 * inset) - (2 - PI / 2) * rs.reduce((a, b) => a + b, 0);
+  }
+  const mm = (x) => Math.round(x * 1000) / 1000, mmf = (x) => Math.floor(x * 1000 + 1e-6) / 1000;   // al milímetro: las medidas de corte no llevan décimas
   /* bastidor rectangular de tubo: cuatro lados en el plano horizontal a la altura y */
   function aro(o, name, mk, s, x0, z0, w, d, y, step, ex) {
     st(o, name, mk, x0, y, z0, w, s, s, step, [ex[0], ex[1], ex[2] - 0.12]);
@@ -73,15 +85,24 @@
   /* volumen lacado de planta redondeada: piso, piel curva de MDF 5.5 en dos capas, tapa y zócalo con luz */
   function volumen(o, name, x0, z0, Lx, Fz, r, hgt, step0, ex, opt) {
     opt = opt || {};
-    const yb = 0.08;
+    const yb = 0.08, t = 0.015, hp = hgt - yb - t;
     const shp = G.planShape(Lx, Fz, r);
-    h.P(o, name + ': piso', 'mdf15', x0, yb, z0, 0, 0, 0, step0, [ex[0], ex[1] + 0.1, ex[2]], { geo: G.slab(G.planShape(Lx, Fz, r, 0.012), 0.015), mk: 'mdf15' });
+    h.P(o, name + ': piso', 'mdf15', x0, yb, z0, 0, 0, 0, step0, [ex[0], ex[1] + 0.1, ex[2]], { geo: G.slab(G.planShape(Lx, Fz, r, 0.012), t), mk: 'mdf15' });
+    // dos costillas: el molde sobre el que se curva la piel y el apoyo de la tapa
+    const xa = Math.max(Lx / 3, Math.max(r.fl || 0, r.bl || 0) + 0.012), xb = Lx - Math.max(Lx / 3, Math.max(r.fr || 0, r.br || 0) + 0.012) - t;
+    [xa, xb].forEach((x) => h.P(o, name + ': costilla', 'mdf15', x0 + x, yb + t, z0 + 0.012, t, hp - t, Fz - 0.024, step0, [ex[0], ex[1] + 0.1, ex[2]], { mk: 'mdf15' }));
     const ring = G.planShape(Lx, Fz, r); ring.holes.push(holeOf(Lx, Fz, r, 0.011));
-    h.P(o, name + ': piel de MDF 5.5 mm', 'laca', x0, yb, z0, 0, 0, 0, step0 + 1, [ex[0] * 1.4, ex[1] + 0.25, ex[2] * 1.4], { geo: G.slab(ring, hgt - yb - 0.018), mk: 'mdf55' });
-    h.P(o, name + ': tapa', opt.topMat || 'laca', x0, hgt - 0.018, z0, 0, 0, 0, step0 + 2, [ex[0], ex[1] + 0.55, ex[2]], { geo: G.slab(shp, 0.018, !!opt.topMat), mk: opt.topMk || 'mdf15' });
+    h.P(o, name + ': piel de MDF 5.5 mm', 'laca', x0, yb, z0, 0, 0, 0, step0 + 1, [ex[0] * 1.4, ex[1] + 0.25, ex[2] * 1.4], { geo: G.slab(ring, hp), mk: 'mdf55',
+      cut: [[name + ': piel, dos capas (desarrollo)', 2, mm(perim(Lx, Fz, r)), mm(hp)]] });
+    h.P(o, name + ': tapa', opt.topMat || 'laca', x0, hgt - t, z0, 0, 0, 0, step0 + 2, [ex[0], ex[1] + 0.55, ex[2]], { geo: G.slab(shp, t, !!opt.topMat), mk: opt.topMk || 'mdf15' });
     // zócalo retranqueado negro con la tira de luz
     const zr = G.planShape(Lx, Fz, r, 0.05); zr.holes.push(holeOf(Lx, Fz, r, 0.065));
-    h.P(o, name + ': zócalo', 'negro', x0, 0, z0, 0, 0, 0, step0, [ex[0], ex[1] - 0.15, ex[2]], { geo: G.slab(zr, yb), mk: 'mdf15' });
+    h.P(o, name + ': zócalo', 'negro', x0, 0, z0, 0, 0, 0, step0, [ex[0], ex[1] - 0.15, ex[2]], { geo: G.slab(zr, yb), mk: 'mdf15',
+      cut: [[name + ': zócalo (desarrollo)', 1, mm(perim(Lx, Fz, r, 0.05)), yb]] });
+    // para los planos: radio de cada punta (centro del arco y hacia dónde abre) y desarrollos
+    const cur = (o.curvas = o.curvas || { radios: [], filas: [] });
+    [['fl', 1, 1, -1, 1], ['fr', -1, 1, 1, 1], ['bl', 1, -1, -1, -1], ['br', -1, -1, 1, -1]].forEach((c) => { const rr = r[c[0]]; if (rr) cur.radios.push({ x: x0 + (c[1] > 0 ? rr : Lx - rr), z: z0 + (c[2] > 0 ? Fz - rr : rr), r: rr, dx: c[3], dz: c[4], t: 'R' + Math.round(rr * 1000) }); });
+    cur.filas.push(name + ': puntas R' + Math.round(Math.max(r.fl || 0, r.fr || 0, r.bl || 0, r.br || 0) * 1000) + ' · desarrollo de la piel ' + Math.round(perim(Lx, Fz, r) * 1000) + ' × ' + Math.round(hp * 1000) + ' (2 capas de 5.5) · tira del zócalo ' + Math.round(perim(Lx, Fz, r, 0.05) * 1000) + ' × 80');
     return shp;
   }
   /* agujero (Path) con la misma planta, metida hacia adentro */
@@ -91,15 +112,20 @@
   }
   /* cilindro lacado: piso, piel curva, tapa y zócalo */
   function cilindro(o, name, cx, cz, rad, hgt, ex) {
-    const yb = 0.07;
+    const yb = 0.07, t = 0.015, hp = hgt - yb - t;
     const disc = (r) => { const s = new T.Shape(); s.absarc(cx, -cz, r, 0, PI * 2, false); return s; };
-    const ringS = (r, t) => { const s = disc(r); const p = new T.Path(); p.absarc(cx, -cz, r - t, 0, PI * 2, true); s.holes.push(p); return s; };
-    h.P(o, name + ': piso', 'mdf15', 0, yb, 0, 0, 0, 0, 0, [ex[0], ex[1] + 0.08, ex[2]], { geo: G.slab(disc(rad - 0.012), 0.015), mk: 'mdf15' });
-    h.P(o, name + ': piel de MDF 5.5 mm', 'laca', 0, yb, 0, 0, 0, 0, 1, [ex[0] * 1.5, ex[1] + 0.2, ex[2] * 1.5], { geo: G.slab(ringS(rad, 0.011), hgt - yb - 0.018), mk: 'mdf55' });
-    h.P(o, name + ': tapa', 'laca', 0, hgt - 0.018, 0, 0, 0, 0, 2, [ex[0], ex[1] + 0.5, ex[2]], { geo: G.slab(disc(rad), 0.018), mk: 'mdf15' });
-    h.P(o, name + ': zócalo', 'negro', 0, 0, 0, 0, 0, 0, 0, [ex[0], ex[1] - 0.12, ex[2]], { geo: G.slab(ringS(rad - 0.04, 0.015), yb), mk: 'mdf15' });
+    const ringS = (r, w) => { const s = disc(r); const p = new T.Path(); p.absarc(cx, -cz, r - w, 0, PI * 2, true); s.holes.push(p); return s; };
+    h.P(o, name + ': piso', 'mdf15', 0, yb, 0, 0, 0, 0, 0, [ex[0], ex[1] + 0.08, ex[2]], { geo: G.slab(disc(rad - 0.012), t), mk: 'mdf15' });
+    h.P(o, name + ': piel de MDF 5.5 mm', 'laca', 0, yb, 0, 0, 0, 0, 1, [ex[0] * 1.5, ex[1] + 0.2, ex[2] * 1.5], { geo: G.slab(ringS(rad, 0.011), hp), mk: 'mdf55',
+      cut: [[name + ': piel, dos capas (desarrollo)', 2, mm(2 * PI * rad), mm(hp)]] });
+    h.P(o, name + ': tapa', 'laca', 0, hgt - t, 0, 0, 0, 0, 2, [ex[0], ex[1] + 0.5, ex[2]], { geo: G.slab(disc(rad), t), mk: 'mdf15' });
+    h.P(o, name + ': zócalo', 'negro', 0, 0, 0, 0, 0, 0, 0, [ex[0], ex[1] - 0.12, ex[2]], { geo: G.slab(ringS(rad - 0.04, 0.015), yb), mk: 'mdf15',
+      cut: [[name + ': zócalo (desarrollo)', 1, mm(2 * PI * (rad - 0.04)), yb]] });
     const l = []; l.push({ g: new T.TorusGeometry(rad - 0.035, 0.004, 4, 40), m: G.mat(cx, yb - 0.006, cz, PI / 2, 0, 0), c: 0xffffff });
-    h.PM(o, name + ': tira COB', 'led', l, 3, [ex[0], ex[1] - 0.2, ex[2]], { mk: 'cob', noShadow: true });
+    h.PM(o, name + ': tira COB', 'led', l, 3, [ex[0], ex[1] - 0.2, ex[2]], { mk: 'cob', noShadow: true, cut: [[name + ': aro de tira COB', 1, mm(2 * PI * (rad - 0.035))]] });
+    const cur = (o.curvas = o.curvas || { radios: [], filas: [] });
+    cur.radios.push({ x: cx, z: cz, r: rad, dx: 1, dz: 1, t: 'Ø' + Math.round(rad * 2000), dia: true });
+    cur.filas.push(name + ': Ø' + Math.round(rad * 2000) + ' · desarrollo de la piel ' + Math.round(2 * PI * rad * 1000) + ' × ' + Math.round(hp * 1000) + ' (2 capas de 5.5) · tira del zócalo ' + Math.round(2 * PI * (rad - 0.04) * 1000) + ' × 70');
   }
 
   /* ================================================== VERSIÓN A · TALLER A LA VISTA */
@@ -266,16 +292,19 @@
       bl(o, 'Piso', x0 + 0.015, y0, 0.006, 0.57, 0.015, 0.474, 1, [dx, -0.05, 0.4]);
       bl(o, 'Amarre', x0 + 0.015, yT - 0.015, 0.006, 0.57, 0.015, 0.1, 1, [dx, 0.12, 0.4]);
       fo(o, 'Fondo 6 mm', x0 + 0.005, y0, 0, 0.59, yT - y0, 0.006, 1, [dx, 0, -0.3]);
+      const cs = [], cf = [], cb = [];               // cajas de los tres cajones: costados, frente y trasera, fondos
       for (let j = 0; j < 3; j++) {
-        const y = y0 + 0.003 + j * 0.246, bx = [];
-        G.pushBox(bx, x0 + 0.03, y + 0.04, 0.03, 0.015, 0.17, 0.44, 0xf2f0eb); G.pushBox(bx, x0 + 0.555, y + 0.04, 0.03, 0.015, 0.17, 0.44, 0xf2f0eb);
-        G.pushBox(bx, x0 + 0.045, y + 0.04, 0.03, 0.51, 0.17, 0.015, 0xf2f0eb); G.pushBox(bx, x0 + 0.045, y + 0.04, 0.455, 0.51, 0.17, 0.015, 0xf2f0eb);
-        G.pushBox(bx, x0 + 0.031, y + 0.034, 0.03, 0.538, 0.006, 0.44, 0xf6f4ef);
-        h.PM(o, 'Caja de cajón', 'decor', bx, 2, [dx, 0, 0.95], { mk: 'blanca15' });
+        const y = y0 + 0.003 + j * 0.246;
+        G.pushBox(cs, x0 + 0.03, y + 0.04, 0.03, 0.015, 0.17, 0.44, 0xf2f0eb); G.pushBox(cs, x0 + 0.555, y + 0.04, 0.03, 0.015, 0.17, 0.44, 0xf2f0eb);
+        G.pushBox(cf, x0 + 0.045, y + 0.04, 0.03, 0.51, 0.17, 0.015, 0xf2f0eb); G.pushBox(cf, x0 + 0.045, y + 0.04, 0.455, 0.51, 0.17, 0.015, 0xf2f0eb);
+        G.pushBox(cb, x0 + 0.031, y + 0.034, 0.03, 0.538, 0.006, 0.44, 0xf6f4ef);
         G.pushBox(rl, x0 + 0.016, y + 0.09, 0.03, 0.012, 0.036, 0.44, 0xc6c8cb); G.pushBox(rl, x0 + 0.572, y + 0.09, 0.03, 0.012, 0.036, 0.44, 0xc6c8cb);
         rv(o, 'Frente de Rovere', x0 + 0.002, y, 0.48, 0.596, 0.242, 0.015, 3, [dx, 0, 1.4]);
         st(o, 'Manija negra', 'manija', x0 + 0.23, y + 0.17, 0.495, 0.14, 0.01, 0.014, 3, [dx, 0.04, 1.5], { noShadow: true });
       }
+      h.PM(o, 'Caja de cajón: costado', 'decor', cs, 2, [dx, 0, 0.95], { mk: 'blanca15' });
+      h.PM(o, 'Caja de cajón: frente y trasera', 'decor', cf, 2, [dx, 0, 0.95], { mk: 'blanca15' });
+      h.PM(o, 'Caja de cajón: fondo de 6 mm', 'decor', cb, 2, [dx, 0, 0.95], { mk: 'fondo6' });
       h.PM(o, 'Rieles de extensión total', 'alu', rl, 2, [dx, 0, 0.4], { mk: 'riel45', noShadow: true, exA: [0, 0, 0.5] });
     }
     [0, 1].forEach((i) => tapaDoble(rv, o, 'Tapa de Rovere', i * 1.5, yT, 0, 1.5, Fz, 4, [i ? 0.3 : -0.3, 0.4, 0.3]));
@@ -395,7 +424,7 @@
   // 2 · Muro de nichos: retícula lacada de nichos de distinto tamaño, cada uno con su luz
   B[2] = function (tgt) {
     G.reseed(2502);
-    const o = h.inst(2, 0, 0, 0.6, PI / 2), W = 4.2, Fz = 0.35, H = 2.4, yZ = 0.1, yC = 0.62, t = 0.018, dec = [];
+    const o = h.inst(2, 0, 0, 0.6, PI / 2), W = 4.2, Fz = 0.35, H = 2.4, yZ = 0.1, yC = 0.62, t = 0.015, dec = [];
     const mods = [
       { x0: 0, rows: [yC, 1.18, 1.78, H - t], mids: [[1, 0.62]] },
       { x0: 1.4, rows: [yC, 1.42, 1.94, H - t], mids: [[0, 0.82], [2, 0.5]] },
@@ -416,7 +445,7 @@
       md.rows.forEach((y, k) => lq(o, k === md.rows.length - 1 ? 'Techo' : 'Entrepaño lacado', x0, y, 0.006, w, t, Fz - 0.006, 2, [dx, 0.04 * k, 0.75]));
       md.mids.forEach((mi) => { const yA = md.rows[mi[0]] + t, yB = md.rows[mi[0] + 1]; lq(o, 'División lacada', md.x0 + mi[1], yA, 0.006, t, yB - yA, Fz - 0.006, 2, [dx, 0, 0.95]); });
       // puertas del zócalo, de empuje
-      for (let i = 0; i < 2; i++) lq(o, 'Puerta lacada', x0 + 0.002 + i * w / 2, yZ + t + 0.003, Fz, w / 2 - 0.004, yC - yZ - t - 0.006, t, 3, [dx + (i ? 0.08 : -0.08), 0, 0.9]);
+      for (let i = 0; i < 2; i++) lq(o, 'Puerta lacada', x0 + 0.002 + i * w / 2, yZ + t + 0.003, Fz, mmf(w / 2 - 0.004), yC - yZ - t - 0.006, t, 3, [dx + (i ? 0.08 : -0.08), 0, 0.9]);
       // luz: una tira COB bajo cada entrepaño, escondida tras el canto
       for (let k = 0; k < md.rows.length - 1; k++) {
         const yTop = md.rows[k + 1];
@@ -443,9 +472,11 @@
     ];
     tiers.forEach((tr) => volumen(o, tr.name, tr.x0, tr.z0, tr.Lx, tr.Fz, tr.r, tr.hh, 0, tr.ex, tr.top ? { topMat: 'melRovere', topMk: 'rovere15' } : null));
     const ll = []; tiers.forEach((tr) => { const pts = G.planShape(tr.Lx, tr.Fz, tr.r, 0.057).getPoints(8); for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], len = Math.hypot(b.x - a.x, b.y - a.y); if (len < 1e-4) continue; ll.push({ g: new T.BoxGeometry(len, 0.004, 0.008), m: G.mat(tr.x0 + (a.x + b.x) / 2, 0.075, tr.z0 - (a.y + b.y) / 2, 0, -Math.atan2(-(b.y - a.y), b.x - a.x), 0), c: 0xffffff }); } });
-    h.PM(o, 'Tira COB en el zócalo', 'led', ll, 3, [0, -0.3, 0], { mk: 'cob', noShadow: true });
+    h.PM(o, 'Tira COB en el zócalo', 'led', ll, 3, [0, -0.3, 0], { mk: 'cob', noShadow: true, cut: tiers.map((tr) => [tr.name + ': tira COB del zócalo', 1, mm(perim(tr.Lx, tr.Fz, tr.r, 0.057))]) });
     K.glow(o, 1.2, 1.6, 0.25, 0.6, 0.8);
-    h.P(o, 'Fuente 12 V', 'equipo', 0.5, 0.1, 0.1, 0.187, 0.019, 0.055, 3, [0, 0, -0.5], { mk: 'fuente8' });
+    // compartimento de la fuente: dentro del volumen alto, sobre el piso, con una tapa de registro atornillada en el costado recto
+    h.P(o, 'Fuente 12 V', 'equipo', 0.05, 0.105, 0.12, 0.187, 0.019, 0.055, 3, [-0.55, 0.1, -0.2], { mk: 'fuente8' });
+    h.P(o, 'Tapa de registro de la fuente', 'laca', -0.0003, 0.2, 0.06, 0.0055, 0.2, 0.3, 3, [-0.4, 0.1, -0.2], { mk: 'mdf55' });   // a ras de la piel
     const dec = [];
     fig(dec, [[0.3, 0.3, 'conejo', 0.36, 0xf4f2ee], [0.62, 0.22, 'torre', 0.46, 0x232326], [0.92, 0.36, 'jarron', 0.24, 0xc9a579]], 0.92);
     fig(dec, [[0.35, 0.86, 'busto', 0.34, 0xf4f2ee], [0.75, 0.84, 'nudo', 0.2, 0xf08a24]], 0.70);
@@ -460,6 +491,8 @@
     const o = h.inst(4, 2.55, 0, 1.05, 0);
     const cs = [[0.18, 0.38, 0.17, 0.62, [-0.35, 0, 0.1]], [0.47, 0.2, 0.17, 0.86, [0, 0.1, -0.35]], [0.73, 0.42, 0.15, 1.06, [0.35, 0.2, 0.15]]];
     cs.forEach((c, i) => cilindro(o, 'Pedestal ' + (i + 1), c[0], c[1], c[2], c[3], c[4]));
+    // compartimento de la fuente: dentro del pedestal 3, sobre su piso; la tapa de ese pedestal no se pega y se levanta para llegar a ella
+    h.P(o, 'Fuente 12 V', 'equipo', 0.6365, 0.09, 0.3925, 0.187, 0.019, 0.055, 3, [0.35, 0.45, 0.15], { mk: 'fuente3' });
     K.glow(o, 0.9, 0.6, 0.25, 0.45, 0.3);
     const dec = [];
     // cada figura sobre su pedestal
@@ -470,7 +503,7 @@
 
   // 5 · Barra de encuentro, adosada a la isla: volumen lacado con tapa doble de Rovere en voladizo
   B[5] = function (tgt) {
-    const o = h.inst(5, 2.1, 0, 3.5, 0), Lx = 1.8, Fz = 0.7, yT = 1.02, zB = 0.3, t = 0.018;
+    const o = h.inst(5, 2.1, 0, 3.5, 0), Lx = 1.8, Fz = 0.7, yT = 1.02, zB = 0.3, t = 0.015;
     lq(o, 'Piso', t, 0.08, zB + 0.01, Lx - 2 * t, t, Fz - zB - 0.02, 0, [0, 0.05, 0]);
     [0.45, 0.9, 1.35].forEach((x) => lq(o, 'Costilla', x, 0.08 + t, zB + t, t, yT - 0.08 - 2 * t, Fz - zB - 2 * t, 0, [0, 0.2, 0]));
     lq(o, 'Zócalo negro retranqueado', 0.05, 0, zB + 0.05, Lx - 0.1, 0.08, t, 0, [0, -0.15, -0.2], { mk: 'mdf15' });
@@ -481,8 +514,11 @@
     st(o, 'Reposapiés de tubo 1"', 'tubo1', 0.1, 0.3, zB - 0.08, Lx - 0.2, t1, t1, 2, [0, 0, -0.75]);
     const so = []; [0.25, 0.9, 1.55].forEach((x) => G.pushBox(so, x, 0.3 + t1 / 2 - 0.006, zB - 0.08 + t1, 0.012, 0.012, 0.08 - t1, NEGRO));
     h.PM(o, 'Soportes del reposapiés', 'acero', so, 2, [0, 0, -0.65], { mk: 'tubo1', noShadow: true });
-    tapaDoble(rv, o, 'Tapa de Rovere', 0, yT, 0, Lx, Fz, 3, [0, 0.6, 0]);
+    tapaRB(o, 'Tapa', 0, yT, 0, Lx, Fz, 3, [0, 0.6, 0]);
     led(o, 'Tira COB bajo el voladizo', 'cob', 0.05, yT - 0.006, zB - 0.02, Lx - 0.1, 0.004, 0.008, 4, [0, -0.2, -0.35]);
+    // compartimento de la fuente: entre el costado y la primera costilla, con una tapa de registro atornillada en el fondo (lado del asesor)
+    h.P(o, 'Fuente 12 V', 'equipo', 0.15, 0.08 + t + 0.01, Fz - 0.1, 0.187, 0.019, 0.055, 4, [0, 0, 0.75], { mk: 'fuente3' });
+    h.P(o, 'Tapa de registro de la fuente', 'laca', 0.1, 0.2, Fz - 0.0052, 0.3, 0.2, 0.0055, 4, [0, 0, 0.6], { mk: 'mdf55' });   // a ras del fondo
     h.PM(o, 'Pasacable', 'plastico', [{ g: G.cyl(), m: h.cylM(1.5, yT + 0.031, 0.55, 0.03, 0.004), c: 0x111113 }], 4, [0, 0.8, 0], { mk: 'pasacable', noShadow: true });
     const dec = []; G.pushBox(dec, 0.5, yT + 0.03, 0.18, 0.3, 0.012, 0.21, 0x1a1b1e, 0.15); G.pushBox(dec, 0.95, yT + 0.03, 0.25, 0.22, 0.008, 0.15, 0xe9e7e2, -0.2);
     h.D(o, dec); h.sombra(o, 0, zB, Lx, Fz - zB, 0.18);
@@ -492,25 +528,31 @@
   // 7 · Laboratorio de impresión: mesón lacado dentro de un nicho con luz, en el muro derecho
   B[7] = function (tgt) {
     G.reseed(7507);
-    const o = h.inst(7, 6, 0, 5.5, -PI / 2), xs = [0, 0.8, 1.6, 2.4, 3.2 - 0.018], yT = 0.87, t = 0.018, Fz = 0.6, dec = [];
+    const o = h.inst(7, 6, 0, 5.5, -PI / 2), xs = [0, 0.8, 1.6, 2.4, 3.2 - 0.015], yT = 0.87, t = 0.015, Fz = 0.6, dec = [];
     xs.forEach((x, i) => lq(o, 'Lateral lacado', x, 0.1, 0, t, yT - 0.1, Fz - 0.02, 0, [(i - 2) * 0.22, 0, 0.4]));
     for (let m = 0; m < 4; m++) {
       const x0 = xs[m] + t, w = xs[m + 1] - x0, dx = (m - 1.5) * 0.2;
       lq(o, 'Piso', x0, 0.1, 0.006, w, t, Fz - 0.03, 0, [dx, -0.05, 0.4]);
       h.P(o, 'Fondo de MDF 5.5 mm', 'laca', x0, 0.1 + t, 0, w, yT - 0.1 - t, 0.0055, 0, [dx, 0, -0.3], { mk: 'mdf55' });
       lq(o, 'Entrepaño', x0, 0.47, 0.01, w, t, Fz - 0.04, 0, [dx, 0, 0.6]);
-      for (let i = 0; i < 2; i++) lq(o, 'Puerta lacada', x0 - t / 2 + 0.002 + i * (w + t) / 2, 0.1, Fz - 0.02, (w + t) / 2 - 0.004, yT - 0.1 - 0.004, t, 1, [dx + (i ? 0.05 : -0.05), 0, 1.1]);
+      for (let i = 0; i < 2; i++) lq(o, 'Puerta lacada', x0 - t / 2 + 0.002 + i * (w + t) / 2, 0.1, Fz - 0.02, mmf((w + t) / 2 - 0.004), yT - 0.1 - 0.004, t, 1, [dx + (i ? 0.05 : -0.05), 0, 1.1]);
       [0.2, 0.42].forEach((z, k) => G.spool(dec, x0 + w / 2 + (k ? 0.12 : -0.12), 0.1 + t + 0.1, z, 0.1, 0.07, [0x2f6fd0, 0xd9412e, 0x3f9b57, 0xf2c230][(m + k) % 4], 'z'));
     }
     lq(o, 'Zócalo negro retranqueado', 0, 0, Fz - 0.08, 3.2, 0.1, t, 0, [0, -0.1, 0.5], { mk: 'mdf15' });
     h.patas(o, xs.flatMap((x) => [[x + 0.05, 0.08], [x + 0.05, Fz - 0.15]]), 0.1, 0, [0, -0.1, 0.4], { mk: 'pataNiv' });
-    [0, 1].forEach((i) => tapaDoble(rv, o, 'Tapa de Rovere', i * 1.6, yT, 0, 1.6, Fz, 2, [i ? 0.3 : -0.3, 0.45, 0.4]));
+    [0, 1].forEach((i) => tapaRB(o, 'Tapa', i * 1.6, yT, 0, 1.6, Fz, 2, [i ? 0.3 : -0.3, 0.45, 0.4]));
     const pc = []; [0.4, 1.2, 2.0, 2.8].forEach((x) => pc.push({ g: G.cyl(), m: h.cylM(x, yT + 0.031, 0.1, 0.03, 0.004), c: 0x111113 }));
     h.PM(o, 'Pasacables', 'plastico', pc, 2, [0, 0.8, 0.4], { mk: 'pasacable', noShadow: true });
+    // compartimento de la fuente: primer módulo, sobre el piso y contra el fondo; se llega abriendo las puertas
+    h.P(o, 'Fuente 12 V', 'equipo', 0.1, 0.1 + t + 0.01, 0.03, 0.187, 0.019, 0.055, 4, [-0.3, 0, 1.25], { mk: 'fuente8' });
     // marco del nicho: dos costados altos y un dintel con luz
     lq(o, 'Costado del nicho', -t, 0, 0, t, 2.25, Fz + 0.04, 3, [-0.55, 0, 0.3]);
     lq(o, 'Costado del nicho', 3.2, 0, 0, t, 2.25, Fz + 0.04, 3, [0.55, 0, 0.3]);
-    lq(o, 'Dintel del nicho', -t, 2.25, 0, 3.2 + 2 * t, 0.12, Fz + 0.04, 4, [0, 0.45, 0.3]);
+    // dintel: cajón de cuatro tableros (dos tapas y dos caras), no un macizo
+    lq(o, 'Dintel del nicho: tapa', -t, 2.25, 0, 3.2 + 2 * t, t, Fz + 0.04, 4, [0, 0.4, 0.3]);
+    lq(o, 'Dintel del nicho: tapa', -t, 2.37 - t, 0, 3.2 + 2 * t, t, Fz + 0.04, 4, [0, 0.62, 0.3]);
+    lq(o, 'Dintel del nicho: cara', -t, 2.25 + t, 0, 3.2 + 2 * t, 0.12 - 2 * t, t, 4, [0, 0.51, 0.1]);
+    lq(o, 'Dintel del nicho: cara', -t, 2.25 + t, Fz + 0.04 - t, 3.2 + 2 * t, 0.12 - 2 * t, t, 4, [0, 0.51, 0.5]);
     [0, 1].forEach((i) => led(o, 'Perfil LED bajo el dintel', 'perfilLed', 0.05 + i * 1.6, 2.24, Fz - 0.12, 1.5, 0.012, 0.016, 4, [0, 0.3, 0.3]));
     h.D(o, dec, 'decor'); h.sombra(o, -t, 0, 3.2 + 2 * t, Fz + 0.04);
     return h.add(7, [o], { th: -1.2, ph: 1.05 }, tgt);
@@ -520,11 +562,11 @@
   B[9] = function (tgt) {
     G.reseed(9509);
     const o = h.inst(9, 6, 1.75, 5.5, -PI / 2), Fz = 0.25, dec = [];
-    const l = []; for (let i = 0; i < 8; i++) l.push({ g: G.cyl(), m: h.cylM(0.2 + i * 0.4, 0.018, 0.09, 0.0055, 0.18, 'z'), c: 0xd0d2d5 });
+    const l = []; for (let i = 0; i < 8; i++) l.push({ g: G.cyl(), m: h.cylM(0.2 + i * 0.4, 0.015, 0.09, 0.0055, 0.18, 'z'), c: 0xd0d2d5 });
     h.PM(o, 'Soportes invisibles', 'inox', l, 0, [0, 0, 0.3], { mk: 'soporteInv', noShadow: true });
-    [0, 1].forEach((i) => { const dx = i ? 0.22 : -0.22; lq(o, 'Repisa lacada (capa inferior)', i * 1.6, 0, 0, 1.6, 0.018, Fz, 1, [dx, -0.13, 0.62]); lq(o, 'Repisa lacada (capa superior)', i * 1.6, 0.018, 0, 1.6, 0.018, Fz, 1, [dx, 0.13, 0.62]); });
+    [0, 1].forEach((i) => { const dx = i ? 0.22 : -0.22; lq(o, 'Repisa lacada (capa inferior)', i * 1.6, 0, 0, 1.6, 0.015, Fz, 1, [dx, -0.13, 0.62]); lq(o, 'Repisa lacada (capa superior)', i * 1.6, 0.015, 0, 1.6, 0.015, Fz, 1, [dx, 0.13, 0.62]); });
     [0, 1].forEach((i) => led(o, 'Perfil LED bajo la repisa', 'perfilLed', 0.05 + i * 1.6, -0.012, Fz - 0.04, 1.5, 0.012, 0.016, 2, [0, -0.2, 0.4]));
-    carretes(dec, 0.08, 3.12, 0.036, 0.13, 12, 3);
+    carretes(dec, 0.08, 3.12, 0.03, 0.13, 12, 3);
     h.D(o, dec, 'decor');
     return h.add(9, [o], { th: -1.1, ph: 1.15, lp: [-1.35, 0] }, tgt);
   };
@@ -532,29 +574,32 @@
   // 10 · Cajonera de servicio tras la barra: lacada, frentes con gola de aluminio y tapa de Rovere
   B[10] = function (tgt) {
     G.reseed(10510);
-    const o = h.inst(10, 0.6, 0, 5.5, 0), Lx = 3.0, Fz = 0.5, yT = 0.87, t = 0.018, dec = [];
+    const o = h.inst(10, 0.6, 0, 5.5, 0), Lx = 3.0, Fz = 0.5, yT = 0.87, t = 0.015, dec = [];
     for (let m = 0; m < 5; m++) {
       const x0 = m * 0.6, dx = (m - 2) * 0.17, rl = [];
       lq(o, 'Lateral lacado', x0, 0.1, 0, t, yT - 0.1, 0.48, 0, [dx - 0.065, 0, 0.4]);
       lq(o, 'Lateral lacado', x0 + 0.6 - t, 0.1, 0, t, yT - 0.1, 0.48, 0, [dx + 0.065, 0, 0.4]);
       lq(o, 'Piso', x0 + t, 0.1, 0.006, 0.6 - 2 * t, t, 0.474, 0, [dx, -0.05, 0.4]);
       h.P(o, 'Fondo de MDF 5.5 mm', 'laca', x0 + t, 0.1, 0, 0.6 - 2 * t, yT - 0.1, 0.0055, 0, [dx, 0, -0.3], { mk: 'mdf55' });
+      const cs = [], cf = [], cb = [];               // cajas de los tres cajones: costados, frente y trasera, fondos
       for (let j = 0; j < 3; j++) {
-        const y = 0.103 + j * 0.2555, bx = [];
-        // costados de 150 mm (antes 170): así los 60 costados salen de los retazos y el juego ahorra un tablero (Nota 2, ítem 7)
-        G.pushBox(bx, x0 + 0.03, y + 0.04, 0.03, 0.015, 0.15, 0.43, 0xece9e3); G.pushBox(bx, x0 + 0.555, y + 0.04, 0.03, 0.015, 0.15, 0.43, 0xece9e3);
-        G.pushBox(bx, x0 + 0.045, y + 0.04, 0.03, 0.51, 0.15, 0.015, 0xece9e3); G.pushBox(bx, x0 + 0.045, y + 0.04, 0.445, 0.51, 0.15, 0.015, 0xece9e3);
-        G.pushBox(bx, x0 + 0.031, y + 0.034, 0.03, 0.538, 0.006, 0.43, 0xf2f0eb);
-        h.PM(o, 'Caja de cajón', 'decor', bx, 1, [dx, 0, 0.95], { mk: 'mdf15' });
+        const y = 0.103 + j * 0.2555;
+        // costados de 150 mm (antes 170): así los 60 tableros de las cajas salen de los retazos y el juego ahorra un tablero (Nota 2, ítem 7)
+        G.pushBox(cs, x0 + 0.03, y + 0.04, 0.03, 0.015, 0.15, 0.43, 0xece9e3); G.pushBox(cs, x0 + 0.555, y + 0.04, 0.03, 0.015, 0.15, 0.43, 0xece9e3);
+        G.pushBox(cf, x0 + 0.045, y + 0.04, 0.03, 0.51, 0.15, 0.015, 0xece9e3); G.pushBox(cf, x0 + 0.045, y + 0.04, 0.445, 0.51, 0.15, 0.015, 0xece9e3);
+        G.pushBox(cb, x0 + 0.031, y + 0.034, 0.03, 0.538, 0.0055, 0.43, 0xf2f0eb);
         G.pushBox(rl, x0 + 0.019, y + 0.09, 0.03, 0.012, 0.036, 0.43, 0xc6c8cb); G.pushBox(rl, x0 + 0.569, y + 0.09, 0.03, 0.012, 0.036, 0.43, 0xc6c8cb);
         lq(o, 'Frente lacado', x0 + 0.002, y, 0.48, 0.596, 0.232, t, 2, [dx, 0, 1.4]);
         h.P(o, 'Gola de aluminio', 'alu', x0 + 0.002, y + 0.232, 0.486, 0.596, 0.02, 0.012, 2, [dx, 0.04, 1.5], { mk: 'perfilManija', noShadow: true });
       }
+      h.PM(o, 'Caja de cajón: costado', 'decor', cs, 1, [dx, 0, 0.95], { mk: 'mdf15' });
+      h.PM(o, 'Caja de cajón: frente y trasera', 'decor', cf, 1, [dx, 0, 0.95], { mk: 'mdf15' });
+      h.PM(o, 'Caja de cajón: fondo de MDF 5.5 mm', 'decor', cb, 1, [dx, 0, 0.95], { mk: 'mdf55' });
       h.PM(o, 'Rieles de extensión total', 'alu', rl, 1, [dx, 0, 0.4], { mk: 'riel45', noShadow: true, exA: [0, 0, 0.5] });
     }
     lq(o, 'Zócalo negro retranqueado', 0, 0, 0.42, Lx, 0.1, t, 0, [0, -0.1, 0.5], { mk: 'mdf15' });
     h.patas(o, [0.08, 1.2, 1.8, 2.92].flatMap((x) => [[x, 0.08], [x, 0.38]]), 0.1, 0, [0, -0.1, 0.4], { mk: 'pataNiv' });
-    [0, 1].forEach((i) => tapaDoble(rv, o, 'Tapa de Rovere', i * 1.5, yT, 0, 1.5, Fz, 3, [i ? 0.3 : -0.3, 0.4, 0.3]));
+    [0, 1].forEach((i) => tapaRB(o, 'Tapa', i * 1.5, yT, 0, 1.5, Fz, 3, [i ? 0.3 : -0.3, 0.4, 0.3]));
     G.pushBox(dec, 0.3, yT + 0.03, 0.12, 0.3, 0.1, 0.24, 0xc9a579, 0.1); G.pushBox(dec, 0.35, yT + 0.13, 0.14, 0.22, 0.08, 0.2, 0xd8b88c, -0.15);
     G.pushBox(dec, 2.4, yT + 0.03, 0.15, 0.36, 0.012, 0.26, 0xdedcd7, -0.1);
     h.D(o, dec); h.sombra(o, 0, 0, Lx, Fz);
@@ -564,15 +609,15 @@
   // 11 · Panel ranurado de accesorios, lacado, con repisas de acrílico y ganchos
   B[11] = function (tgt) {
     G.reseed(11511);
-    const o = h.inst(11, 0.6, 1.05, 5.5, 0), W = 1.6, H = 1.2, t = 0.018;
+    const o = h.inst(11, 0.6, 1.05, 5.5, 0), W = 1.6, H = 1.2, t = 0.015;
     lq(o, 'Tablero lacado', 0, 0, 0, W, H, t, 0, [0, 0, 0.25]);
     h.chazos(o, [0.15, 0.8, 1.45].flatMap((x) => [[x, 0.1, 0.03], [x, H - 0.1, 0.03]]), 0, [0, 0, 0.35]);
     const ys = []; for (let i = 0; i < 8; i++) ys.push(0.06 + i * 0.15);
     ys.forEach((y, i) => lq(o, 'Listón ranurado', 0, y, t, W, 0.1, 0.015, 1, [0, (i - 3.5) * 0.06, 0.5]));
     const sh = [[0.2, 0.36], [0.85, 0.36], [0.2, 0.81], [0.85, 0.81], [0.5, 1.11]];
-    sh.forEach((p) => h.P(o, 'Repisa de acrílico', 'acrilico', p[0], p[1], t + 0.015, 0.5, 0.004, 0.13, 2, [0, 0, 0.75], { noShadow: true, order: 3, mk: 'acril3' }));
+    sh.forEach((p) => h.P(o, 'Repisa de acrílico', 'acrilico', p[0], p[1], t + 0.015, 0.5, 0.003, 0.13, 2, [0, 0, 0.75], { noShadow: true, order: 3, mk: 'acril3' }));
     const l = [], cs = [0x2f6fd0, 0xf2c230, 0xd9412e, 0x3f9b57, 0xf08a24, 0x232326, 0xf4f2ee, 0x8a4fd0];
-    sh.forEach((p, k) => { for (let c = 0; c < 3; c++) G.pushBox(l, p[0] + 0.05 + c * 0.15, p[1] + 0.004, t + 0.04, 0.09, 0.08 + (c % 2) * 0.05, 0.07, cs[(k * 3 + c) % cs.length]); });
+    sh.forEach((p, k) => { for (let c = 0; c < 3; c++) G.pushBox(l, p[0] + 0.05 + c * 0.15, p[1] + 0.003, t + 0.04, 0.09, 0.08 + (c % 2) * 0.05, 0.07, cs[(k * 3 + c) % cs.length]); });
     [0.21, 0.66].forEach((y) => { for (let c = 0; c < 6; c++) { const x = 0.15 + c * 0.25; l.push({ g: G.cyl(), m: h.cylM(x, y + 0.05, t + 0.06, 0.004, 0.08, 'z'), c: 0x9a9da1 }); G.spool(l, x, y, t + 0.07, 0.07, 0.05, cs[(c + (y > 0.5 ? 3 : 0)) % cs.length], 'z'); } });
     h.PM(o, 'Ganchos y accesorios', 'decor', l, 2, [0, 0, 1.0], { mk: 'ganchos' });
     return h.add(11, [o], { th: 0.05, ph: 1.2 }, tgt);
@@ -581,17 +626,17 @@
   // 12 · Vitrina de nicho: caja lacada con fondo de opal iluminado y frente de acrílico
   B[12] = function (tgt) {
     G.reseed(12512);
-    const o = h.inst(12, 6, 1.05, 2.1, -PI / 2), W = 0.4, Fz = 0.15, H = 1.2, t = 0.018;
+    const o = h.inst(12, 6, 1.05, 2.1, -PI / 2), W = 0.4, Fz = 0.15, H = 1.2, t = 0.015;
     lq(o, 'Costado lacado', 0, 0, 0, t, H, Fz, 0, [-0.2, 0, 0.26]); lq(o, 'Costado lacado', W - t, 0, 0, t, H, Fz, 0, [0.2, 0, 0.26]);
     lq(o, 'Piso lacado', t, 0, 0, W - 2 * t, t, Fz, 0, [0, -0.2, 0.26]); lq(o, 'Techo lacado', t, H - t, 0, W - 2 * t, t, Fz, 0, [0, 0.24, 0.26]);
     h.chazos(o, [[0.1, 1.1, 0.03], [0.3, 1.1, 0.03]], 0, [0, 0, 0.2], { exA: [0, 0, 0.3] });
     h.P(o, 'Fondo de acrílico opal', X.opal, t, t, 0.03, W - 2 * t, H - 2 * t, 0.003, 1, [0, 0, -0.25], { noShadow: true, mk: 'opal3' });
     for (let k = 0; k < 2; k++) led(o, 'Tira COB tras el opal', 'cob', t + 0.08 + k * 0.2, t + 0.03, 0.012, 0.008, H - 2 * t - 0.06, 0.003, 1, [0, 0, -0.35]);
     h.P(o, 'Fuente 12 V', 'equipo', 0.14, H, 0.04, 0.187, 0.019, 0.055, 1, [0, 0.4, 0.26], { mk: 'fuente3' });
-    [0.3, 0.6, 0.9].forEach((y) => h.P(o, 'Entrepaño de acrílico', 'acrilico', t, y, 0.035, W - 2 * t, 0.004, Fz - 0.04, 2, [0, 0, 0.55], { noShadow: true, order: 3, mk: 'acril3' }));
+    [0.3, 0.6, 0.9].forEach((y) => h.P(o, 'Entrepaño de acrílico', 'acrilico', t, y, 0.035, W - 2 * t, 0.003, Fz - 0.04, 2, [0, 0, 0.55], { noShadow: true, order: 3, mk: 'acril3' }));
     h.P(o, 'Frente de acrílico', 'acrilico', 0, 0.002, Fz, W, H - 0.004, 0.003, 2, [0, 0, 0.85], { noShadow: true, order: 4, mk: 'acril3' });
     const dec = [];
-    [t, 0.304, 0.604, 0.904].forEach((y, i) => { G.fig(dec, ['torre', 'conejo', 'busto', 'jarron'][i], 0.13, y, 0.09, 0.2, [0x232326, 0xf4f2ee, 0x232326, 0xc9a579][i], 0.3); G.fig(dec, ['gema', 'nudo', 'aro', 'facetado'][i], 0.28, y, 0.09, 0.13, [0xf08a24, 0x232326, 0xf4f2ee, 0x232326][i], 0); });
+    [t, 0.303, 0.603, 0.903].forEach((y, i) => { G.fig(dec, ['torre', 'conejo', 'busto', 'jarron'][i], 0.13, y, 0.09, 0.2, [0x232326, 0xf4f2ee, 0x232326, 0xc9a579][i], 0.3); G.fig(dec, ['gema', 'nudo', 'aro', 'facetado'][i], 0.28, y, 0.09, 0.13, [0xf08a24, 0x232326, 0xf4f2ee, 0x232326][i], 0); });
     h.D(o, dec);
     return h.add(12, [o], { th: -0.9, ph: 1.25 }, tgt);
   };
@@ -599,7 +644,7 @@
   // 13 · Nicho de bienvenida: mueble alto lacado con tres nichos de luz junto a la entrada
   B[13] = function (tgt) {
     G.reseed(13513);
-    const o = h.inst(13, 6, 0, 1.45, -PI / 2), W = 1.2, Fz = 0.4, H = 2.4, t = 0.018, yZ = 0.1, yC = 0.62, dec = [];
+    const o = h.inst(13, 6, 0, 1.45, -PI / 2), W = 1.2, Fz = 0.4, H = 2.4, t = 0.015, yZ = 0.1, yC = 0.62, dec = [];
     lq(o, 'Zócalo retranqueado', t, 0, Fz - 0.07, W - 2 * t, yZ, t, 0, [0, -0.1, 0.4]);
     h.patas(o, [[0.12, 0.08], [W - 0.12, 0.08], [0.12, Fz - 0.12], [W - 0.12, Fz - 0.12]], yZ, 0, [0, -0.1, 0.4], { mk: 'pataNiv' });
     lq(o, 'Costado lacado', 0, yZ, 0, t, H - yZ, Fz, 0, [-0.45, 0, 0.4]); lq(o, 'Costado lacado', W - t, yZ, 0, t, H - yZ, Fz, 0, [0.45, 0, 0.4]);
@@ -624,27 +669,28 @@
 
   // 15 · Mampara de vidrio templado sin marco, con jambas y dintel lacados y puerta a la izquierda
   B[15] = function (tgt) {
-    const o = h.inst(15, 3.9, 0, 5.6, 0), z = 0.02, J = 0.12, H = 2.4, t = 0.018;
+    const o = h.inst(15, 3.9, 0, 5.6, 0), z = 0.02, J = 0.12, H = 2.4, t = 0.015;
     const jamb = (x, w, ex) => { lq(o, 'Jamba lacada', x, 0, z, w, H - J, t, 0, ex); lq(o, 'Jamba lacada', x, 0, z + J - t, w, H - J, t, 0, ex); lq(o, 'Jamba lacada', x, 0, z + t, t, H - J, J - 2 * t, 0, ex); lq(o, 'Jamba lacada', x + w - t, 0, z + t, t, H - J, J - 2 * t, 0, ex); };
     jamb(0, 0.06, [-0.35, 0, 0.4]); jamb(1.95, 0.15, [0.35, 0, 0.4]);
-    lq(o, 'Dintel lacado', 0, H - J, z, 2.1, J, J, 0, [0, 0.35, 0.4]);
+    lq(o, 'Dintel lacado: tapa', 0, H - J, z, 2.1, t, J, 0, [0, 0.3, 0.4]); lq(o, 'Dintel lacado: tapa', 0, H - t, z, 2.1, t, J, 0, [0, 0.48, 0.4]);
+    lq(o, 'Dintel lacado: cara', 0, H - J + t, z, 2.1, J - 2 * t, t, 0, [0, 0.39, 0.25]); lq(o, 'Dintel lacado: cara', 0, H - J + t, z + J - t, 2.1, J - 2 * t, t, 0, [0, 0.39, 0.55]);
     h.chazos(o, [[0.03, 0.5, z + 0.06], [0.03, 1.9, z + 0.06], [2.02, 0.5, z + 0.06], [2.02, 1.9, z + 0.06]], 0, [0, 0, 0.4]);
     h.P(o, 'Vidrio fijo templado 10 mm', 'vidrio', 0.99, 0, z + J / 2 - 0.005, 0.96, H - J, 0.01, 1, [0.2, 0, 0.9], { noShadow: true, order: 3, mk: 'vidrio10' });
     h.P(o, 'Puerta de vidrio templado 10 mm', 'vidrio', 0.065, 0.01, z + J / 2 - 0.005, 0.915, H - J - 0.02, 0.01, 2, [-0.2, 0, 1.3], { noShadow: true, order: 3, mk: 'vidrio10' });
     const k = []; [0.25, H - J - 0.25].forEach((y) => k.push({ g: new T.BoxGeometry(0.08, 0.1, 0.03), m: G.mat(0.1, y, z + J / 2), c: 0xd9dbde }));
     k.push({ g: G.cyl(), m: h.cylM(0.88, 1.1, z + J / 2 + 0.035, 0.011, 0.42), c: 0xd9dbde }, { g: G.cyl(), m: h.cylM(0.88, 1.1, z + J / 2 - 0.035, 0.011, 0.42), c: 0xd9dbde });
     h.PM(o, 'Bisagras y manija del kit', 'inox', k, 3, [-0.2, 0, 1.6], { mk: 'kitBatiente' });
-    h.P(o, 'Franja de acrílico opal', X.opal, 0.07, 1.45, z + J / 2 + 0.006, 1.86, 0.09, 0.002, 4, [0, 0, 1.8], { noShadow: true, order: 4, mk: 'opal3' });
+    h.P(o, 'Franja de acrílico opal', X.opal, 0.07, 1.45, z + J / 2 + 0.006, 1.86, 0.09, 0.003, 4, [0, 0, 1.8], { noShadow: true, order: 4, mk: 'opal3' });
     return h.add(15, [o], { th: 0.1, ph: 1.25 }, tgt);
   };
 
   // 17 · Escritorio lacado con costados cerrados y tapa de Rovere
   B[17] = function (tgt) {
-    const o = h.inst(17, 4.7, 0, 7.0, 0), Lx = 1.2, Fz = 0.6, yT = 0.72, t = 0.018;
+    const o = h.inst(17, 4.7, 0, 7.0, 0), Lx = 1.2, Fz = 0.6, yT = 0.72, t = 0.015;
     lq(o, 'Costado lacado', 0, 0, 0, t, yT, Fz, 0, [-0.35, 0, 0]); lq(o, 'Costado lacado', Lx - t, 0, 0, t, yT, Fz, 0, [0.35, 0, 0]);
     lq(o, 'Faldón lacado', t, 0.3, 0.02, Lx - 2 * t, yT - 0.3, t, 0, [0, 0, -0.3]);
     h.patas(o, [[0.03, 0.05], [0.03, Fz - 0.05], [Lx - 0.03, 0.05], [Lx - 0.03, Fz - 0.05]], 0.012, 0, [0, -0.1, 0], { mk: 'pataNiv' });
-    tapaDoble(rv, o, 'Tapa de Rovere', 0, yT, 0, Lx, Fz, 1, [0, 0.55, 0]);
+    tapaRB(o, 'Tapa', 0, yT, 0, Lx, Fz, 1, [0, 0.55, 0]);
     h.PM(o, 'Pasacable', 'plastico', [{ g: G.cyl(), m: h.cylM(1.08, yT + 0.031, 0.08, 0.03, 0.004), c: 0x111113 }], 1, [0, 0.72, 0], { mk: 'pasacable', noShadow: true });
     const dec = [];
     G.pushBox(dec, 0.33, yT + 0.03, 0.1, 0.24, 0.012, 0.14, 0x1a1b1e); G.pushBox(dec, 0.44, yT + 0.04, 0.14, 0.03, 0.12, 0.03, 0x1a1b1e);

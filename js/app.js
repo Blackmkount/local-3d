@@ -384,7 +384,8 @@
     let G = pzCache[key];
     if (!G) { try { G = pzCache[key] = L.dwg.parts(S.ver, n); } catch (e) { return null; } }
     const g = G.find((x) => x.sol.some((q) => q.idx === idx)); if (!g) return null;
-    const P = VS.precios[g.mk], d = g.dims, mm = d.join(' × ') + ' mm';
+    const P = VS.precios[g.mk], cutA = g.cut ? g.cut.reduce((a, c) => a + c[1] * c[2] * (c[3] || 1), 0) : 0;      // pieza curva: área o largo de su desarrollo
+    const d = g.cut ? (g.cut[0][3] ? [cutA * 1e6, 1] : [cutA * 1000, 1]) : g.dims, mm = g.cut ? g.dimTxt + ' mm (desarrollo)' : g.dims.join(' × ') + ' mm';
     let pu = null, base = '';
     if (P) {
       if (P.tipo === 'lamina') { pu = (d[0] * d[1] / 1e6) / P.area * P.precio; base = cop(P.precio) + ' la lámina'; }
@@ -394,7 +395,8 @@
       else if (P.tipo === 'unidad') { pu = P.precio; base = P.pres.toLowerCase(); }
       else base = VS.precioTxt(P);
     }
-    return { mark: g.mark, name: g.name, mat: g.mat, mm, cant: g.cant, pu, tot: pu == null ? null : pu * g.cant, base, origen: g.origen };
+    const cant = g.cut ? 1 : g.cant;
+    return { mark: g.mark, name: g.name, mat: g.mat, mm, cant, pu, tot: pu == null ? null : pu * cant, base, origen: g.origen };
   }
   function pieceTip(pi) {
     return '<i>P' + pi.mark + '</i><b>' + esc(pi.name) + '</b><span>' + esc(pi.mat) + '</span>' +
@@ -1453,6 +1455,22 @@
       });
     }));
   }
-  L.api = { select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openSpot, downloadGLB, closeSpot, toggleInv, layout, setVersion, openPlan, closePlan, openReqs, openVersions, planFit, state: S, pieceInfo };
+  /* dónde queda cada producto comprado (pantalla, impresoras…) en la versión v, sin cambiar la que está en pantalla:
+     matriz del grupo y caja en sus propias coordenadas. Lo usan los planos para dibujar el equipo en el mueble que lo recibe. */
+  function boughtBoxes(v, n) {
+    const it = F.items[n]; if (!it) return [];
+    const lay = VS.layout[v];
+    if (!basePos[n]) basePos[n] = it.insts.map((o) => ({ p: o.home.clone(), r: o.group.rotation.y }));
+    return it.insts.map((o, i) => {
+      o.group.updateMatrixWorld(true);
+      const inv = new T.Matrix4().copy(o.group.matrixWorld).invert(), lb = new T.Box3();
+      o.parts.forEach((m) => { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); lb.union(m.geometry.boundingBox.clone().applyMatrix4(new T.Matrix4().multiplyMatrices(inv, m.matrixWorld))); });
+      const q = lay && lay[n] && lay[n].pos && lay[n].pos[i];
+      const pos = q ? new T.Vector3(R.wx(q[0]), q[1], R.wz(q[2])) : basePos[n][i].p.clone(), rot = q ? (q[3] || 0) : basePos[n][i].r;
+      const M = new T.Matrix4().compose(pos, new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), rot), new T.Vector3(1, 1, 1));
+      return { n, box: lb.clone().applyMatrix4(M) };
+    });
+  }
+  L.api = { boughtBoxes, select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openSpot, downloadGLB, closeSpot, toggleInv, layout, setVersion, openPlan, closePlan, openReqs, openVersions, planFit, state: S, pieceInfo };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

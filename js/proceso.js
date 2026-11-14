@@ -47,10 +47,11 @@
       else if (/^tubo/.test(p[0])) q.tubo += p[2];
       else if (p[0] === 'perfilManija') q.golas += p[2];
       if (pr.tipo === 'lamina' && /dos capas/.test(nm)) q.encolados += p[2] / 2;
+      else if (pr.tipo === 'lamina' && /capa superior/.test(nm)) q.encolados += p[2];        // tapas y repisas de 30 mm: la capa de arriba se pega sobre la de abajo
     });
     it.acabados.forEach((a) => { if (a[0] === 'laca') q.laca += a[2]; if (a[0] === 'anticorr') q.negro += a[2]; });
     // piezas que solo se sellan (cajas de cajón): se cuentan aparte
-    if (/sellad/.test(fab)) q.sell = it.piezas.filter((p) => /cajas/.test(p[1])).reduce((s, p) => s + p[2] * p[3] * p[4] * 2, 0);
+    if (/sellad/.test(fab)) q.sell = it.piezas.filter((p) => /cajas|caja de cajón/i.test(p[1])).reduce((s, p) => s + p[2] * p[3] * p[4] * 2, 0);
     it.herrajes.forEach((h) => {
       const id = h[0], c = h[2];
       if (id === 'bisagraCaz') q.bisagras += c * 2; else if (id === 'riel45') q.rieles += c; else if (id === 'pataNiv' || id === 'nivelador') q.patas += c;

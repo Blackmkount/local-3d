@@ -32,7 +32,7 @@
     if (opt.geo) m.position.set(x, y, z); else m.position.set(x + sx / 2, y + sy / 2, z + sz / 2);
     m.castShadow = !opt.noShadow; m.receiveShadow = !opt.noShadow;
     if (opt.order) m.renderOrder = opt.order;
-    reg(o, m, { part: true, name, mk: opt.mk || mat, step: step || 0, home: m.position.clone(), ex: V(ex || [0, 0, 0]), exA: opt.exA ? V(opt.exA) : null, pts: opt.pts || null });
+    reg(o, m, { part: true, name, mk: opt.mk || mat, step: step || 0, home: m.position.clone(), ex: V(ex || [0, 0, 0]), exA: opt.exA ? V(opt.exA) : null, pts: opt.pts || null, cut: opt.cut || null });
     o.parts.push(m);
     return m;
   }
