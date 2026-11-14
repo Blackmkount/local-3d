@@ -56,7 +56,7 @@
         M = new T.Matrix4().compose(pos, p.quaternion, p.scale);
       } else { p.updateMatrixWorld(true); M = inv.clone().multiply(p.matrixWorld); }
       const g = isPlainBox(p.geometry) ? sharpBox(p.geometry.parameters) : p.geometry;
-      list.push(Object.assign({ g, rg: p.geometry, M, name: u.name, mk: u.mk, step: u.step, idx }, mesh(g, M)));
+      list.push(Object.assign({ g, rg: p.geometry, M, name: u.name, mk: u.mk, step: u.step, idx, cut: u.cut || null }, mesh(g, M)));
     });
     const bb = new T.Box3();
     list.forEach((s) => bb.union(s.bb));
@@ -536,23 +536,58 @@
     S.list.forEach((q) => {
       const nm = q.name || 'Pieza';
       const d = q.comps.length ? q.comps[0] : q.bb, sz = d.getSize(V3());
-      const dims = [sz.x, sz.y, sz.z].map((x) => Math.round(x * 1000)).sort((a, b) => b - a);
+      const dims = [sz.x, sz.y, sz.z].map((x) => (x < 0.01 ? Math.round(x * 2000) / 2 : Math.round(x * 1000))).sort((a, b) => b - a);   // los espesores finos conservan el medio milímetro (5.5)
       const key = nm + '|' + dims.join('x') + '|' + q.mk;
       let gr = by[key];
       if (!gr) { gr = by[key] = { name: nm, mk: q.mk, dims, cant: 0, sol: [] }; groups.push(gr); }
-      gr.cant += Math.max(1, q.comps.length); gr.sol.push(q);
+      gr.cant += q.cut ? 1 : Math.max(1, q.comps.length); gr.sol.push(q);
+      if (q.cut) gr.cut = (gr.cut || []).concat(q.cut);      // tableros reales de una pieza curva o desarrollada
     });
     groups.forEach((gr) => {
       const p = P[gr.mk];
       gr.mat = p ? p.m : gr.mk;
       gr.origen = p ? (p.tipo === 'unidad' || /Herrajes|iluminación/i.test(p.cat) && p.tipo !== 'barra' ? 'Compra' : 'Fabrica') : 'Fabrica';
       if (p && (gr.mk === 'perfilLed' || gr.mk === 'cob')) gr.origen = 'Compra, se corta';
+      if (gr.cut) {                                         // pieza curva: se da su desarrollo (la tira plana), que es lo que se corta
+        const flat = p && (p.tipo === 'lamina' || p.tipo === 'm2'), e = p ? espesor(p) : null, r = (x) => Math.round(x * 1000);
+        gr.dimTxt = flat ? gr.cut.map((c) => r(c[2]) + ' × ' + r(c[3]) + (e ? ' × ' + e : '')).join(' + ') : 'L = ' + gr.cut.map((c) => r(c[2])).join(' + ');
+        gr.cantCut = gr.cut.length === 1 ? gr.cut[0][1] : gr.cant;
+      }
     });
     groups.sort((a, b) => (a.sol[0].step - b.sol[0].step) || (a.sol[0].idx - b.sol[0].idx));
     groups.forEach((g, i) => { g.mark = i + 1; });
     return groups;
   }
   DW.parts = function (v, n) { const S = solids(v, n); return S ? partsTable(S) : []; };
+  /* Medidas de corte que salen del modelo: una fila por pieza de tablero, lámina, tubo, perfil o tira,
+     con el formato del despiece [material, nombre, cantidad, largo, ancho, marca]. Es la fuente de la tabla
+     de piezas de la versión B (tools/medidas.js la vuelca en versions.js y comprueba que sigan iguales). */
+  const CUT_T = /^(lamina|m2|barra|m)$/;
+  DW.cutRows = function (v, n) {
+    const P = L.versions.precios, rows = [];
+    DW.parts(v, n).forEach((g) => {
+      const p = P[g.mk]; if (!p || !CUT_T.test(p.tipo)) return;
+      const flat = p.tipo === 'lamina' || p.tipo === 'm2';
+      if (g.cut) g.cut.forEach((c) => rows.push(flat ? [c[4] || g.mk, c[0], c[1], c[2], c[3], g.mark] : [c[4] || g.mk, c[0], c[1], c[2], undefined, g.mark]));
+      else rows.push(flat ? [g.mk, g.name, g.cant, g.dims[0] / 1000, g.dims[1] / 1000, g.mark] : [g.mk, g.name, g.cant, g.dims[0] / 1000, undefined, g.mark]);
+    });
+    return rows.map((r) => (r[4] === undefined ? [r[0], r[1], r[2], r[3]].concat(r[5] ? [0, r[5]] : []) : r));
+  };
+  /* diferencias entre la tabla de piezas (versions.js) y el modelo: vacío = coinciden */
+  DW.check = function (v) {
+    const P = L.versions.precios, out = [];
+    const esp = (p) => { const m = /(\d+(?:\.\d+)?) mm/.exec(p.m); return m ? +m[1] : null; };
+    Object.keys(L.versions.items[v]).forEach((n) => {
+      const it = L.versions.items[v][n], parts = DW.parts(v, +n), model = DW.cutRows(v, +n), inModel = new Set(model.map((r) => r[0]));
+      const key = (r) => r[0] + '|' + r[1] + '|' + r[2] + '|' + Math.round(r[3] * 1000) + '|' + Math.round((r[4] || 0) * 1000);
+      const tabla = it.piezas.filter((r) => inModel.has(r[0]) || (P[r[0]] && CUT_T.test(P[r[0]].tipo) && !/^canto/.test(r[0])));
+      const A = new Set(tabla.map(key)), B = new Set(model.map(key));
+      tabla.forEach((r) => { if (!B.has(key(r))) out.push({ n: +n, donde: 'solo en la tabla', fila: r.slice(0, 5).join(' | ') }); });
+      model.forEach((r) => { if (!A.has(key(r))) out.push({ n: +n, donde: 'solo en el modelo', fila: r.slice(0, 5).join(' | ') }); });
+      parts.forEach((g) => { const p = P[g.mk]; if (!p || p.tipo !== 'lamina' || g.cut) return; const e = esp(p); if (e && Math.abs(g.dims[2] - e) > 0.6) out.push({ n: +n, donde: 'espesor', fila: g.name + ': modelo ' + g.dims[2] + ' mm, material ' + e + ' mm' }); });
+    });
+    return out;
+  };
   DW.explosion = function (v, n) {
     const S = solids(v, n, true), S0 = solids(v, n);
     if (!S) return '';
@@ -599,17 +634,21 @@
       const nm = g.name.length > 34 ? g.name.slice(0, 33) + '…' : g.name, mt = g.mat.length > 40 ? g.mat.slice(0, 39) + '…' : g.mat;
       s += '<text class="td num-c" x="' + (tx + 3) + '" y="' + (y - 1.2) + '">' + g.mark + '</text>';
       s += '<text class="td" x="' + (tx + 11) + '" y="' + (y - 1.2) + '">' + esc(nm) + '</text><text class="td sm" x="' + (tx + 11) + '" y="' + (y + 1.5) + '">' + esc(mt) + '</text>';
-      s += '<text class="td" x="' + (tx + 77) + '" y="' + (y - 1.2) + '">' + g.cant + '</text>';
-      s += '<text class="td mono" x="' + (tx + 86) + '" y="' + (y - 1.2) + '">' + g.dims.join(' × ') + '</text>';
+      s += '<text class="td" x="' + (tx + 77) + '" y="' + (y - 1.2) + '">' + (g.cut ? g.cantCut : g.cant) + '</text>';
+      s += '<text class="td mono" x="' + (tx + 86) + '" y="' + (y - 1.2) + '">' + (g.cut ? g.dimTxt + ' ◠' : g.dims.join(' × ')) + '</text>';
       s += '<text class="td sm" x="' + (tx + 118) + '" y="' + (y - 1.2) + '">' + esc(g.origen) + '</text>';
       s += '<line class="rule-t" x1="' + tx + '" y1="' + (ty + 8 + (i + 1) * rh) + '" x2="' + (tx + 138) + '" y2="' + (ty + 8 + (i + 1) * rh) + '"/>';
     });
     if (G.length > rows) s += '<text class="c-note" x="' + tx + '" y="' + (ty + 12 + rows * rh) + '">… y ' + (G.length - rows) + ' grupos más: ver la tabla de despiece.</text>';
     s += '</g>';
-    s += '<text class="c-note" x="20" y="283">Medidas de cada pieza: largo × ancho × espesor de su caja envolvente, en milímetros. Las piezas de forma se cortan según el plano de conjunto.</text>';
+    s += '<text class="c-note" x="20" y="283">Medidas de corte en mm (largo × ancho × espesor): las mismas de las hojas de piezas y de la tabla. ◠ pieza curva: desarrollo antes de curvar.</text>';
     s += rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.2', contenido: 'Despiece explosionado', escala: 'Sin escala', version: v + ' · ' + I.vi.nombre, fecha: L.nota1 ? L.nota1.fechaCorta : '17 oct. 2026' });
     return s + '</svg>';
   };
+
+  const okCache = {};
+  /* ¿la tabla de piezas de la versión coincide con el modelo? (se calcula una vez) */
+  DW.coincide = function (v) { if (!(v in okCache)) { try { okCache[v] = DW.check(v).length === 0; } catch (e) { okCache[v] = false; } } return okCache[v]; };
 
   /* ------------------------------------------------ láminas de piezas: cada pieza fabricada con sus medidas de corte */
   const SEC = { tubo1: [25.4, 25.4, 1.2], tubo15: [38.1, 38.1, 1.1], tuboRect: [50, 25, 1.1], perfil3030: [30, 30, 0], cob: [8, 2, 0] };
@@ -623,7 +662,7 @@
     const it = L.versions.items[v] && L.versions.items[v][n]; if (!it) return [];
     const P = L.versions.precios;
     return it.piezas.filter((p) => { const t = P[p[0]].tipo; return t === 'lamina' || t === 'm2' || t === 'barra' || (t === 'm' && !/^canto/.test(p[0])); })
-      .map((p, i) => ({ i: i + 1, mk: p[0], P: P[p[0]], name: cap(p[1]), cant: p[2], a: p[3], b: p[4] || null }));
+      .map((p, i) => ({ i: p[5] || i + 1, mk: p[0], P: P[p[0]], name: cap(p[1]), cant: p[2], a: p[3], b: p[4] || null }));
   }
   DW.nPiezas = function (v, n) { return Math.max(1, Math.ceil(piezasDe(v, n).length / 6)); };
   function celda(pz, x, y, w, h) {

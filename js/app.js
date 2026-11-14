@@ -384,7 +384,8 @@
     let G = pzCache[key];
     if (!G) { try { G = pzCache[key] = L.dwg.parts(S.ver, n); } catch (e) { return null; } }
     const g = G.find((x) => x.sol.some((q) => q.idx === idx)); if (!g) return null;
-    const P = VS.precios[g.mk], d = g.dims, mm = d.join(' × ') + ' mm';
+    const P = VS.precios[g.mk], cutA = g.cut ? g.cut.reduce((a, c) => a + c[1] * c[2] * (c[3] || 1), 0) : 0;      // pieza curva: área o largo de su desarrollo
+    const d = g.cut ? (g.cut[0][3] ? [cutA * 1e6, 1] : [cutA * 1000, 1]) : g.dims, mm = g.cut ? g.dimTxt + ' mm (desarrollo)' : g.dims.join(' × ') + ' mm';
     let pu = null, base = '';
     if (P) {
       if (P.tipo === 'lamina') { pu = (d[0] * d[1] / 1e6) / P.area * P.precio; base = cop(P.precio) + ' la lámina'; }
@@ -394,7 +395,8 @@
       else if (P.tipo === 'unidad') { pu = P.precio; base = P.pres.toLowerCase(); }
       else base = VS.precioTxt(P);
     }
-    return { mark: g.mark, name: g.name, mat: g.mat, mm, cant: g.cant, pu, tot: pu == null ? null : pu * g.cant, base, origen: g.origen };
+    const cant = g.cut ? 1 : g.cant;
+    return { mark: g.mark, name: g.name, mat: g.mat, mm, cant, pu, tot: pu == null ? null : pu * cant, base, origen: g.origen };
   }
   function pieceTip(pi) {
     return '<i>P' + pi.mark + '</i><b>' + esc(pi.name) + '</b><span>' + esc(pi.mat) + '</span>' +
