@@ -64,7 +64,7 @@ body.en-pdf #app { display: none !important; }
 #entrega .n1-mx td:first-child { min-width: 0; }
 #entrega .n1-sc { font-size: 13px; }
 #entrega .n1-uns { gap: 8px; }
-#entrega .n1-un { grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 12px; padding: 9px; border-radius: 10px; box-shadow: 0 0 0 0.6px #c9c8c4; break-inside: avoid; }
+#entrega .n1-un { grid-template-columns: minmax(0, 370px) minmax(0, 1fr); gap: 12px; align-items: start; padding: 9px; border-radius: 10px; box-shadow: 0 0 0 0.6px #c9c8c4; break-inside: avoid; }
 #entrega .n1-un h4 { font-size: 12.5px; }
 #entrega .n1-un small { font-size: 10px; }
 #entrega .n1-un p { font-size: 11px; margin-top: 5px; }
@@ -268,3 +268,6 @@ body.en-pdf #app { display: none !important; }
 #entrega .n2-kpi b { font-size: 18px; }
 #entrega .n2-boards svg { max-width: 100%; height: auto; }
 #entrega svg { max-width: 100%; }
+/* guía de sustentación */
+#entrega .en-g-rev li { border-left: 2px solid #c9a227; padding-left: 8px; margin-left: -10px; list-style: none; }
+#entrega .en-g-q td { vertical-align: top; }

@@ -258,7 +258,7 @@
   function uniones(v, n) {
     const P = VS.precios, un = L.uniones.of(v, n);
     const her = (ids) => ids.filter((h) => P[h]).map((h) => esc(P[h].m)).join(' · ');
-    return '<div class="n1-uns">' + un.map((x) => '<article class="n1-un"><div class="n1-udr">' + x.u.draw() + '</div><div><h4>' + esc(x.u.t) + '</h4><small>' + esc(x.why) + ' · detalle a escala 1:2, medidas en mm</small><p>' + esc(x.u.como) + '</p>' + (x.u.herr.length ? '<p class="n1-uh"><b>Herraje:</b> ' + her(x.u.herr) + '</p>' : '') + '</div></article>').join('') + '</div>';
+    return '<div class="n1-uns">' + un.map((x) => '<article class="n1-un"><div class="n1-udr">' + x.u.draw() + '</div><div><h4>' + esc(x.u.t) + '</h4><small>' + esc(x.why) + ' · detalle acotado, medidas en mm</small><p>' + esc(x.u.como) + '</p>' + (x.u.herr.length ? '<p class="n1-uh"><b>Herraje:</b> ' + her(x.u.herr) + '</p>' : '') + '</div></article>').join('') + '</div>';
   }
   function secG() {
     const un = L.uniones.of(ST.ver, ST.n);

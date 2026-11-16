@@ -254,7 +254,7 @@
   const DETAIL = {
     soldar: ['Unión soldada de tubo con tubo', 'Soldadura MIG a tope, a escuadra; se pule el cordón y se aplican dos manos de anticorrosivo.', 'SO'],
     auto: ['Tablero sobre bastidor de acero', 'Autoperforante de 6 × 5/8″ a través de un agujero de 5 mm en la pared del tubo, cada 300 mm.', 'TA'],
-    ens: ['Tablero con tablero', 'Tornillo de ensamble de 6 × 2″ con pretaladro de 3 mm, a 50 mm de cada borde y cada 250 mm.', 'TT'],
+    ens: ['Tablero con tablero', 'Tornillo de ensamble de 6 × 2″ con broca escalonada de 5 y 7 mm, a 50 mm de cada extremo y cada 200 mm como máximo.', 'TT'],
     allen: ['Perfil de aluminio 30 × 30', 'Bristol M6 × 16 a tuerca martillo en la ranura del perfil; escuadra 3030 en las esquinas.', 'AT'],
     anclar: ['Anclaje al muro', 'Chazo expansivo de 3/8″ × 1-7/8″ con broca de 3/8″; antes de perforar se verifica que no pasen tuberías ni cables.', 'MU'],
     roscar: ['Apoyo nivelador', 'Nivelador de rosca 5/16″ en tuerca soldada (tubo) o inserto roscado (tablero); regula ±15 mm.', 'NIV'],
@@ -347,7 +347,8 @@
         const lx = cx + R * 0.72, ly = cy - R * 0.72;
         s += '<path class="wd" d="M' + f2(cx + 1) + ' ' + f2(cy - 1) + 'L' + f2(lx) + ' ' + f2(ly) + 'H' + f2(lx + 12) + '"/><path class="wd-t" d="M' + f2(lx + 3) + ' ' + f2(ly) + 'v-2.6l2.6 2.6z"/><circle class="wd" cx="' + f2(lx) + '" cy="' + f2(ly) + '" r="1"/><text class="wd-x" x="' + f2(lx + 6.5) + '" y="' + f2(ly - 0.8) + '">MIG</text>';
       }
-      const tt = DETAIL[d.key], title = d.key === 'herraje' ? cap(String(d.what).toLowerCase()) : tt[0];
+      const pata = d.key === 'roscar' && (it.herrajes || []).some((h) => h[0] === 'pataNiv');      // en los cuerpos de tablero el apoyo es una pata plástica, no un nivelador roscado
+      const tt = pata ? ['Pata niveladora', 'Pata de 100 mm: placa con cuatro tornillos de 4 × 16 bajo el piso del cuerpo, a 50 mm de las esquinas; se regula con la mano antes de poner el zócalo.', 'PAT'] : DETAIL[d.key], title = d.key === 'herraje' ? cap(String(d.what).toLowerCase()) : tt[0];
       s += '<text class="dt-l" x="' + (cx - R) + '" y="' + (cy + R + 5.2) + '">DETALLE ' + LET[i] + '</text><text class="dt-s" x="' + (cx + R) + '" y="' + (cy + R + 5.2) + '" text-anchor="end">Esc. 1:' + den + ' · paso ' + (d.step + 1) + '</text>';
       s += lines(cx - R, cy + R + 9, wrap(title, 2 * R, 2.35, 1), 'dt-n', 2.8);
       const NOUN = { soldar: ['cordón', 'cordones'], auto: ['autoperforante', 'autoperforantes'], ens: ['tornillo', 'tornillos'], allen: ['tornillo', 'tornillos'], anclar: ['chazo', 'chazos'], roscar: ['nivelador', 'niveladores'], herraje: ['fijación', 'fijaciones'] }[d.key];
@@ -357,16 +358,29 @@
     if (!D.length) s += '<text class="dt-s" x="120" y="80">Este mueble no tiene uniones mecánicas en el modelo: se apoya o se cuelga.</text>';
     // uniones en corte (uniones.js), columna derecha
     const ux = 252, uw = 152, uy0 = 36, uyH = 196;
-    s += '<text class="k-h" x="' + ux + '" y="' + (uy0 + 2) + '">UNIONES EN CORTE (ESQUEMA)</text>';
-    const bh = U.length ? Math.min(46, (uyH - 6) / U.length) : 0;
-    U.forEach((u, i) => {
-      const y = uy0 + 6 + i * bh, dw = bh > 36 ? 72 : 60, dh = Math.min(bh - 6, dw * 92 / 266);
-      s += '<line class="rule-t" x1="' + ux + '" y1="' + f2(y - 1.5) + '" x2="' + (ux + uw) + '" y2="' + f2(y - 1.5) + '"/>';
-      s += '<text class="u-t" x="' + ux + '" y="' + f2(y + 2.2) + '">' + esc('U' + (i + 1) + ' · ' + u.u.t) + '</text>';
-      s += u.u.draw().replace('<svg ', '<svg x="' + ux + '" y="' + f2(y + 3.6) + '" width="' + dw + '" height="' + f2(dh) + '" preserveAspectRatio="xMinYMin meet" ');
-      const tl = wrap(u.u.como, uw - dw - 3, 1.95, Math.max(2, Math.floor((bh - 7) / 2.45)));
-      s += lines(ux + dw + 3, y + 5.6, tl, 'u-x', 2.45);
-    });
+    s += '<text class="k-h" x="' + ux + '" y="' + (uy0 + 2) + '">UNIONES EN CORTE · ACOTADAS EN MILÍMETROS</text>';
+    if (U.length <= 4) {
+      const bh = U.length ? Math.min(46, (uyH - 6) / U.length) : 0;
+      U.forEach((u, i) => {
+        const y = uy0 + 6 + i * bh, dw = bh > 36 ? 72 : 60, dh = Math.min(bh - 6, dw * 104 / 266);
+        s += '<line class="rule-t" x1="' + ux + '" y1="' + f2(y - 1.5) + '" x2="' + (ux + uw) + '" y2="' + f2(y - 1.5) + '"/>';
+        s += '<text class="u-t" x="' + ux + '" y="' + f2(y + 2.2) + '">' + esc('U' + (i + 1) + ' · ' + u.u.t) + '</text>';
+        s += u.u.draw().replace('<svg ', '<svg x="' + ux + '" y="' + f2(y + 3.6) + '" width="' + dw + '" height="' + f2(dh) + '" preserveAspectRatio="xMinYMin meet" ');
+        const tl = wrap(u.u.como, uw - dw - 3, 1.95, Math.max(2, Math.floor((bh - 7) / 2.45)));
+        s += lines(ux + dw + 3, y + 5.6, tl, 'u-x', 2.45);
+      });
+    } else {
+      // más de cuatro uniones: dos columnas, con el dibujo al mismo tamaño y el texto debajo
+      const cw = (uw - 4) / 2, rowsU = Math.ceil(U.length / 2), bh = Math.min(62, (uyH - 6) / rowsU), dh = Math.min(cw * 104 / 266, bh - 15);
+      U.forEach((u, i) => {
+        const x = ux + (i % 2) * (cw + 4), y = uy0 + 6 + Math.floor(i / 2) * bh;
+        s += '<line class="rule-t" x1="' + f2(x) + '" y1="' + f2(y - 1.5) + '" x2="' + f2(x + cw) + '" y2="' + f2(y - 1.5) + '"/>';
+        s += '<text class="u-t" x="' + f2(x) + '" y="' + f2(y + 2.2) + '">' + esc('U' + (i + 1) + ' · ' + u.u.t) + '</text>';
+        s += u.u.draw().replace('<svg ', '<svg x="' + f2(x) + '" y="' + f2(y + 3.2) + '" width="' + f2(cw) + '" height="' + f2(dh) + '" preserveAspectRatio="xMidYMin meet" ');
+        const tl = wrap(u.u.como, cw, 1.85, Math.max(2, Math.floor((bh - dh - 5.5) / 2.3)));
+        s += lines(x, y + dh + 5.6, tl, 'u-x', 2.3);
+      });
+    }
     // notas de fabricación (proceso del mueble)
     s += '<text class="k-h" x="20" y="241">NOTAS DE FABRICACIÓN</text>';
     let yy = 245, nl = 0;
@@ -374,7 +388,7 @@
       const ls = wrap((i + 1) + '. ' + f, 224, 2.1); if (nl + ls.length > 14) return;
       s += lines(20, yy, ls, 'k-t', 2.6); yy += ls.length * 2.6 + 0.4; nl += ls.length;
     });
-    s += H.rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.4', contenido: 'Detalles constructivos', escala: 'Detalles 1:5', version: v + ' · ' + I.vi.nombre, fecha: fecha(), nota: 'Uniones ubicadas desde el modelo 3D; los cortes son esquemáticos.' });
+    s += H.rotulo({ mueble: n + ' · ' + I.short, lamina: v + '-' + nn(n) + '.4', contenido: 'Detalles constructivos', escala: 'Detalles 1:5', version: v + ' · ' + I.vi.nombre, fecha: fecha(), nota: 'Uniones ubicadas desde el modelo 3D; cortes acotados en milímetros, sin escala.' });
     return s + '</svg>';
   };
 
