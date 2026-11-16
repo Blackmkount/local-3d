@@ -94,6 +94,14 @@ Para generarlos: servir la carpeta (`python3 -m http.server 8765`) y correr `nod
 `playwright` y `python3` con `pypdf`; `qpdf` recomprime el resultado). Cada documento lleva portada, índice con páginas,
 cabeceras con la sección, marcadores y enlaces internos. Las láminas A3 van a su tamaño real: imprimir al 100 %.
 
+Otros documentos del mismo generador: `A`, `B`, `C` (expediente de cada espacio), `RA`, `RB`, `RC` (requisitos),
+`PA`, `PB`, `PC` (lista de compras con enlaces), `F` (ficha en una página), `N2` (Nota 2) y `G` (guía de sustentación
+de la Galería, para uso del grupo: las razones de cada mueble, lo que hizo la IA y lo que sigue abierto).
+
+Las uniones (`js/uniones.js`) van acotadas en milímetros y salen del despiece de cada mueble: solo aparece la unión que
+ese mueble tiene. Las distancias de perforación son las mismas de las reglas de herrajes de `js/entrega.js` (`HREG`):
+si cambia una, se cambia en los dos sitios.
+
 ## Nota 2 · Sistema de producción
 
 En el mismo visor, la pestaña **Nota 2 · Producción** (o un enlace que termina en `#nota2`, `#nota2-11`…) presenta la planta
