@@ -343,7 +343,7 @@
     s += sec('d4-desp', '6 · Despiece de cada mueble · versión ' + DEV, lead('Despiece del mueble con su cantidad, material, medidas de corte y si se fabrica, se compra o se encarga; después los herrajes, la tornillería y la iluminación, y los acabados e insumos. Las marcas de las piezas coinciden con las de los planos del documento 3.') +
       FABN.map((n) => '<div class="en-mueble" id="d4-desp-' + n + '">' + h.despiece(DEV, n).replace(/<p class="n1-note">Medidas de corte[\s\S]*?<\/p>$/, '') + '</div>').join('') +
       note('Medidas de corte: largo × ancho × espesor para tableros y láminas; largo para tubos y perfiles. El costo de cada material está en el presupuesto de la versión (Nota 3). Los insumos de taller (lija, discos, brocas) van en la lista de compras de la Nota 3.'));
-    s += sec('d4-un', '7 · Detalle de cada unión · versión ' + DEV, lead('Cómo se une un material con otro en cada mueble: detalle a escala 1:2 con medidas en mm, por qué se eligió esa unión, cómo se hace y qué herraje lleva. Los detalles constructivos en corte, a 1:5 y en su sitio en el mueble, están en la lámina .4 de cada mueble (documento 3).') +
+    s += sec('d4-un', '7 · Detalle de cada unión · versión ' + DEV, lead('Cómo se une un material con otro en cada mueble: detalle en corte, acotado en milímetros, por qué se eligió esa unión, cómo se hace y qué herraje lleva. Los detalles constructivos en corte, a 1:5 y en su sitio en el mueble, están en la lámina .4 de cada mueble (documento 3).') +
       FABN.map((n) => { const un = L.uniones.of(DEV, n); return '<div class="en-mueble" id="d4-un-' + n + '"><h3>' + mueble(DEV, n) + ' <small>' + un.length + ' uniones</small></h3>' + h.uniones(DEV, n) + '</div>'; }).join(''));
     otras.forEach((v) => {
       s += sec('d4-anx-' + v, 'Anexo · despiece y uniones de la versión ' + v + ' · ' + vinfo(v).nombre, lead('La misma información para la versión ' + v + ', por si el cliente la elige: regla de los materiales, tabla de materiales, lista consolidada, cableado, despiece y uniones de cada mueble.') +
@@ -569,7 +569,7 @@
       '<h3>Cableado</h3>' + cableado(v));
     s += '<section class="en-sec" id="v-4-desp" data-title="Despiece de cada mueble"><h2>Despiece de cada mueble</h2>' + note('Marcas de pieza como en el despiece explosionado (.2). Medidas de corte: largo × ancho × espesor para tableros; largo para tubos y perfiles.') +
       FABN.map((n) => '<div class="en-mueble">' + h.despiece(v, n).replace(/<p class="n1-note">Medidas de corte[\s\S]*?<\/p>$/, '') + '</div>').join('') + '</section>';
-    s += '<section class="en-sec" id="v-4-un" data-title="Detalle de cada unión"><h2>Detalle de cada unión</h2>' + note('Detalle a escala 1:2, medidas en mm: por qué se eligió, cómo se hace y qué herraje lleva. Los detalles en corte y en su sitio están en la lámina .4 de cada mueble.') +
+    s += '<section class="en-sec" id="v-4-un" data-title="Detalle de cada unión"><h2>Detalle de cada unión</h2>' + note('Detalle en corte, acotado en milímetros: por qué se eligió, cómo se hace y qué herraje lleva. Los detalles en corte y en su sitio están en la lámina .4 de cada mueble.') +
       FABN.map((n) => { const un = L.uniones.of(v, n); return '<div class="en-mueble"><h3>' + mueble(v, n) + ' <small>' + un.length + ' uniones</small></h3>' + h.uniones(v, n) + '</div>'; }).join('') + '</section>';
 
     /* 5 · iluminación y equipo */
