@@ -13,7 +13,7 @@
   const $ = (s, el) => (el || document).querySelector(s);
   const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
   const DEV = 'B';                                   // versión que se desarrolla (mayor promedio en la matriz)
-  const FECHA = '28 de octubre de 2026', FECHA_C = '28 oct. 2026', REV = '14 de noviembre de 2026';     // REV: última revisión de los documentos
+  const FECHA = '28 de octubre de 2026', FECHA_C = '28 oct. 2026', REV = '16 de noviembre de 2026';     // REV: última revisión de los documentos
   const nn = (n) => (n < 10 ? '0' : '') + n;
   const ESP = (n) => N.ficha.espacios.find((e) => e.n.indexOf(n) >= 0);
   const otras = VER.filter((v) => v !== DEV);
@@ -343,7 +343,7 @@
     s += sec('d4-desp', '6 · Despiece de cada mueble · versión ' + DEV, lead('Despiece del mueble con su cantidad, material, medidas de corte y si se fabrica, se compra o se encarga; después los herrajes, la tornillería y la iluminación, y los acabados e insumos. Las marcas de las piezas coinciden con las de los planos del documento 3.') +
       FABN.map((n) => '<div class="en-mueble" id="d4-desp-' + n + '">' + h.despiece(DEV, n).replace(/<p class="n1-note">Medidas de corte[\s\S]*?<\/p>$/, '') + '</div>').join('') +
       note('Medidas de corte: largo × ancho × espesor para tableros y láminas; largo para tubos y perfiles. El costo de cada material está en el presupuesto de la versión (Nota 3). Los insumos de taller (lija, discos, brocas) van en la lista de compras de la Nota 3.'));
-    s += sec('d4-un', '7 · Detalle de cada unión · versión ' + DEV, lead('Cómo se une un material con otro en cada mueble: detalle a escala 1:2 con medidas en mm, por qué se eligió esa unión, cómo se hace y qué herraje lleva. Los detalles constructivos en corte, a 1:5 y en su sitio en el mueble, están en la lámina .4 de cada mueble (documento 3).') +
+    s += sec('d4-un', '7 · Detalle de cada unión · versión ' + DEV, lead('Cómo se une un material con otro en cada mueble: detalle en corte, acotado en milímetros, por qué se eligió esa unión, cómo se hace y qué herraje lleva. Los detalles constructivos en corte, a 1:5 y en su sitio en el mueble, están en la lámina .4 de cada mueble (documento 3).') +
       FABN.map((n) => { const un = L.uniones.of(DEV, n); return '<div class="en-mueble" id="d4-un-' + n + '"><h3>' + mueble(DEV, n) + ' <small>' + un.length + ' uniones</small></h3>' + h.uniones(DEV, n) + '</div>'; }).join(''));
     otras.forEach((v) => {
       s += sec('d4-anx-' + v, 'Anexo · despiece y uniones de la versión ' + v + ' · ' + vinfo(v).nombre, lead('La misma información para la versión ' + v + ', por si el cliente la elige: regla de los materiales, tabla de materiales, lista consolidada, cableado, despiece y uniones de cada mueble.') +
@@ -569,7 +569,7 @@
       '<h3>Cableado</h3>' + cableado(v));
     s += '<section class="en-sec" id="v-4-desp" data-title="Despiece de cada mueble"><h2>Despiece de cada mueble</h2>' + note('Marcas de pieza como en el despiece explosionado (.2). Medidas de corte: largo × ancho × espesor para tableros; largo para tubos y perfiles.') +
       FABN.map((n) => '<div class="en-mueble">' + h.despiece(v, n).replace(/<p class="n1-note">Medidas de corte[\s\S]*?<\/p>$/, '') + '</div>').join('') + '</section>';
-    s += '<section class="en-sec" id="v-4-un" data-title="Detalle de cada unión"><h2>Detalle de cada unión</h2>' + note('Detalle a escala 1:2, medidas en mm: por qué se eligió, cómo se hace y qué herraje lleva. Los detalles en corte y en su sitio están en la lámina .4 de cada mueble.') +
+    s += '<section class="en-sec" id="v-4-un" data-title="Detalle de cada unión"><h2>Detalle de cada unión</h2>' + note('Detalle en corte, acotado en milímetros: por qué se eligió, cómo se hace y qué herraje lleva. Los detalles en corte y en su sitio están en la lámina .4 de cada mueble.') +
       FABN.map((n) => { const un = L.uniones.of(v, n); return '<div class="en-mueble"><h3>' + mueble(v, n) + ' <small>' + un.length + ' uniones</small></h3>' + h.uniones(v, n) + '</div>'; }).join('') + '</section>';
 
     /* 5 · iluminación y equipo */
@@ -886,7 +886,130 @@
       sub: 'Planta de Villanueva (Casanare) que fabrica los 12 juegos de muebles del espacio Galería en 2027: empresa, volumen y ritmo, fabricar o comprar, tipo de producción, hipótesis, análisis del producto y planes de corte, diagramas de operaciones y de flujo, métodos, tiempos y capacidad', kicker: 'Nota 2 · Sistema de producción · Espacio 2 · Galería', fecha: '7 de noviembre de 2026', req: true, land: true, serie: '' };
   };
   /* ================================================================ armado */
+  /* ================================================================ guía de sustentación
+     Para el grupo, no para la carpeta: reúne, mueble por mueble, las razones que ya están escritas en los datos
+     (para quién, por qué mide eso, qué requisito cumple y con qué fuente, por qué esa alternativa, de qué se hace,
+     cómo se une, cuánto cuesta) y dice con franqueza qué hizo la inteligencia artificial y qué queda por decidir. */
+  const GREV = {
+    2: ['Las dos fuentes van en el zócalo, tras las puertas, con una regleta con protección para las dos.', 'El cable sale de una regla: la mitad del recorrido más largo por cada tira, más 1.5 m por fuente (25 m en este mueble).'],
+    3: ['La fuente va dentro del volumen alto, sobre el piso; se llega por una tapa de registro de 300 × 200 con cuatro tornillos, en el costado recto.', 'Cada volumen lleva dos costillas verticales de MDF de 15 mm: dan apoyo a la piel y a la tapa.', 'Los zócalos curvos son una tira de MDF de 15 mm ranurada por detrás (cortes de sierra cada 10 mm) para poder curvarla.'],
+    4: ['La fuente va dentro del pedestal más alto: su tapa no se pega y se levanta como registro.', 'Los zócalos son una tira de MDF de 15 mm ranurada por detrás y cerrada en aro.'],
+    5: ['La fuente va dentro del cuerpo, entre el costado y la primera costilla, con una tapa de registro de 300 × 200 en el fondo (lado del asesor).', 'Falta definir cómo rosca el tornillo en cada soporte del reposapiés (tuerca soldada o remachable M6).', 'Los cuatro tornillos del registro no están en la lista de compras de este mueble.'],
+    7: ['La fuente va en el primer módulo, tras las puertas.', 'Dos regletas con protección: dos impresoras de 350 W por regleta (6.4 A de los 15 A de cada una).', 'El dintel es un cajón de cuatro tableros; por su largo (3.23 m), cada tablero va en dos tramos con junta.', 'Las cuatro impresoras y su AMS están dibujadas en el plano de conjunto, en trazo y punto.'],
+    9: ['El cable baja por una canaleta pegada al muro hasta la fuente del mueble 7.', 'La repisa son dos capas de 15 mm (30 mm): el soporte invisible entra 140 mm, centrado en el espesor.'],
+    10: ['Cada caja de cajón se despieza en sus tableros: dos costados de 430 × 150 y frente y trasera de 510 × 150, más el fondo de 5.5 mm.', 'La gola de aluminio se fija como indique la ficha del perfil: conviene probar con una muestra antes de cortar los 15 tramos.', 'La pantalla de 75″ está dibujada en la planta del mueble, en trazo y punto.'],
+    12: ['Falta definir sobre qué se pega la tira COB detrás del opal: el mueble no tiene fondo.', 'El cable baja por una canaleta pegada al muro hasta la toma.'],
+    13: ['Falta definir sobre qué se pega la tira COB detrás del opal: el mueble no tiene fondo.', 'La fuente va sobre el mueble; el cable baja por una canaleta.'],
+    15: ['Las jambas y el dintel son cajones de cuatro tableros de MDF de 15 mm.']
+  };
+  function guiaMueble(v, n) {
+    const A = N.antro, M = N.muebles[n], io = itemOf(v, n), it = VS.items[v][n], P = VS.precios, m = L.n1.matrix(n), CR = N.criterios, c = VS.calc(v).items[n];
+    const n2 = (x) => x.toFixed(2).replace('.', ','), reqs = VS.req[n] || [], cum = VS.cumple(n, v), otras2 = VER.filter((x) => x !== v);
+    const flojos = reqs.map((r, i) => ({ r, c: cum[i] || ['si', ''] })).filter((x) => x.c[0] !== 'si');
+    const rows = reqs.map((r, i) => { const s2 = M.src[i] || { tipo: 'no', d: '' }, cc = cum[i] || ['si', '']; return '<tr><td><b>' + esc(r) + '</b></td><td>' + tipoTag(s2.tipo) + ' ' + fuenteRef(s2.f) + (s2.d ? '<small>' + esc(s2.d) + '</small>' : '') + '</td><td class="rq-' + cc[0] + '">' + stIcon(cc[0]) + esc(cc[1]) + '</td></tr>'; }).join('');
+    // alternativa: dónde gana y dónde pierde frente a la de mayor puntaje
+    const riv = m.win === v ? otras2.slice().sort((a, b) => m.sc[b].total - m.sc[a].total)[0] : m.win;
+    const mas = CR.filter((k) => m.sc[v][k.id] > m.sc[riv][k.id] + 0.005).map((k) => k.t.toLowerCase()), menos = CR.filter((k) => m.sc[v][k.id] < m.sc[riv][k.id] - 0.005).map((k) => k.t.toLowerCase());
+    const alt = m.win === v
+      ? 'En este mueble la ' + v + ' es la de mayor puntaje: ' + n2(m.sc[v].total) + ' frente a ' + otras2.map((x) => n2(m.sc[x].total) + ' de la ' + x).join(' y ') + '.' + (mas.length ? ' Le gana a la ' + riv + ' en ' + mas.join(', ') + '.' : '') + (menos.length ? ' Pierde con ella en ' + menos.join(', ') + '.' : '')
+      : 'En este mueble puntúa más la alternativa ' + m.win + ' (' + esc(itemOf(m.win, n).short) + '): ' + n2(m.sc[m.win].total) + ' frente a ' + n2(m.sc[v].total) + ' de la ' + v + '. La ' + v + ' pierde en ' + (menos.join(', ') || 'el total') + (mas.length ? ' y gana en ' + mas.join(', ') : '') + '. Se fabrica la ' + v + ' porque el local se arma por espacio completo: no se mezclan muebles de alternativas distintas.';
+    // materiales con su razón
+    const mks = []; it.piezas.forEach((p) => { if (P[p[0]] && !mks.includes(p[0]) && !/^canto/.test(p[0])) mks.push(p[0]); });
+    const fams = L.uniones.familias(v, n), un = L.uniones.of(v, n);
+    const lz = h.luzData(v).find((d) => d.n === n);
+    const top = c.mats.slice().sort((a, b) => b.costo - a.costo).slice(0, 3);
+    // preguntas probables, con la respuesta que ya está en los datos
+    const Q = [];
+    if (M.medidas[0]) Q.push(['¿Por qué mide ' + io.dims.replace(/, a .*$/, '') + '?', M.medidas[0][1]]);
+    Q.push(['¿Qué requisito no cumple del todo?', flojos.length ? flojos.map((x) => x.r + ': ' + x.c[1]).join(' · ') + '.' : 'Cumple los ' + reqs.length + ' requisitos sin salvedad.']);
+    const pierde = (it.why || []).find((w) => /pierde/i.test(w.t));
+    if (pierde) Q.push(['¿Cuál es su punto débil?', pierde.d]);
+    if (lz) Q.push(['¿Cómo se cambia una fuente o una tira?', (lz.where || 'La fuente queda accesible') + '.' + (un.some((x) => x.u.id === 'RG') ? ' Se llega por la tapa de registro, con cuatro tornillos.' : '')]);
+    Q.push(['¿Cuánto cuesta y qué pesa más?', cop(c.total) + ' en materiales. Lo que más pesa: ' + top.map((t) => t.m + ' (' + cop(t.costo) + ')').join(', ') + '.']);
+    return '<section class="en-sec en-fab" id="g-m-' + n + '" data-title="' + esc(n + ' · ' + ROLE[n]) + '">' +
+      '<header class="en-fab-h"><span class="en-fab-n">' + nn(n) + '</span><div><small>' + esc(ESP(n).t) + ' · guía de sustentación</small><h2>' + esc(ROLE[n]) + '</h2><p>' + esc(io.name) + '</p></div>' + vtag(v) + '</header>' +
+      '<div class="en-fab-top"><div class="en-fab-iso">' + DW.isoSVG(v, n, 300, 220) + '</div><div><p class="en-fab-res">' + esc(io.it.resumen || '') + '</p><dl class="n1-dl sm">' +
+      '<div><dt>Quién lo usa</dt><dd>' + esc(M.usuario) + '</dd></div><div><dt>Para qué</dt><dd>' + esc(M.uso) + '</dd></div><div><dt>Medidas</dt><dd class="mono">' + esc(io.dims) + '</dd></div><div><dt>Dónde va</dt><dd>' + esc(io.ubic || it.ubic || '') + '</dd></div></dl></div></div>' +
+      (it.why && it.why.length ? '<h4 class="n1-h4">Por qué tiene esa forma</h4><ul class="en-ul">' + it.why.map((w) => '<li><b>' + esc(w.t) + ':</b> ' + esc(w.d) + '</li>').join('') + '</ul>' : '') +
+      '<h4 class="n1-h4">Por qué mide lo que mide</h4><ul class="n1-meds">' + M.medidas.map((x) => { const a = A[x[0]]; return '<li><b>' + esc(a.t) + '</b> <span class="mono">P5 ' + f1(a.p5) + ' · P95 ' + f1(a.p95) + ' cm</span><p>' + esc(x[1]) + '</p></li>'; }).join('') + '</ul>' +
+      '<h4 class="n1-h4">Qué tiene que cumplir y de dónde sale</h4><div class="n1-tbl"><table><thead><tr><th style="width:30%">Requisito</th><th style="width:28%">Fuente o dato</th><th>En este mueble</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<h4 class="n1-h4">Por qué esta alternativa</h4><p>' + alt + '</p><div class="n1-tbl en-mat"><table><thead><tr><th>Alternativa</th>' + CR.map((k) => '<th class="r">' + ({ req: 'Requisitos', costo: 'Costo', fab: 'Fabric.', dura: 'Durab.', mont: 'Montaje', marca: 'Marca' }[k.id] || k.id) + '<br>' + k.peso + ' %</th>').join('') + '<th class="r">Total</th><th></th></tr></thead><tbody>' +
+      VER.map((x) => '<tr><td>' + vtag(x) + ' ' + esc(itemOf(x, n).short) + '</td>' + CR.map((k) => '<td class="r mono">' + n2(m.sc[x][k.id]) + '</td>').join('') + '<td class="r mono"><b>' + n2(m.sc[x].total) + '</b></td><td>' + (x === m.win ? 'Mayor puntaje' : '') + (x === v ? (x === m.win ? ' · se fabrica' : 'Se fabrica') : '') + '</td></tr>').join('') + '</tbody></table></div>' +
+      '<div class="en-fab-cols"><div><h4 class="n1-h4">De qué se hace y por qué</h4><ul class="en-ul">' + mks.map((k) => '<li><b>' + esc(P[k].m) + ':</b> ' + esc(N.matj[k] || 'Material del despiece.') + '</li>').join('') + '</ul>' +
+      '<p class="n1-note">' + (fams.length >= 2 ? 'Regla de los dos materiales: cumple (' + fams.map((f) => L.uniones.famT[f].split(' (')[0].toLowerCase()).join(' y ') + ').' : '<b>Regla de los dos materiales: hoy es solo tablero.</b> El profesor lo señaló; el grupo decide el segundo material.') + '</p></div>' +
+      '<div><h4 class="n1-h4">Cómo se une</h4><ul class="en-ul">' + un.map((x) => '<li><b>' + esc(x.u.t) + ':</b> ' + esc(x.u.como.split('. ')[0]) + '.</li>').join('') + '</ul>' +
+      (lz ? '<h4 class="n1-h4">La luz</h4><p>' + f1(lz.d.m) + ' m de tira o perfil, ' + Math.round(lz.load) + ' W' + (lz.cap ? ' sobre una fuente de ' + lz.cap + ' W: trabaja al ' + Math.round(lz.pct * 100) + ' % (el límite que se fijó es el ' + Math.round(N.luz.margen * 100) + ' %).' : '.') + (lz.nota ? ' ' + esc(lz.nota) : '') + ' Cable de ' + String(lz.sec[0]).replace('.', ',') + ' mm² como mínimo: la caída de tensión queda en ' + (lz.drop * 100).toFixed(1).replace('.', ',') + ' %.</p>' : '') + '</div></div>' +
+      (GREV[n] ? '<h4 class="n1-h4">Decisiones recientes que entraron con ayuda de la IA: revísalas y hazlas tuyas</h4><ul class="en-ul en-g-rev">' + GREV[n].map((t) => '<li>' + esc(t) + '</li>').join('') + '</ul>' : '') +
+      '<h4 class="n1-h4">Preguntas que te pueden hacer</h4><div class="n1-tbl en-g-q"><table><tbody>' + Q.map((q) => '<tr><td style="width:32%"><b>' + esc(q[0]) + '</b></td><td>' + (q[1].indexOf('<') >= 0 ? q[1] : esc(q[1])) + '</td></tr>').join('') + '</tbody></table></div>' +
+      '</section>';
+  }
+  function docG(doc) {
+    const v = doc.ver, vi = vinfo(v), best = h.resumen(), CR = N.criterios, n2 = (x) => x.toFixed(2).replace('.', ','), tot = VS.calc(v), F = N.ficha;
+    const items = [{ id: 'g-1', t: '1 · Para qué es esta guía' }, { id: 'g-2', t: '2 · Qué hizo la inteligencia artificial y qué le toca al grupo' }, { id: 'g-3', t: '3 · El proyecto en dos minutos' }, { id: 'g-4', t: '4 · Por qué la ' + vi.nombre }, { id: 'g-5', t: '5 · Mueble por mueble' }];
+    FABN.forEach((n) => items.push({ id: 'g-m-' + n, t: v + '-' + nn(n) + ' · ' + ROLE[n] + ' · ' + itemOf(v, n).short, sub: true }));
+    items.push({ id: 'g-6', t: '6 · Lo que sigue abierto' });
+    let s = cover(doc, '<div class="en-art-plan">' + L.plan.svg(v, { cotas: false, nums: true }) + '</div>') + toc(doc, items);
+    s += sec('g-1', '1 · Para qué es esta guía',
+      lead('Esta guía es para el grupo: no va en la carpeta. El profesor escribió que la inteligencia artificial se admite como apoyo, no para hacer el trabajo, y que en la revisión <b>cada decisión del diseño debe poder explicarse</b>. Aquí están, mueble por mueble, las razones que ya están escritas en el proyecto, para que cada integrante las lea, las verifique y las diga con sus palabras.') +
+      '<ul class="en-ul"><li><b>Léela con el modelo abierto.</b> Cada mueble tiene una página: mírelo en la página web, en explosionado, mientras leen.</li>' +
+      '<li><b>Verifiquen, no memoricen.</b> Tomen dos o tres medidas de cada mueble y compruébenlas contra la tabla de medidas del cuerpo y contra el plano. Si una razón no los convence, cámbienla: el mueble es de ustedes.</li>' +
+      '<li><b>Repartan los muebles.</b> Doce muebles entre los integrantes: cada uno sustenta los suyos y sabe quién responde por los demás.</li>' +
+      '<li><b>Lo marcado como decisión reciente</b> entró en la revisión de noviembre con ayuda de la IA. Son las que más conviene revisar, porque nadie del grupo las propuso.</li></ul>' +
+      note('Todo lo que dice esta guía sale de los mismos datos de la página y de los documentos: si cambia el proyecto, se vuelve a generar con <span class="mono">node tools/pdf/build.js G</span>.'));
+    s += sec('g-2', '2 · Qué hizo la inteligencia artificial y qué le toca al grupo',
+      lead('La declaración de uso de IA tiene que ser cierta. Esto es lo que consta en el historial del proyecto; el grupo debe confirmarlo y completar su parte antes de la revisión.') +
+      '<div class="n1-tbl"><table><thead><tr><th style="width:50%">Lo que hizo la IA (Claude, de Anthropic)</th><th>Lo que hizo el grupo <small>(confirmar y completar)</small></th></tr></thead><tbody><tr><td><ul class="en-ul">' +
+      ['Escribió todo el código de la página web y modeló en código el local y los muebles (three.js).', 'Propuso las tres alternativas de cada mueble a partir de los documentos del grupo, y sus medidas de detalle.', 'Generó los planos, los despieces, los planes de corte, el cálculo de la luz, los tiempos y los costos.', 'Buscó normas, fichas técnicas y precios, con su enlace y su fecha.', 'Redactó los textos de las notas y armó los PDF.', 'En la revisión de noviembre introdujo las decisiones de detalle que esta guía marca en cada mueble.'].map((t) => '<li>' + t + '</li>').join('') +
+      '</ul></td><td><ul class="en-ul">' +
+      ['Definió el encargo: una tienda y taller de impresión 3D en un local de 6 × 7 m, con autorización del director del curso.', 'Entregó los documentos de partida: la planta de distribución, el documento de mobiliario, materiales y fabricación, y las imágenes de referencia.', 'Fijó la ubicación del local y de la planta: Villanueva (Casanare).', 'Decidió qué se entrega, qué se quita y qué se cambia en cada revisión, y aprobó cada entrega.', '<b>Por completar:</b> qué decisiones de diseño discutió y cambió cada integrante, qué verificó en sitio o con un ebanista, y los renders propios.'].map((t) => '<li>' + t + '</li>').join('') +
+      '</ul></td></tr></tbody></table></div>' +
+      '<p class="n1-box">La declaración que hoy lleva la portada de los documentos dice: «' + esc(F.ia) + '»</p>' +
+      note('Lo que el profesor va a medir no es quién dibujó, sino si el grupo entiende y responde por cada decisión. Lo que no puedan explicar tiene dos salidas honestas: estudiarlo hasta poder defenderlo, o cambiarlo por una decisión propia y decir por qué.'));
+    const jg = L.costos && L.costos.todo ? L.costos.todo().juego : null;
+    s += sec('g-3', '3 · El proyecto en dos minutos',
+      '<dl class="n1-dl"><div><dt>Qué es</dt><dd>' + esc(F.nombre) + ': un local que vende impresoras, filamento y piezas impresas, e imprime a la vista del público.</dd></div>' +
+      '<div><dt>Dónde</dt><dd>' + esc(F.ubicacion) + '. Local de 6.00 × 7.00 m (42 m²): sala de ventas de 33 m² y trastienda de 9 m².</dd></div>' +
+      '<div><dt>Qué se diseñó</dt><dd>Los ' + FABN.length + ' muebles que se fabrican, cada uno en tres alternativas (una por espacio: ' + VER.map((x) => x + ' · ' + esc(vinfo(x).nombre)).join(', ') + '). Los otros 8 elementos se compran.</dd></div>' +
+      '<div><dt>Qué se fabrica</dt><dd>El espacio ' + v + ' · ' + esc(vi.nombre) + ': ' + esc(vi.titulo) + '.</dd></div>' +
+      '<div><dt>Cuánto cuesta</dt><dd>' + cop(tot.total) + ' en materiales, herrajes y acabados de los ' + FABN.length + ' muebles, con precios de catálogo y enlace a cada tienda.' + (jg ? ' Un juego fabricado en la planta, con mano de obra, indirectos y las cuatro impresoras: ' + cop(jg.total) + ' sin IVA (Nota 3).' : '') + '</dd></div>' +
+      '<div><dt>Cómo se produce</dt><dd>La planta de Villanueva fabrica 12 juegos en 2027, uno por mes: 2.066 horas disponibles, 172,2 horas por juego de ritmo (Nota 2).</dd></div>' +
+      '<div><dt>Cómo se sabe que las medidas son correctas</dt><dd>Hay una sola fuente: el modelo 3D. La tabla de despiece, el explosionado y las hojas de piezas salen de él y una comprobación automática las compara: ' + (DW.coincide && DW.coincide(v) ? '0 diferencias.' : 'ver el documento 04.') + '</dd></div></dl>');
+    const avgC = (x, id) => FABN.reduce((a, n) => a + L.n1.matrix(n).sc[x][id], 0) / FABN.length;
+    const riv = VER.filter((x) => x !== v).sort((a, b) => best.avg[b] - best.avg[a])[0];
+    const gana = CR.filter((k) => avgC(v, k.id) > avgC(riv, k.id) + 0.005), pierde = CR.filter((k) => avgC(v, k.id) < avgC(riv, k.id) - 0.005);
+    s += sec('g-4', '4 · Por qué la ' + vi.nombre,
+      lead('La matriz pone a la ' + v + ' primero, pero por muy poco: ' + n2(best.avg[v]) + ' frente a ' + n2(best.avg[riv]) + ' de la ' + riv + '. Con esa diferencia, el promedio solo no alcanza para sustentar la elección: hay que saber en qué gana, en qué pierde y qué se quiso lograr.') +
+      '<div class="n1-tbl en-mat"><table><thead><tr><th>Promedio de los ' + FABN.length + ' muebles</th>' + CR.map((k) => '<th class="r">' + ({ req: 'Requisitos', costo: 'Costo', fab: 'Fabric.', dura: 'Durab.', mont: 'Montaje', marca: 'Marca' }[k.id] || k.id) + '<br>' + k.peso + ' %</th>').join('') + '<th class="r">Total</th><th>Muebles que gana</th></tr></thead><tbody>' +
+      VER.map((x) => '<tr><td>' + vtag(x) + ' ' + esc(vinfo(x).nombre) + '</td>' + CR.map((k) => '<td class="r mono">' + n2(avgC(x, k.id)) + '</td>').join('') + '<td class="r mono"><b>' + n2(best.avg[x]) + '</b></td><td>' + best.wins[x] + ' de ' + FABN.length + '</td></tr>').join('') + '</tbody></table></div>' +
+      '<ul class="en-ul"><li><b>Frente a la ' + riv + ', la ' + v + ' gana en:</b> ' + (gana.map((k) => k.t.toLowerCase() + ' (' + n2(avgC(v, k.id)) + ' contra ' + n2(avgC(riv, k.id)) + ')').join('; ') || 'ningún criterio') + '.</li>' +
+      '<li><b>Y pierde en:</b> ' + (pierde.map((k) => k.t.toLowerCase() + ' (' + n2(avgC(v, k.id)) + ' contra ' + n2(avgC(riv, k.id)) + ')').join('; ') || 'ningún criterio') + '.</li>' +
+      '<li><b>Lo que se quiso lograr</b> (el concepto del espacio): ' + esc(vi.concepto) + '</li>' +
+      '<li><b>Cómo puntúa la marca:</b> ' + VER.map((x) => x + ' ' + N.marca[x][0] + ' de 5 — ' + esc(N.marca[x][1])).join('. ') + '.</li></ul>' +
+      note('Pregunta segura: «si la diferencia es de una centésima, ¿por qué no la ' + riv + '?». La respuesta tiene que ser de diseño (qué experiencia de compra se busca, qué imagen deja el local), no el número. Si al discutirlo el grupo prefiere otra alternativa, también es una respuesta válida: las tres están dibujadas, despiezadas y costeadas.'));
+    s += '<div id="g-5" class="en-page"><h2>5 · Mueble por mueble</h2>' + lead('Una ficha por mueble. Cada una termina con las preguntas más probables y la respuesta que ya está en los datos del proyecto. Dónde está cada cosa: requisitos en el documento 02 y en «Requisitos · Espacio ' + VDOC[v].num + '»; planos (láminas .1 a .5 de cada mueble) en el documento 03 y en el expediente; despiece y uniones en el documento 04; luz en el documento 05.') + '</div>';
+    FABN.forEach((n) => { s += guiaMueble(v, n); });
+    const solo = FABN.filter((n) => L.uniones.familias(v, n).length < 2);
+    s += sec('g-6', '6 · Lo que sigue abierto',
+      lead('Lo que todavía no está resuelto. Es mejor llegar a la revisión sabiéndolo que descubrirlo con la pregunta.') +
+      '<div class="n1-tbl"><table><thead><tr><th style="width:30%">Asunto</th><th>Estado</th></tr></thead><tbody>' +
+      [['Segundo material', 'La guía pide dos materiales por mueble. ' + (solo.length ? 'En este espacio, ' + solo.length + ' de ' + FABN.length + ' son solo tablero: ' + solo.map((n) => n + ' ' + itemOf(v, n).short).join(', ') + '. Lo decide el grupo.' : 'Todos los muebles cumplen.')],
+        ['Renders propios', 'El profesor los pide sin la interfaz de la página y con la luz de los muebles encendida. En la página: modo noche y el botón del ojo (o la tecla H) para ocultar la interfaz.'],
+        ['Declaración de IA', 'Debe decir lo que pasó (sección 2) y lo que hizo el grupo. No se entrega sin revisarla.'],
+        ['Pegante de las tapas de 30 mm', 'Las tapas y repisas de dos capas se encolan, pero el pegante no está en la lista de compras de los muebles 7, 9, 10 y 17.'],
+        ['Tira COB detrás del opal', 'En la vitrina de nicho (12) y el nicho de bienvenida (13) falta definir sobre qué se pega la tira: no hay fondo.'],
+        ['Reposapiés de la barra', 'Falta definir la rosca de los soportes y agregar esos tornillos, y los del registro, a la lista de compras.'],
+        ['Ranuras de ventilación', 'Las dos ranuras de 60 × 8 mm de cada compartimento de fuente están en el texto y en la leyenda de los planos, no dibujadas.'],
+        ['Medidas del local', 'Se estimaron desde la imagen del proyecto (frente de 6.00 m): hay que medir en sitio antes de pedir el corte.'],
+        ['Tiempos de la Nota 2', 'Son datos tipo: se validan cronometrando el primer juego o con un ebanista.']].map((r) => '<tr><td><b>' + r[0] + '</b></td><td>' + esc(r[1]) + '</td></tr>').join('') + '</tbody></table></div>');
+    return s;
+  }
+  EN.guiaDoc = function (v) {
+    v = v || DEV; const vi = vinfo(v), num = VDOC[v].num;
+    return { num, ver: v, id: 'guia-' + v, file: 'guia-de-sustentacion-' + vi.nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), t: 'Guía de sustentación · Espacio ' + num + ' · ' + vi.nombre, label: 'Guía de sustentación',
+      sub: 'Para el grupo: las razones de cada mueble, lo que hizo la inteligencia artificial y lo que sigue abierto. No va en la carpeta de entrega', kicker: 'Uso interno del grupo · Preparación de la revisión', fecha: REV, req: true, sec2: 'Espacio ' + num + ' · ' + vi.nombre, serie: '' };
+  };
   EN.html = function (num, opt) {
+    if (num === 'G') { const doc = EN.guiaDoc(); return { doc, html: docG(doc) }; }
     if (num === 'N2') { const doc = EN.n2Doc(); return { doc, html: docN2(doc) }; }
     if (num === 'F') { const doc = EN.fichaDoc(); return { doc, html: docF(doc) }; }
     if (typeof num === 'string' && num[0] === 'P') { const doc = EN.provDoc(num.slice(1)); return { doc, html: docP(doc) }; }
