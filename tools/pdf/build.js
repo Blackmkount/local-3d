@@ -3,6 +3,7 @@
      node tools/pdf/build.js 1 2 3 4 5 6            todos (o los que se indiquen) → entrega/*.pdf
    Opciones:  --base=http://localhost:8765   --out=entrega   --vers=B   (solo esa versión en los documentos 3 y 6)
               --ms=25000  (tiempo máximo por render)   --fast  (renders rápidos, para probar)   --nomood  (renders sin atenuar la luz general)
+              --renders=carpeta  (documento 6 con las imágenes de esa carpeta, sin capturar: render-B-02.jpg, render-B-00-vista-general.jpg…)
    Necesita: npm i playwright (Chromium con WebGL por software) y python3 con pypdf.
    Cada documento se imprime dos veces: la primera da la página de cada sección (destinos con nombre
    del PDF), la segunda lleva el índice con páginas; luego se superpone la capa con cabeceras y pies. */
@@ -48,7 +49,16 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
       // renders: cada mueble y una vista general, versión por versión
       const vers = docOpt.vers || ['B', 'A', 'C'];
       docOpt.general = {};
-      for (const v of vers) {
+      // --renders=carpeta: no captura; arma el documento con las imágenes de esa carpeta (las del grupo o las de una corrida anterior)
+      const RD = opt.renders && fs.existsSync(opt.renders) ? opt.renders : null;
+      if (RD) {
+        const url = (f) => { const q = path.join(RD, f); return fs.existsSync(q) ? 'data:image/jpeg;base64,' + fs.readFileSync(q).toString('base64') : ''; }, R = {};
+        fs.readdirSync(RD).forEach((f) => { const m = /^render-([ABC])-(\d+)\.jpe?g$/i.exec(f); if (m && +m[2]) R[m[1].toUpperCase() + +m[2]] = url(f); });
+        vers.forEach((v) => { docOpt.general[v] = { interior: url('render-' + v + '-00-vista-general.jpg'), fachada: url('render-' + v + '-00-fachada.jpg') }; });
+        await page.evaluate((r) => { L3D.n1.state.renders = Object.assign(L3D.n1.state.renders || {}, r); }, R);
+        log('renders tomados de', RD, '·', Object.keys(R).length, 'muebles');
+      }
+      for (const v of RD ? [] : vers) {
         log('renders de la versión', v);
         const ms = opt.fast ? 3000 : +(opt.ms || 25000), mood = !opt.nomood;
         await page.evaluate(async (a) => { await L3D.n1.capture({ ver: a.v, ms: a.ms, keep: true, q: 0.9, mood: a.mood }); }, { v, ms, mood });
@@ -57,7 +67,7 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
         log('  listo', v, Math.round((Date.now() - t0) / 1000) + ' s');
       }
     }
-    if (num === 6) {
+    if (num === 6 && !(opt.renders && fs.existsSync(opt.renders))) {
       // los renders también quedan como imágenes sueltas (OUT/renders), para ponerlos en otros documentos
       const R = await page.evaluate(() => L3D.n1.state.renders || {}), dir = path.join(OUT, 'renders');
       fs.mkdirSync(dir, { recursive: true });

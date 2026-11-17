@@ -342,6 +342,8 @@
      En el visor, las tiras LED brillan pero no alumbran (sería muy costoso en tiempo real); para un render sí se puede:
      un grupo fijo de luces puntuales se reparte sobre las tiras del mueble que se captura (o sobre las más largas del
      local, en una vista general). El grupo no cambia de tamaño para no recompilar los materiales en cada toma. */
+  /* ángulo de cámara propio del render (el del visor encuadra para navegar, no para la foto) */
+  const RCAM = { B12: -1.3 };
   const MOOD = { n: 10, pool: null, st: null };       // diez luces: con más, el sombreador de cada material crece demasiado
   function moodOn() {
     const E = L.engine, T = THREE;
@@ -353,15 +355,19 @@
     const tiras = (ks) => { const pts = []; ks.forEach((k) => { const it = L.furn.items[k]; if (!it) return; it.insts.forEach((o) => o.parts.forEach((p) => {
       if (!/^(cob|perfilLed)$/.test(p.userData.mk || '')) return;
       box.setFromObject(p); box.getCenter(c); box.getSize(sz);
-      pts.push({ c: c.clone(), len: Math.max(sz.x, sz.y, sz.z), ax: sz.x >= sz.y && sz.x >= sz.z ? 'x' : sz.y >= sz.z ? 'y' : 'z' });
+      const q = { c: c.clone(), len: Math.max(sz.x, sz.y, sz.z), ax: sz.x >= sz.y && sz.x >= sz.z ? 'x' : sz.y >= sz.z ? 'y' : 'z', k: 1 };
+      // mueble angosto (vitrina, repisa): la tira queda a centímetros de la laca blanca y la quema; se baja la luz y se separa de la cara
+      if (o.box) { const bs = o.box.getSize(sz), bc = o.box.getCenter(c), m = Math.min(bs.x, bs.z); q.k = Math.max(0.4, Math.min(1, m / 0.6));
+        ['x', 'z'].forEach((a) => { if (a !== q.ax) { const d = bc[a] - q.c[a]; q.c[a] += Math.sign(d) * Math.min(Math.abs(d), 0.05); } }); }
+      pts.push(q);
     })); }); return pts.sort((a, b) => b.len - a.len); };
     // primero las tiras del mueble que se captura (dos luces por tira larga si caben); con lo que sobre, las de los vecinos
     const A = tiras(list), two = A.length * 2 <= MOOD.n, out = [];
     A.slice(0, MOOD.n).forEach((q) => {
       const n = two && q.len > 0.8 ? 2 : 1;
-      for (let i = 0; i < n; i++) { const p = q.c.clone(); if (n === 2) p[q.ax] += (i ? 0.25 : -0.25) * q.len; out.push({ p, i: (0.55 * Math.min(q.len, 1.6) + 0.2) / n * (two ? 1 : 1.25) }); }
+      for (let i = 0; i < n; i++) { const p = q.c.clone(); if (n === 2) p[q.ax] += (i ? 0.25 : -0.25) * q.len; out.push({ p, i: (0.55 * Math.min(q.len, 1.6) + 0.2) / n * (two ? 1 : 1.25) * q.k }); }
     });
-    if (resto) tiras(resto.filter((k) => list.indexOf(k) < 0)).slice(0, Math.max(0, MOOD.n - out.length)).forEach((q) => out.push({ p: q.c.clone(), i: 0.55 * Math.min(q.len, 1.6) + 0.2 }));
+    if (resto) tiras(resto.filter((k) => list.indexOf(k) < 0)).slice(0, Math.max(0, MOOD.n - out.length)).forEach((q) => out.push({ p: q.c.clone(), i: (0.55 * Math.min(q.len, 1.6) + 0.2) * q.k * (list.length ? 0.6 : 1) }));
     MOOD.pool.forEach((l, i) => { const q = out[i]; if (q) { l.position.copy(q.p); l.intensity = q.i * (MOOD.k || 1); } else l.intensity = 0; });
   }
   function moodOff() {
@@ -407,10 +413,14 @@
       const vf = T.MathUtils.degToRad(E.camera.fov), asp = E.size.w / E.size.h, f = Math.min(vf, 2 * Math.atan(Math.tan(vf / 2) * asp));
       Rm.hideDiv = it.zone === 'trastienda';
       // la cámara se queda dentro de la sala (o de la trastienda), sin atravesar la mampara ni los muros
-      const th = it.th, ph = Math.min(it.ph, 1.3), tr = it.zone === 'trastienda';
-      let r = E.clamp(rad / Math.sin(f / 2) * 1.35, 1.8, 14);
-      const inside = (rr) => { const x = c.x + rr * Math.sin(ph) * Math.sin(th), z = c.z + rr * Math.sin(ph) * Math.cos(th); return x > -2.9 && x < 2.9 && (tr ? z < -2.1 && z > -3.4 : z > -1.9 && z < 3.3); };
-      while (r > 1.8 && !inside(r)) r -= 0.1;
+      const ph = Math.min(it.ph, 1.3), tr = it.zone === 'trastienda', th0 = RCAM[v + k] !== undefined ? RCAM[v + k] : it.th;
+      const want = E.clamp(rad / Math.sin(f / 2) * 1.35, 1.8, 14);
+      const inside = (rr, t) => { const x = c.x + rr * Math.sin(ph) * Math.sin(t), z = c.z + rr * Math.sin(ph) * Math.cos(t); return x > -2.9 && x < 2.9 && (tr ? z < -2.1 && z > -3.4 : z > -1.9 && z < 3.3); };
+      const rmax = (t) => { let rr = want; while (rr > 1.8 && !inside(rr, t)) rr -= 0.1; return inside(rr, t) ? rr : 0; };
+      let th = th0, r = rmax(th0);
+      // si desde su ángulo la cámara no alcanza a alejarse (mueble contra la fachada o en una esquina), se gira hasta que el mueble quepa entero
+      if (r < want * 0.7) for (let j = 1; j <= 11 && r < want * 0.7; j++) for (const d of [0.15 * j, -0.15 * j]) { const rr = rmax(th0 + d); if (rr > r + 0.05) { r = rr; th = th0 + d; } }
+      if (!r) r = 1.8;
       E.flyTo({ target: c, theta: th, phi: ph, radius: r }, 0);
       E.shadowDirty = true; E.invalidate(6);
       let n = 0;

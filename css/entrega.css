@@ -100,6 +100,7 @@ body.en-pdf #app { display: none !important; }
 .en-art-row svg { display: block; width: 100%; height: auto; }
 .en-art-row .n1-vt { position: absolute; left: 8px; top: 8px; }
 .en-art-img { width: 100%; border-radius: 8px; display: block; }
+.is-land .en-art-img { height: 54mm; object-fit: cover; object-position: center 52%; }
 .en-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-radius: 8px; box-shadow: 0 0 0 0.6px #c9c8c4; margin-top: auto; }
 .en-meta > div { padding: 7px 10px; box-shadow: 0 0 0 0.4px #d8d7d3; }
 .en-meta dt { font-size: 9px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #6e6e73; margin-bottom: 2px; }

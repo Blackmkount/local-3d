@@ -94,6 +94,9 @@ en un Chromium sin cabeza):
 Para generarlos: servir la carpeta (`python3 -m http.server 8765`) y correr `node tools/pdf/build.js 1 2 3 4 5` (necesita
 `playwright` y `python3` con `pypdf`; `qpdf` recomprime el resultado). Cada documento lleva portada, índice con páginas,
 cabeceras con la sección, marcadores y enlaces internos. Las láminas A3 van a su tamaño real: imprimir al 100 %.
+El documento 6 captura los renders en cada corrida (unos 14 minutos por versión con render por software); con
+`--renders=carpeta` se arma con las imágenes de esa carpeta (las propias del grupo, o las de una corrida anterior),
+con los nombres `render-B-02.jpg` … `render-B-17.jpg`, `render-B-00-vista-general.jpg` y `render-B-00-fachada.jpg`.
 
 Otros documentos del mismo generador: `A`, `B`, `C` (expediente de cada espacio), `RA`, `RB`, `RC` (requisitos),
 `PA`, `PB`, `PC` (lista de compras con enlaces), `F` (ficha en una página), `N2` (Nota 2), `N3` (Nota 3: proveedores,
