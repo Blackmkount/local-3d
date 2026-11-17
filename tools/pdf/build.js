@@ -2,7 +2,7 @@
 /* Genera los PDF de la entrega desde el visor, en un Chromium sin cabeza.
      node tools/pdf/build.js 1 2 3 4 5 6            todos (o los que se indiquen) → entrega/*.pdf
    Opciones:  --base=http://localhost:8765   --out=entrega   --vers=B   (solo esa versión en los documentos 3 y 6)
-              --ms=25000  (tiempo máximo por render)   --fast  (renders rápidos, para probar)
+              --ms=25000  (tiempo máximo por render)   --fast  (renders rápidos, para probar)   --nomood  (renders sin atenuar la luz general)
    Necesita: npm i playwright (Chromium con WebGL por software) y python3 con pypdf.
    Cada documento se imprime dos veces: la primera da la página de cada sección (destinos con nombre
    del PDF), la segunda lleva el índice con páginas; luego se superpone la capa con cabeceras y pies. */
@@ -13,7 +13,7 @@ const { execFileSync } = require('child_process');
 
 const args = process.argv.slice(2);
 const opt = {}; const nums = [];
-args.forEach((a) => { const m = /^--([a-z]+)(?:=(.*))?$/.exec(a); if (m) opt[m[1]] = m[2] === undefined ? true : m[2]; else nums.push(/^([RP]?[ABC]|F|N2|G)$/i.test(a) ? a.toUpperCase() : +a); });
+args.forEach((a) => { const m = /^--([a-z]+)(?:=(.*))?$/.exec(a); if (m) opt[m[1]] = m[2] === undefined ? true : m[2]; else nums.push(/^([RP]?[ABC]|F|N[23]|G)$/i.test(a) ? a.toUpperCase() : +a); });
 const BASE = opt.base || 'http://localhost:8765', OUT = path.resolve(opt.out || 'entrega'), ROOT = path.resolve(__dirname, '..', '..');
 const POST = path.join(__dirname, 'post.py');
 const DOCS = nums.length ? nums : [1, 2, 3, 4, 5, 6];
@@ -50,22 +50,21 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
       docOpt.general = {};
       for (const v of vers) {
         log('renders de la versión', v);
-        await page.evaluate(async ({ v, ms }) => { await L3D.n1.capture({ ver: v, ms, keep: true, q: 0.9 }); }, { v, ms: opt.fast ? 3000 : +(opt.ms || 25000) });
-        docOpt.general[v] = await page.evaluate(({ v, ms }) => new Promise((res) => {
-          const E = L3D.engine, T = THREE, api = L3D.api;
-          if (api.state.ver !== v) api.setVersion(v, { quiet: true });
-          document.body.classList.add('n1-capturing'); E.setViewOffset(0, 0, true);
-          E.flyTo({ target: new T.Vector3(0.1, 1.0, 0.2), theta: Math.PI + 0.42, phi: 1.22, radius: 7.4 }, 0);
-          E.shadowDirty = true; E.invalidate(6);
-          let n = 0; const t0 = performance.now();
-          E.capture = (pn, max, on) => {
-            n++;
-            if (E.busy && performance.now() - t0 < ms - 1000) { E.invalidate(2); return; }
-            if (n >= 3 && (!on || pn >= max - 1 || performance.now() - t0 > ms)) { E.capture = null; document.body.classList.remove('n1-capturing'); res(E.renderer.domElement.toDataURL('image/jpeg', 0.9)); } else E.invalidate(2);
-          };
-        }), { v, ms: opt.fast ? 3000 : +(opt.ms || 25000) });
+        const ms = opt.fast ? 3000 : +(opt.ms || 25000), mood = !opt.nomood;
+        await page.evaluate(async (a) => { await L3D.n1.capture({ ver: a.v, ms: a.ms, keep: true, q: 0.9, mood: a.mood }); }, { v, ms, mood });
+        docOpt.general[v] = {};
+        for (const view of ['interior', 'fachada']) docOpt.general[v][view] = await page.evaluate((a) => L3D.n1.captureView({ ver: a.v, view: a.view, ms: a.ms, mood: a.mood, q: 0.9 }), { v, view, ms, mood });
         log('  listo', v, Math.round((Date.now() - t0) / 1000) + ' s');
       }
+    }
+    if (num === 6) {
+      // los renders también quedan como imágenes sueltas (OUT/renders), para ponerlos en otros documentos
+      const R = await page.evaluate(() => L3D.n1.state.renders || {}), dir = path.join(OUT, 'renders');
+      fs.mkdirSync(dir, { recursive: true });
+      const save = (name, url) => { if (url) fs.writeFileSync(path.join(dir, name + '.jpg'), Buffer.from(url.split(',')[1], 'base64')); };
+      Object.keys(R).forEach((k) => save('render-' + k[0] + '-' + String(k.slice(1)).padStart(2, '0'), R[k]));
+      Object.keys(docOpt.general).forEach((v) => { save('render-' + v + '-00-vista-general', docOpt.general[v].interior); save('render-' + v + '-00-fachada', docOpt.general[v].fachada); });
+      log('  imágenes sueltas en', path.relative(process.cwd(), dir));
     }
     const info = await page.evaluate((a) => L3D.entrega.mount(a.num, a.opt), { num, opt: docOpt });
     const doc = info.doc;

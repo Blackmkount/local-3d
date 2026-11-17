@@ -338,6 +338,58 @@
       '<div class="n1-renders">' + FABN.map((k) => '<figure class="n1-rend"><div class="n1-rimg">' + (R[ST.ver + k] ? '<img alt="Render del mueble ' + k + ' en el local, versión ' + ST.ver + '" src="' + R[ST.ver + k] + '">' : '<span class="n1-load">Sin capturar</span>') + '</div><figcaption><b>' + k + '</b> ' + esc(itemOf(ST.ver, k).short) + '<button type="button" class="link" data-n1go="' + k + '">Ver en 3D</button></figcaption></figure>').join('') + '</div>';
   }
   /* opt: { ver, ms (tiempo máximo por imagen), list (muebles), done(url, n) } → promesa con los renders de la versión */
+  /* Ambiente de render: baja la luz general del local y enciende de verdad la luz de los muebles.
+     En el visor, las tiras LED brillan pero no alumbran (sería muy costoso en tiempo real); para un render sí se puede:
+     un grupo fijo de luces puntuales se reparte sobre las tiras del mueble que se captura (o sobre las más largas del
+     local, en una vista general). El grupo no cambia de tamaño para no recompilar los materiales en cada toma. */
+  const MOOD = { n: 10, pool: null, st: null };       // diez luces: con más, el sombreador de cada material crece demasiado
+  function moodOn() {
+    const E = L.engine, T = THREE;
+    if (!MOOD.pool) { MOOD.pool = []; for (let i = 0; i < MOOD.n; i++) { const l = new T.PointLight(0xffd0a0, 0, 1.25, 2); l.visible = true; E.scene.add(l); MOOD.pool.push(l); } }
+    if (!MOOD.st) { MOOD.st = { led: E.ledLights.map((l) => l.intensity), env: E.envK }; E.ledLights.forEach((l) => { l.intensity = (l.userData.i || l.intensity) * 0.42; }); E.setEnvK(MOOD.st.env * 0.5); }
+  }
+  function moodAim(list, resto) {
+    const T = THREE, box = new T.Box3(), c = new T.Vector3(), sz = new T.Vector3();
+    const tiras = (ks) => { const pts = []; ks.forEach((k) => { const it = L.furn.items[k]; if (!it) return; it.insts.forEach((o) => o.parts.forEach((p) => {
+      if (!/^(cob|perfilLed)$/.test(p.userData.mk || '')) return;
+      box.setFromObject(p); box.getCenter(c); box.getSize(sz);
+      pts.push({ c: c.clone(), len: Math.max(sz.x, sz.y, sz.z), ax: sz.x >= sz.y && sz.x >= sz.z ? 'x' : sz.y >= sz.z ? 'y' : 'z' });
+    })); }); return pts.sort((a, b) => b.len - a.len); };
+    // primero las tiras del mueble que se captura (dos luces por tira larga si caben); con lo que sobre, las de los vecinos
+    const A = tiras(list), two = A.length * 2 <= MOOD.n, out = [];
+    A.slice(0, MOOD.n).forEach((q) => {
+      const n = two && q.len > 0.8 ? 2 : 1;
+      for (let i = 0; i < n; i++) { const p = q.c.clone(); if (n === 2) p[q.ax] += (i ? 0.25 : -0.25) * q.len; out.push({ p, i: (0.55 * Math.min(q.len, 1.6) + 0.2) / n * (two ? 1 : 1.25) }); }
+    });
+    if (resto) tiras(resto.filter((k) => list.indexOf(k) < 0)).slice(0, Math.max(0, MOOD.n - out.length)).forEach((q) => out.push({ p: q.c.clone(), i: 0.55 * Math.min(q.len, 1.6) + 0.2 }));
+    MOOD.pool.forEach((l, i) => { const q = out[i]; if (q) { l.position.copy(q.p); l.intensity = q.i * (MOOD.k || 1); } else l.intensity = 0; });
+  }
+  function moodOff() {
+    const E = L.engine;
+    if (MOOD.pool) MOOD.pool.forEach((l) => { l.intensity = 0; });
+    if (MOOD.st) { E.ledLights.forEach((l, i) => { l.intensity = MOOD.st.led[i]; }); E.setEnvK(MOOD.st.env); MOOD.st = null; }
+    E.shadowDirty = true; E.invalidate(4);
+  }
+  /* una vista general del local (fachada, interior…) como render: sin interfaz y, con opt.mood, con la luz de los muebles */
+  function captureView(opt) {
+    opt = opt || {};
+    const api = L.api, E = L.engine, T = THREE, v = opt.ver || ST.ver, MS = opt.ms || 9000, g = typeof opt.view === 'string' ? api.VIEWS[opt.view] : opt.view;
+    if (api.state.sel) api.deselect(true);
+    if (api.state.ver !== v) api.setVersion(v, { quiet: true });
+    document.body.classList.add('n1-capturing'); E.setViewOffset(0, 0, true);
+    if (opt.mood) { moodOn(); moodAim(FABN); }
+    E.flyTo({ target: new T.Vector3(g.t[0], g.t[1], g.t[2]), theta: g.th, phi: g.ph, radius: g.r }, 0);
+    E.shadowDirty = true; E.invalidate(6);
+    return new Promise((res) => {
+      let n = 0; const t0 = performance.now();
+      E.capture = (pn, max, on) => {
+        n++;
+        if (n === 2) E.settleShells();
+        if (E.busy && performance.now() - t0 < MS - 1000) { E.invalidate(2); return; }
+        if (n >= 3 && (!on || pn >= max - 1 || performance.now() - t0 > MS)) { E.capture = null; const url = E.renderer.domElement.toDataURL('image/jpeg', opt.q || 0.9); if (opt.mood && !opt.keepMood) moodOff(); document.body.classList.remove('n1-capturing'); res(url); } else E.invalidate(2);
+      };
+    });
+  }
   function captureAll(opt) {
     opt = opt || {};
     const api = L.api, E = L.engine, Rm = L.room, T = THREE, v = opt.ver || ST.ver, R = (ST.renders = ST.renders || {}), MS = opt.ms || 9000, LIST = opt.list || FABN;
@@ -348,7 +400,9 @@
     if (api.state.ver !== v) api.setVersion(v, { quiet: true });
     document.body.classList.add('n1-capturing');
     E.setViewOffset(0, 0, true);
+    if (opt.mood) moodOn();
     const shot = (k) => new Promise((res) => {
+      if (opt.mood) moodAim([k], FABN);
       const it = L.furn.items[k], box = it.insts[0].box, c = box.getCenter(new T.Vector3()), rad = Math.max(0.6, box.getSize(new T.Vector3()).length() / 2);
       const vf = T.MathUtils.degToRad(E.camera.fov), asp = E.size.w / E.size.h, f = Math.min(vf, 2 * Math.atan(Math.tan(vf / 2) * asp));
       Rm.hideDiv = it.zone === 'trastienda';
@@ -363,6 +417,7 @@
       const t0 = performance.now();
       E.capture = (pn, max, on) => {
         n++;
+        if (n === 2) E.settleShells();
         if (E.busy && performance.now() - t0 < MS - 1000) { E.invalidate(2); return; }            // paredes que todavía se desvanecen
         if (n >= 3 && (!on || pn >= max - 1 || performance.now() - t0 > MS)) { E.capture = null; res(E.renderer.domElement.toDataURL('image/jpeg', opt.q || 0.88)); } else E.invalidate(2);
       };
@@ -371,6 +426,7 @@
     const next = () => {
       if (i >= LIST.length) {
         E.capture = null; Rm.hideDiv = false; document.body.classList.remove('n1-capturing');
+        if (opt.mood) moodOff();
         if (!opt.keep) {
           if (prev.ver !== v) api.setVersion(prev.ver, { quiet: true });
           E.flyTo({ target: new T.Vector3(prev.goal.tx, prev.goal.ty, prev.goal.tz), theta: prev.goal.th, phi: prev.goal.ph, radius: prev.goal.r }, 0);
@@ -476,7 +532,7 @@
     if (ST.nota !== 1 && MODS[ST.nota].click && MODS[ST.nota].click(e)) return;
     const nb = t.closest('[data-n1n]'); if (nb) { ST.n = +nb.dataset.n1n; const top = $('#n1-body').scrollTop; render(); $('#n1-body').scrollTop = top; return; }
     const vb = t.closest('[data-n1v]'); if (vb) { ST.ver = vb.dataset.n1v; const top = $('#n1-body').scrollTop; render(); $('#n1-body').scrollTop = top; return; }
-    if (t.closest('#n1-rgo')) return captureAll();
+    if (t.closest('#n1-rgo')) return captureAll({ mood: !L.engine.mobile });
     const go = t.closest('[data-n1go]'); if (go) { close(true); if (L.api.state.ver !== ST.ver) L.api.setVersion(ST.ver); L.api.select(+go.dataset.n1go, null, { force: true }); return; }
     if (t.closest('[data-n1plan]')) { close(true); L.api.setVersion(ST.ver); L.api.openPlan(); return; }
     const z = t.closest('[data-n1zoom]'); if (z) { const k = z.dataset.n1zoom; $('#n1-vs').innerHTML = sheet(k); $('#n1-vt').textContent = L.dwg.sheetName(k) + ' · ' + ST.n + ' · ' + itemOf(ST.ver, ST.n).short + ' · versión ' + ST.ver; $('#n1-view').hidden = false; return; }
@@ -528,7 +584,7 @@
     const o = { ver: ST.ver, n: ST.n }; if (ver) ST.ver = ver; if (n) ST.n = n;
     try { return { A: secA, B: secB, C: secC, D: secD, E: secE, F: secF, G: secG, H: secH, I: secI, K: secK }[id](); } finally { ST.ver = o.ver; ST.n = o.n; }
   }
-  L.n1 = { open, close, matrix, state: ST, render, capture: captureAll, sec: secHTML, SECS,
+  L.n1 = { open, close, matrix, state: ST, render, capture: captureAll, captureView, sec: secHTML, SECS,
     h: { esc, cop, f1, vtag, tipoTag, stIcon, pickN, pickV, itemOf, vinfo, ROLE, FABN, VER, base, ST_TXT, TIPO, SHORT, EST, inFrame, fuenteRef, antro, normas, reqCard, fuentes, sumTable, resumen, altBlock, duraTable, despiece, regla, mats, uniones, fichas, luzDe, luzData, luzCalc, cambios, impresoras, rastreo } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

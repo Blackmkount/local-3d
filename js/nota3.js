@@ -273,5 +273,5 @@
     if (b) { ST.n = +b.dataset.n3n; const body = document.getElementById('n1-body'), top = body.scrollTop; L.n1.render(); body.scrollTop = top; return true; }
     return false;
   }
-  L.notaMods[3] = { titulo: 'Nota 3 · Proveedores y costos', sub: 'Lista de compras, cotizaciones, selección y hoja de costos de los 12 juegos de la versión B · entrega del 18 de noviembre', secs: SECS, render, click };
+  L.notaMods[3] = { state: ST, titulo: 'Nota 3 · Proveedores y costos', sub: 'Lista de compras, cotizaciones, selección y hoja de costos de los 12 juegos de la versión B · entrega del 18 de noviembre', secs: SECS, render, click };
 })();

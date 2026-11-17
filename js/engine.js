@@ -844,6 +844,20 @@
     }
     return ch;
   }
+  /* capturas: deja de una vez cada muro y cada lámpara en su estado final, sin esperar el desvanecido */
+  E.settleShells = function () {
+    for (const s of E.shells) {
+      s.a = s.test(E.camPos, cur) ? 1 : 0;
+      for (const m of s.mats) {
+        m.opacity = (m.userData.glow ? m.userData.op * E.ledLevel : m.userData.op) * s.a;
+        const tr = s.a ? m.userData.tr : true;
+        if (m.transparent !== tr) { m.transparent = tr; m.needsUpdate = true; }
+        if (!m.userData.tr) m.depthWrite = s.a > 0.6;
+      }
+      s.obj.visible = s.a > 0.015;
+    }
+    E.shadowDirty = true; E.invalidate(3);
+  };
 
   /* =============================================================== postproceso
      Cadena propia, sin dependencias:
