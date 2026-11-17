@@ -1471,6 +1471,6 @@
       return { n, box: lb.clone().applyMatrix4(M) };
     });
   }
-  L.api = { boughtBoxes, select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openSpot, downloadGLB, closeSpot, toggleInv, layout, setVersion, openPlan, closePlan, openReqs, openVersions, planFit, state: S, pieceInfo };
+  L.api = { VIEWS, boughtBoxes, select, deselect, setExplode, playAsm, asmStep, goView, openMontaje, exitMontaje, openBudget, openMats, openSpot, downloadGLB, closeSpot, toggleInv, layout, setVersion, openPlan, closePlan, openReqs, openVersions, planFit, state: S, pieceInfo };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

@@ -402,14 +402,16 @@
     const vers = (opt && opt.vers) || [DEV].concat(otras);
     const items = [{ id: 'd6-como', t: 'Cómo se hicieron los renders' }];
     vers.forEach((v) => { items.push({ id: 'd6-' + v, t: (v === DEV ? 'Versión ' : 'Anexo · versión ') + v + ' · ' + vinfo(v).nombre }); FABN.forEach((n) => items.push({ id: 'd6-' + v + '-' + n, t: n + ' · ' + ROLE[n] + ' · ' + itemOf(v, n).short, sub: true })); });
-    let s = cover(doc, G[DEV] ? '<img class="en-art-img" src="' + G[DEV] + '" alt="">' : '') + toc(doc, items);
+    const gv = (v, k) => { const g = G[v]; return !g ? '' : typeof g === 'string' ? (k === 'interior' ? g : '') : g[k] || ''; };
+    let s = cover(doc, gv(DEV, 'interior') ? '<img class="en-art-img" src="' + gv(DEV, 'interior') + '" alt="">' : '') + toc(doc, items);
     s += sec('d6-como', 'Cómo se hicieron los renders',
-      lead('Cada mueble se captura en su sitio del modelo 3D del local, con la iluminación general (luz del centro comercial por la fachada y luminarias del cielo raso), la luz del propio mueble (perfil LED o tira COB con su fuente, encendida), el producto exhibido y el equipo integrado: las impresoras en el mueble 7, los carretes en la repisa de filamento, las herramientas en el panel y el computador en el escritorio. La cámara se queda dentro de la sala (o de la trastienda) sin atravesar muros ni la mampara, a la altura de una persona de pie, y encuadra el mueble completo.') +
+      lead('Cada mueble se captura en su sitio del modelo 3D del local, con la iluminación general del local (luminarias del cielo raso) atenuada y la luz del propio mueble encendida (perfil LED o tira COB con su fuente), el producto exhibido y el equipo integrado: las impresoras en el mueble 7, los carretes en la repisa de filamento, las herramientas en el panel y el computador en el escritorio. La cámara se queda dentro del perímetro de la sala (o de la trastienda), sin atravesar muros ni la mampara, y mira desde arriba para encuadrar el mueble completo; el cielo raso y las lámparas colgantes que taparían la vista se ocultan.') +
       '<div class="n1-tbl"><table><thead><tr><th>Dato</th><th>Valor</th></tr></thead><tbody>' +
-      [['Modelo', 'El mismo modelo 3D del visor (three.js), con los muebles a su medida y en su posición de la planta A-01'], ['Iluminación', 'Luz física: sol difuso por la fachada, luminarias del local y la luz de cada mueble con su temperatura de color (3000 K cálida); sombras suaves y oclusión ambiental'], ['Materiales', 'Melamina Rovere, laca blanca, acero negro, lámina perforada, vidrio y acrílico opal, con sus texturas y brillos'], ['Cámara', 'Perspectiva de 45°, a 1.5–1.7 m de altura, dentro del espacio del mueble'], ['Formato', '1600 × 1000 px, JPEG al 88 %, capturados del navegador sin cabeza (Chromium) con render por software'], ['Dónde verlos en vivo', 'En el visor, Nota 1 → I · Renders, se capturan en el momento con la tarjeta de video del equipo; o en el 3D, seleccionando el mueble']].map((r) => '<tr><td><b>' + r[0] + '</b></td><td>' + esc(r[1]) + '</td></tr>').join('') + '</tbody></table></div>');
+      [['Modelo', 'El mismo modelo 3D del visor (three.js), con los muebles a su medida y en su posición de la planta A-01'], ['Iluminación', 'Escena de noche, con el local encendido: luminarias del cielo raso y la luz de cada mueble (perfil LED o tira COB, 3000 K cálida) puesta donde va la tira en el plano. Para que la luz del mueble se lea, la luz general se baja al 42 % solo en la captura; sombras suaves y oclusión ambiental'], ['Sin interfaz', 'La captura toma solo el lienzo 3D: sin paneles, botones ni rótulos del visor, y sin las personas animadas'], ['Materiales', 'Melamina Rovere, laca blanca, acero negro, lámina perforada, vidrio y acrílico opal, con sus texturas y brillos'], ['Cámara', 'Perspectiva de 36°, alta y en tres cuartos, dentro del perímetro del local; si el mueble está contra la fachada o en una esquina, la cámara gira hasta que quepa entero'], ['Formato', '1600 × 1000 px, JPEG al 90 %, capturados del navegador sin cabeza (Chromium) con render por software'], ['Dónde verlos en vivo', 'En el visor, Nota 1 → I · Renders, se capturan en el momento con la tarjeta de video del equipo; o en el 3D, seleccionando el mueble']].map((r) => '<tr><td><b>' + r[0] + '</b></td><td>' + esc(r[1]) + '</td></tr>').join('') + '</tbody></table></div>');
     vers.forEach((v) => {
       s += sec('d6-' + v, (v === DEV ? 'Versión ' : 'Anexo · versión ') + v + ' · ' + vinfo(v).nombre + ' — ' + vinfo(v).titulo,
-        (G[v] ? '<figure class="en-rend en-rend-g"><img src="' + G[v] + '" alt="Vista general del local, versión ' + v + '"><figcaption><b>Vista general</b> desde el acceso · ' + esc(vinfo(v).concepto) + '</figcaption></figure>' : lead(esc(vinfo(v).concepto))), 'en-sec-min');
+        (gv(v, 'interior') ? '<figure class="en-rend en-rend-g"><img src="' + gv(v, 'interior') + '" alt="Vista general del local, versión ' + v + '"><figcaption><b>Vista general</b> desde el acceso · ' + esc(vinfo(v).concepto) + '</figcaption></figure>' : lead(esc(vinfo(v).concepto))) +
+        (gv(v, 'fachada') ? '<figure class="en-rend"><img src="' + gv(v, 'fachada') + '" alt="Fachada del local, versión ' + v + '"><figcaption><b>Fachada</b> desde el pasillo del centro comercial, con el aviso y la luz de los muebles encendidos</figcaption></figure>' : ''), 'en-sec-min');
       FABN.forEach((n) => {
         const io = itemOf(v, n), lz = h.luzDe(v, n), eq = { 7: 'Cuatro impresoras Bambu Lab P1S con AMS', 9: 'Carretes de filamento', 11: 'Herramientas colgadas', 17: 'Computador y monitor', 5: 'Computador portátil del asesor' }[n];
         s += '<figure class="en-rend" id="d6-' + v + '-' + n + '">' + (R[v + n] ? '<img src="' + R[v + n] + '" alt="Render del mueble ' + n + ', versión ' + v + '">' : '<div class="en-norend">Sin capturar</div>') +
@@ -886,6 +888,47 @@
       sub: 'Planta de Villanueva (Casanare) que fabrica los 12 juegos de muebles del espacio Galería en 2027: empresa, volumen y ritmo, fabricar o comprar, tipo de producción, hipótesis, análisis del producto y planes de corte, diagramas de operaciones y de flujo, métodos, tiempos y capacidad', kicker: 'Nota 2 · Sistema de producción · Espacio 2 · Galería', fecha: '7 de noviembre de 2026', req: true, land: true, serie: '' };
   };
   /* ================================================================ armado */
+  /* ================================================================ Nota 3 en PDF
+     Las mismas secciones de la pestaña «Nota 3 · Proveedores y costos», en el orden de la guía: lista de compras (P),
+     cotizaciones con su soporte (Q, todas desplegadas), cuadro comparativo (R), mano de obra, costos indirectos,
+     hoja de costos de cada uno de los doce muebles, juego y volumen, calidad del documento, guion y lista de chequeo. */
+  function docN3(doc) {
+    const M = L.notaMods[3], ST3 = M.state, keep = ST3.n, keepC = ST3.cot;
+    const ORDER = ['P', 'Q', 'R', 'MO', 'CI', 'HC', 'CV', 'CD', 'SO', 'X'];
+    const frag = (html) => { const d = document.createElement('div'); d.innerHTML = html; return d; };
+    const plain = (html) => html.replace(/<button type="button" class="link"[^>]*>/g, '<span class="en-lk">').replace(/<\/button>/g, '</span>');
+    const wrap = (id, html, title, cls) => '<section class="en-sec en-n2 en-n3' + (cls || '') + '" id="n3-' + id + '" data-title="' + esc(title) + '">' + html + '</section>';
+    const items = [];
+    let s = '';
+    try {
+      ORDER.forEach((id) => {
+        const S = M.secs.find((x) => x.id === id); if (!S) return;
+        const title = id === 'X' ? S.t : S.d;
+        items.push({ id: 'n3-' + id, t: title });
+        if (id === 'Q') { s += wrap(id, M.render(id).replace(/<details class="n3-cot"[^>]*>/g, '<details class="n3-cot" open>'), title); return; }
+        if (id !== 'HC') { s += wrap(id, plain(M.render(id)), title); return; }
+        // hoja de costos: primero el cuadro de los doce muebles; después, la hoja de cada uno
+        ST3.n = FABN[0];
+        const d0 = frag(plain(M.render('HC'))), kids = Array.from(d0.children);
+        const iPick = kids.findIndex((e) => e.classList.contains('n1-pick')), iDoce = kids.findIndex((e) => e.tagName === 'H3' && /doce muebles/i.test(e.textContent));
+        const headH = kids.slice(0, iPick).map((e) => e.outerHTML).join('').replace(' Elija el mueble.', ' Primero, el resumen de los doce; después, la hoja de cada mueble.');
+        const doce = kids.slice(iDoce).map((e) => e.outerHTML).join('').replace(' class="is-sel"', ''), nota = kids.find((e) => e.classList.contains('n1-note'));
+        s += wrap(id, headH + doce + (nota ? nota.outerHTML : ''), title);
+        FABN.forEach((n) => {
+          ST3.n = n;
+          const k2 = Array.from(frag(plain(M.render('HC'))).children), a = k2.findIndex((e) => e.classList.contains('n3-sheet')), b = k2.findIndex((e) => e.tagName === 'H3' && /doce muebles/i.test(e.textContent));
+          const part = k2.slice(a, b).filter((e) => !e.classList.contains('n1-note')).map((e) => e.outerHTML).join('');
+          items.push({ id: 'n3-HC-' + n, t: n + ' · ' + ROLE[n] + ' · ' + itemOf('B', n).short, sub: true });
+          s += wrap('HC-' + n, '<div class="en-n3m">' + part + '</div>', title, ' en-cont');
+        });
+      });
+    } finally { ST3.n = keep; ST3.cot = keepC; }
+    return cover(doc, '<div class="en-art-row">' + [10, 3, 13].map((n) => '<div>' + DW.isoSVG('B', n, 260, 170) + '</div>').join('') + '</div>') + toc(doc, items) + s;
+  }
+  EN.n3Doc = function () {
+    return { num: 0, ver: 'B', id: 'nota3', file: 'nota-3-proveedores-y-costos-galeria', t: 'Nota 3 · Proveedores y costos', label: 'Nota 3', sec2: 'Proveedores y costos · Galería',
+      sub: 'Lo que compra y lo que le cuesta a la planta de Villanueva (Casanare) fabricar los 12 juegos del espacio Galería en 2027: lista de compras del volumen, cotizaciones con su soporte, cuadro comparativo y proveedor elegido, mano de obra, costos indirectos, hoja de costos de cada mueble, costo del juego y del volumen', kicker: 'Nota 3 · Proveedores y costos · Espacio 2 · Galería', fecha: REV, req: true, land: true, serie: '' };
+  };
   /* ================================================================ guía de sustentación
      Para el grupo, no para la carpeta: reúne, mueble por mueble, las razones que ya están escritas en los datos
      (para quién, por qué mide eso, qué requisito cumple y con qué fuente, por qué esa alternativa, de qué se hace,
@@ -1011,6 +1054,7 @@
   EN.html = function (num, opt) {
     if (num === 'G') { const doc = EN.guiaDoc(); return { doc, html: docG(doc) }; }
     if (num === 'N2') { const doc = EN.n2Doc(); return { doc, html: docN2(doc) }; }
+    if (num === 'N3') { const doc = EN.n3Doc(); return { doc, html: docN3(doc) }; }
     if (num === 'F') { const doc = EN.fichaDoc(); return { doc, html: docF(doc) }; }
     if (typeof num === 'string' && num[0] === 'P') { const doc = EN.provDoc(num.slice(1)); return { doc, html: docP(doc) }; }
     if (typeof num === 'string' && num[0] === 'R') { const doc = EN.reqDoc(num.slice(1)); return { doc, html: docR(doc) }; }

@@ -69,7 +69,8 @@ con autorización del director del curso.
   justificación, y el detalle a escala 1:2 de cada unión entre materiales distintos (`js/uniones.js`).
 - **H · Iluminación y equipo**: fichas técnicas con el estado de cada dato (verificado, no publicado, inferido o con
   discrepancia), carga de cada fuente LED, sección del cable por caída de tensión e integración de las impresoras.
-- **I · Renders**: captura cada mueble en su sitio desde el modelo 3D iluminado.
+- **I · Renders**: captura cada mueble en su sitio desde el modelo 3D, sin interfaz y con la luz del mueble encendida
+  (una luz por tira LED del despiece y la luz general atenuada solo para la captura).
 - **Lista de chequeo y tabla de rastreo**: lo que la revisión le cambió al mueble y lo que queda por decidir.
 
 Datos de la Nota 1: `js/nota1-data.js` (fuentes, antropometría, requisitos, criterios, fichas). Cada dato dice si sale de
@@ -88,14 +89,18 @@ en un Chromium sin cabeza):
 | 3 · Planos técnicos | El juego de planos completo de la versión B (índice, planta y, por mueble, ensamble, explosionado, secuencia, detalles y piezas) y, como anexos, los de A y C | A3 a tamaño real |
 | 4 · Despiece, materiales y uniones | Regla de materiales, tabla de materiales, lista consolidada, herrajes y tornillería, cableado, despiece de cada mueble y detalle de cada unión; anexos de A y C | A4 |
 | 5 · Iluminación y equipo | Fichas técnicas, luz de cada mueble, alojamiento · cableado · ventilación · acceso, impresoras y pantallas; anexos de A y C | A4 |
-| 6 · Renders | Cada mueble en su espacio (se captura del modelo; el grupo lo arma con sus propias imágenes) | A4 horizontal |
+| 6 · Renders | Vista general, fachada y cada mueble en su espacio, sin interfaz y con la luz de los muebles encendida (se capturan del modelo; el grupo puede cambiarlos por sus propias imágenes). Quedan también como JPG sueltos en `renders/` | A4 horizontal |
 
 Para generarlos: servir la carpeta (`python3 -m http.server 8765`) y correr `node tools/pdf/build.js 1 2 3 4 5` (necesita
 `playwright` y `python3` con `pypdf`; `qpdf` recomprime el resultado). Cada documento lleva portada, índice con páginas,
 cabeceras con la sección, marcadores y enlaces internos. Las láminas A3 van a su tamaño real: imprimir al 100 %.
+El documento 6 captura los renders en cada corrida (unos 14 minutos por versión con render por software); con
+`--renders=carpeta` se arma con las imágenes de esa carpeta (las propias del grupo, o las de una corrida anterior),
+con los nombres `render-B-02.jpg` … `render-B-17.jpg`, `render-B-00-vista-general.jpg` y `render-B-00-fachada.jpg`.
 
 Otros documentos del mismo generador: `A`, `B`, `C` (expediente de cada espacio), `RA`, `RB`, `RC` (requisitos),
-`PA`, `PB`, `PC` (lista de compras con enlaces), `F` (ficha en una página), `N2` (Nota 2) y `G` (guía de sustentación
+`PA`, `PB`, `PC` (lista de compras con enlaces), `F` (ficha en una página), `N2` (Nota 2), `N3` (Nota 3: proveedores,
+cotizaciones abiertas, costos y hoja de costos de cada mueble) y `G` (guía de sustentación
 de la Galería, para uso del grupo: las razones de cada mueble, lo que hizo la IA y lo que sigue abierto).
 
 Las uniones (`js/uniones.js`) van acotadas en milímetros y salen del despiece de cada mueble: solo aparece la unión que
