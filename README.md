@@ -31,6 +31,9 @@ costos, fabricación, ensamble y la razón de cada material.
   durabilidad, luz, instalaciones, seguridad, fabricación, marca y presupuesto) y cómo las cumple cada versión, mueble
   por mueble. Cada ficha de un mueble fabricado tiene además la pestaña *Requisitos*.
 - **Elegir un mueble**: la cámara se acerca y se abre su ficha con sus pestañas: Resumen (con el costo del mueble en las tres versiones), Materiales y costos, Fabricación, Ensamble, Por qué y Requisitos.
+- **Mapa de riesgos · GTC 45** (Plano 2D, lámina R-01 de la Galería; `#plano-rb`): peligros clasificados según el anexo A
+  de la GTC 45:2012, matriz con ND, NE, NP, NC, NR, nivel y aceptabilidad, controles por jerarquía, extintores, botiquín,
+  detectores y ruta de evacuación sobre la planta 1:50 (`js/gtc45.js`). Valoración propuesta, para revisar con quien opera el local.
 - **Explosionar**: separa el mueble en sus piezas, tal como salen del despiece.
 - **Dónde se compra cada pieza**: en el explosionado, el armado o «Solo este mueble», el clic en una pieza abre en otra
   pestaña la página de la tienda de su material (o del equipo); en el teléfono, el primer toque muestra la ficha y el segundo abre la tienda.

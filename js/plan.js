@@ -268,6 +268,9 @@
     return s;
   };
 
+  /* primitivas para otras láminas sobre la misma planta (mapa de riesgos, gtc45.js) */
+  PL._h = { K, sx, sy, esc, rect, line, poly, circle, text, arquitectura, mampara: (v) => mampara(v), furn: (v) => FURN[v], nums: (v) => NUMS[v] };
+
   /* estilo de la lámina: va dentro del SVG para que la descarga y la impresión se vean igual */
   PL.css = [
     'text{font-family:Inter,"Helvetica Neue",Arial,sans-serif;fill:#111}',

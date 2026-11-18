@@ -1029,8 +1029,8 @@
   function renderPlan() {
     const sh = plCur(), all = plSheets(), i = all.findIndex((x) => x.id === sh.id), planta = sh.id === 'a';
     PO.sheet = sh.id;
-    $('#pl-head').textContent = sh.code + (sh.n ? ' · ' + sh.title : ' · ' + (sh.id === 'g' ? 'Índice' : 'Planta'));
-    $('#pl-sub').textContent = sh.n ? sh.n + ' · ' + sh.name + ' · versión ' + S.ver : planta ? 'Planta de distribución · versión ' + S.ver + ' · escala 1:50 en A3' : 'Juego de planos · versión ' + S.ver + ' · ' + all.length + ' láminas A3';
+    $('#pl-head').textContent = sh.code + (sh.n ? ' · ' + sh.title : ' · ' + (sh.id === 'g' ? 'Índice' : sh.id === 'r' ? 'Mapa de riesgos' : 'Planta'));
+    $('#pl-sub').textContent = sh.n ? sh.n + ' · ' + sh.name + ' · versión ' + S.ver : planta ? 'Planta de distribución · versión ' + S.ver + ' · escala 1:50 en A3' : sh.id === 'r' ? 'Peligros y valoración según la GTC 45 · versión ' + S.ver + ' · escala 1:50 en A3' : 'Juego de planos · versión ' + S.ver + ' · ' + all.length + ' láminas A3';
     $('#pl-pos').textContent = (i + 1) + ' / ' + all.length;
     $('#pl-prev').disabled = i <= 0; $('#pl-next').disabled = i >= all.length - 1;
     $('#pl-cotas').hidden = $('#pl-nums').hidden = !planta;
@@ -1049,7 +1049,7 @@
     ver = ver || S.ver;
     const key = ver + '|' + sh.id;
     if (PO.cache.has(key)) { const v = PO.cache.get(key); PO.cache.delete(key); PO.cache.set(key, v); return v; }
-    const svg = sh.id === 'g' ? L.dwg.indice(ver) : sh.id === 'a' ? L.plan.svg(ver, { cotas: PO.cotas, nums: PO.nums }) : L.planos.draw(ver, sh);
+    const svg = sh.id === 'g' ? L.dwg.indice(ver) : sh.id === 'r' ? L.gtc45.svg(ver) : sh.id === 'a' ? L.plan.svg(ver, { cotas: PO.cotas, nums: PO.nums }) : L.planos.draw(ver, sh);
     PO.cache.set(key, svg);
     while (PO.cache.size > 24) PO.cache.delete(PO.cache.keys().next().value);
     return svg;
@@ -1266,6 +1266,7 @@
     const items = ITEMS().map((d) => ({ sec: 'Mobiliario', ic: String(d.n), t: d.short, s: d.name + ' · ' + (d.origen === 'fabrica' ? 'se fabrica' : 'se compra'), r: cop(d.total), q: norm(d.n + ' ' + d.short + ' ' + d.name + ' ' + d.grupo + ' ' + (d.origen === 'fabrica' ? 'fabrica' : 'compra')), run: () => select(d.n, null, { force: true }) }));
     const views = [['fachada', 'Fachada'], ['interior', 'Interior'], ['aerea', 'Aérea'], ['planta', 'Planta']].map((v) => ({ sec: 'Vistas', ic: SIC.view, t: 'Vista ' + v[1], s: 'Llevar la cámara a esta vista', q: norm('vista camara ' + v[1]), run: () => goView(v[0]) }));
     views.push({ sec: 'Vistas', ic: SIC.plan, t: 'Plano 2D', s: 'Juego de planos: planta 1:50 y láminas de cada mueble, para imprimir en A3', q: norm('plano 2d planta arquitectura escala imprimir dibujo cotas juego de planos laminas'), run: () => openPlan('a') });
+    views.push({ sec: 'Vistas', ic: SIC.plan, t: 'Mapa de riesgos · GTC 45', s: 'Galería: peligros, valoración de riesgos, controles y ruta de evacuación', q: norm('mapa de riesgos gtc 45 gtc45 peligros sst seguridad salud trabajo evacuacion extintor matriz riesgo'), run: () => { if (S.ver !== 'B') setVersion('B'); openPlan('r'); } });
     views.push({ sec: 'Vistas', ic: SIC.plan, t: 'Índice del juego de planos', s: 'Láminas de la versión, tipos de línea, rayados y símbolos', q: norm('indice juego de planos convenciones rayados simbolos lineas'), run: () => openPlan('g') });
     const planos = (L.planos ? L.planos.fab(S.ver) : []).map((d) => { const it = byN[d.n]; return { sec: 'Planos de los muebles', ic: SIC.plan, t: 'Planos · ' + it.short, s: 'Ensamble con cotas, explosionado, secuencia de ensamble, detalles y piezas', q: norm('planos plano ensamble explosionado despiece detalles secuencia cotas medidas ' + d.n + ' ' + it.short + ' ' + it.name), run: () => openPlan(d.n + '.1') }; });
     const vers = VS.list.map((v) => ({ sec: 'Versiones', ic: '<b class="vtag" style="--vc:' + v.color + '">' + v.id + '</b>', t: 'Versión ' + v.id + ' · ' + v.nombre + (v.id === S.ver ? ' (en el modelo)' : ''), s: v.titulo, r: copShort(totals(v.id).fabricado), q: norm('version ' + v.id + ' ' + v.nombre + ' ' + v.titulo + ' ' + v.materiales.join(' ')), run: () => setVersion(v.id) }));
@@ -1503,12 +1504,12 @@
       $('#intro-msg').textContent = 'Este navegador no pudo iniciar el modelo 3D (WebGL).';
       return;
     }
-    const hm0 = /^#(?:m\d+|plano(?:-(?:g|\d+\.\d+))?)?([abc])?$/i.exec(location.hash || '') || [];
+    const hm0 = /^#(?:m\d+|plano(?:-(?:g|r|\d+\.\d+))?)?([abc])?$/i.exec(location.hash || '') || [];
     setVersion(hm0[1] ? hm0[1].toUpperCase() : 'A', { quiet: true, force: true });
     buildInventory(); buildLabels(); bindUI(); syncVerUI();
     const redraw = () => { L.redraws.forEach((f) => f()); E.invalidate(3); };
     if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('300 80px Jost'), document.fonts.load('600 80px Jost'), document.fonts.load('400 40px Jost')]).then(redraw, () => {});
-    const hm = /^#(?:m(\d+)|(plano)(?:-(g|\d+\.\d+))?)?([abc])?$/i.exec(location.hash || '') || [];
+    const hm = /^#(?:m(\d+)|(plano)(?:-(g|r|\d+\.\d+))?)?([abc])?$/i.exec(location.hash || '') || [];
     const start = hm[1] ? [null, hm[1]] : null, startPlan = !!hm[2];
     if (hm[3]) PO.sheet = hm[3].toLowerCase();
 
