@@ -444,6 +444,7 @@
   }
   let hoverRaf = 0, lastMove = null;
   function onHover(e) {
+    if (S.bare && S.solo) { if (S.hover) { S.hover = null; refreshEdges(); } return; }   // sin contornos al pasar el puntero
     lastMove = e;
     if (hoverRaf) return;
     hoverRaf = requestAnimationFrame(() => {
@@ -470,6 +471,8 @@
   }
   function onClick(e) {
     if (S.mont) return;
+    if (S.bare && S.solo) return;          // sin interfaz y con un solo mueble: el clic no cambia ni quita la selección
+
     const hit = pickAt(e);
     if (hit && hit.part && S.mode === 'exploded' && S.sel && S.sel.n === hit.n && e.pointerType === 'touch') {
       const pi = pieceInfo(hit.n, hit.part), tip = $('#tip');
@@ -1268,12 +1271,15 @@
   /* sin interfaz: solo el local y el botón para volver (y el zoom en el computador) */
   function setBare(on) {
     S.bare = !!on;
-    if (S.bare) { if (S.sel) deselect(); if (S.planOpen) closePlan(); $('#tip').hidden = true; }
+    // con «Solo este mueble» activo se conserva el mueble: queda solo él en pantalla, sin interfaz
+    const keepSolo = S.bare && S.sel && S.solo;
+    if (S.bare) { if (S.sel && !keepSolo) deselect(); if (S.planOpen) closePlan(); $('#tip').hidden = true; S.hover = null; }
     app.classList.toggle('is-bare', S.bare);
     const b = $('#z-ui'); b.setAttribute('aria-pressed', S.bare ? 'true' : 'false');
     b.setAttribute('aria-label', S.bare ? 'Mostrar la interfaz' : 'Ocultar la interfaz');
     b.title = S.bare ? 'Mostrar la interfaz (H o Esc)' : 'Ocultar la interfaz para ver solo el local (H)';
     layout(); E.invalidate(2);
+    if (S.sel && S.solo) { refreshEdges(); focus(S.sel, S.inst, S.mode === 'exploded' || S.mode === 'asm' ? true : null, 0.8); }   // recentra en la pantalla completa (o con el panel de vuelta)
   }
   function initNight() {
     let on = true;                                                      // de noche por omisión
