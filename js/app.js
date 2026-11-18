@@ -128,6 +128,39 @@
     E.flyTo({ target: c, theta: keep ? E.cam.goal.th : it.th, phi: keep ? Math.min(E.cam.goal.ph, 1.2) : it.ph, radius: E.clamp(d, 1.5, 15) }, dur || 1.35);
   }
 
+  /* ------------------------------------------------- solo este mueble (aislar)
+     Pasa a la capa 2 (que la cámara no ve) todo lo que no es el mueble elegido: el local, los demás muebles,
+     el piso y la gente. Las luces siguen en su capa, así el mueble conserva la luz del local y la suya.
+     Las capas no tocan .visible, así que el corte de muros y las animaciones siguen funcionando igual. */
+  const SOLO = { saved: new Map(), vida: null };
+  function soloApply() {
+    const keep = new Set(), anc = new Set();
+    S.sel.insts.forEach((o) => { keep.add(o.group); for (let p = o.group.parent; p; p = p.parent) anc.add(p); });
+    const hide = (c) => c.traverse((o) => { if (o.isLight || SOLO.saved.has(o)) return; SOLO.saved.set(o, o.layers.mask); o.layers.set(2); });
+    const walk = (obj) => obj.children.forEach((c) => {
+      if (keep.has(c) || c.isLight || c.userData.solo) return;
+      if (anc.has(c)) walk(c); else hide(c);
+    });
+    walk(E.scene);
+  }
+  function soloClear() { SOLO.saved.forEach((m, o) => { o.layers.mask = m; }); SOLO.saved.clear(); }
+  function setSolo(on, quiet) {
+    on = !!on && !!S.sel;
+    if (!on && !S.solo) return;
+    soloClear();
+    if (on) soloApply();
+    if (on !== !!S.solo && L.vida) {
+      if (on) { SOLO.vida = L.vida.state ? L.vida.state.on : null; if (L.vida.setOn) L.vida.setOn(false, true); }
+      else if (SOLO.vida && L.vida.setOn) L.vida.setOn(true, true);
+    }
+    S.solo = on;
+    app.classList.toggle('is-solo', on);
+    const b = $('#act-solo'); if (b) { b.setAttribute('aria-pressed', on ? 'true' : 'false'); $('.t-lg', b).textContent = on ? 'Ver el local' : 'Solo este mueble'; $('.t-sm', b).textContent = on ? 'Local' : 'Solo'; }
+    S.hover = null; $('#tip').hidden = true;
+    syncLabels(); E.shadowDirty = true; E.invalidate(3);
+    if (on && !quiet && S.sel) focus(S.sel, S.inst, S.mode === 'exploded' || S.mode === 'asm' ? true : null, 0.9);
+  }
+
   function select(n, o, opt) {
     const it = F.items[n]; if (!it) return;
     opt = opt || {};
@@ -144,10 +177,12 @@
     if (app.classList.contains('is-narrow')) toggleInv(false);
     $('#hint').hidden = true;
     const canAnim = it.insts[0].steps > 1 || it.insts[0].parts.length > 1;
-    $('#actions').hidden = !canAnim; $('#stepper').hidden = true;
+    $('#actions').hidden = false; $('#stepper').hidden = true;
     $('#act-explode').setAttribute('aria-pressed', 'false'); $('#act-explode span').textContent = 'Explosionar';
     $('#act-play').hidden = !(byN[n].seq && byN[n].seq.length);
     if (it.zone === 'trastienda') ghostOthers(it, true);
+    $('#act-explode').hidden = !canAnim;
+    if (S.solo) setSolo(true, true);
     layout(); focus(it, S.inst);
     markInv(); syncLabels(); refreshEdges();
     setHash('m' + n);
@@ -158,6 +193,7 @@
   }
   function deselect(silent) {
     if (!S.sel) return;
+    setSolo(false, true);
     resetItem(S.sel);
     S.sel = null; S.inst = null; S.hl = null; R.hideDiv = false; R.keepPillars = false; E.autoRotate = false;
     $('#act-spin').setAttribute('aria-pressed', 'false');
@@ -363,7 +399,7 @@
     const r = E.renderer.domElement.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, E.camera);
-    const targets = []; F.order.forEach((n) => F.items[n].insts.forEach((o) => { if (o.group.visible) targets.push(o.group); }));
+    const targets = []; (S.solo && S.sel ? [S.sel.n] : F.order).forEach((n) => F.items[n].insts.forEach((o) => { if (o.group.visible) targets.push(o.group); }));
     const hits = ray.intersectObjects(targets, true);
     for (const h of hits) {
       let m = h.object; if (!m.visible) continue;
@@ -472,7 +508,7 @@
   }
   function syncLabels() {
     const show = S.labels || S.plan;
-    $('#labels').classList.toggle('is-on', show && !S.mont && S.mode === 'solid');
+    $('#labels').classList.toggle('is-on', show && !S.mont && !S.solo && S.mode === 'solid');
     $('#labels').classList.toggle('is-plan', S.plan);
     R.cotas.visible = S.plan;
     $('#btn-labels').setAttribute('aria-pressed', show ? 'true' : 'false');
@@ -787,13 +823,15 @@
     const lay = VS.layout[v], moved = {};
     MOVIBLES.forEach((n) => {
       const it = F.items[n]; if (!it) return;
-      if (!basePos[n]) basePos[n] = it.insts.map((o) => ({ p: o.home.clone(), r: o.group.rotation.y }));
+      if (!basePos[n]) { basePos[n] = it.insts.map((o) => ({ p: o.home.clone(), r: o.group.rotation.y })); basePos[n].th = it.th; }
       it.insts.forEach((o, i) => {
         const q = lay && lay[n] && lay[n].pos[i];
         if (q) { o.group.position.set(R.wx(q[0]), q[1], R.wz(q[2])); o.group.rotation.y = q[3] || 0; }
         else { o.group.position.copy(basePos[n][i].p); o.group.rotation.y = basePos[n][i].r; }
         o.home.copy(o.group.position); o._off = null;
       });
+      // la cámara del equipo gira con él (en B las impresoras miran a la sala, no al pasillo)
+      if (basePos[n].th != null && it.insts[0]) it.th = basePos[n].th + it.insts[0].group.rotation.y - basePos[n][0].r;
       it._ur = null; moved[n] = it;
     });
     F.finish(moved);
@@ -1211,6 +1249,7 @@
       { ic: SIC.house, t: 'Montaje del local', s: 'Orden de fabricación y montaje en seis pasos', q: 'montaje armado fabricacion orden pasos', run: () => openMontaje() },
       { ic: SIC.pin, t: 'Números del plano', s: 'Mostrar u ocultar el número de cada elemento', q: 'numeros rotulos etiquetas plano', run: () => $('#btn-labels').click() },
       { ic: SIC.pin, t: 'Personas en el local', s: 'Mostrar u ocultar a los clientes, la dependienta y el diseñador', q: 'gente personas clientes vida operarios dependienta quitar', run: () => $('#btn-vida').click() },
+      { ic: SIC.pin, t: 'Solo este mueble', s: 'Oculta el local, los demás muebles y la gente; S para alternar', q: 'solo este mueble aislar ocultar resto demas mostrar solo mueble', run: () => { if (!S.sel) return L.ui.toast('Elige primero un mueble', 'Luego «Solo este mueble» oculta todo lo demás.', 'cube', 4000); setSolo(!S.solo); } },
       { ic: SIC.pin, t: 'Ocultar la interfaz', s: 'Solo el local en pantalla; H o Esc para volver', q: 'ocultar interfaz pantalla completa limpiar explorar ver solo', run: () => setBare(true) },
       { ic: SIC.pin, t: S.night ? 'Modo día' : 'Modo noche', s: 'El pasillo se apaga y el local queda con su propia luz', q: 'noche oscuro dia luz nocturno iluminacion', run: () => $('#btn-noche').click() },
       { ic: SIC.cube, t: 'Descargar modelo 3D (.glb)', s: 'Para Unreal Engine, Blender, Twinmotion o D5', q: 'descargar exportar glb gltf unreal blender twinmotion modelo', run: () => downloadGLB() }
@@ -1350,6 +1389,7 @@
     $('#btn-montaje').addEventListener('click', () => (S.mont ? exitMontaje() : openMontaje()));
     $('#btn-labels').addEventListener('click', () => { S.labels = !(S.labels || S.plan); if (!S.labels && S.plan) { S.plan = false; } syncLabels(); });
     $('#act-explode').addEventListener('click', () => setExplode(S.mode !== 'exploded'));
+    $('#act-solo').addEventListener('click', () => setSolo(!S.solo));
     $('#act-play').addEventListener('click', () => playAsm(0));
     $('#act-spin').addEventListener('click', () => { E.autoRotate = !E.autoRotate; $('#act-spin').setAttribute('aria-pressed', E.autoRotate ? 'true' : 'false'); E.invalidate(); });
     $('#st-prev').addEventListener('click', () => { S.playing = false; S.done = false; asmStep(S.step - 1, false); });
@@ -1405,14 +1445,15 @@
       if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); openSpot(); return; }
       if (S.bare && e.key === 'Escape') return setBare(false);
       if ((e.key === 'h' || e.key === 'H') && !e.metaKey && !e.ctrlKey && !e.altKey && $('#modal').hidden && !S.planOpen && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return setBare(!S.bare);
-      if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.planOpen) { if (PO.card != null) return planCard(null); return closePlan(); } if (S.mode === 'asm') return exitAsm(); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
+      if (e.key === 'Escape') { if (!$('#modal').hidden) return closeModal(); if (S.planOpen) { if (PO.card != null) return planCard(null); return closePlan(); } if (S.mode === 'asm') return exitAsm(); if (S.solo && S.mode !== 'exploded') return setSolo(false); if (S.mode === 'exploded') return setExplode(false); if (S.mont) return exitMontaje(); if (S.sel) return deselect(); }
       if (!$('#modal').hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
       if (S.planOpen) { if (e.key === '+' || e.key === '=') planZoom(1.4, null, null, true); else if (e.key === '-') planZoom(1 / 1.4, null, null, true); else if (e.key === '0') planFit(true); else if (e.key === '[' || e.key === 'PageUp') { e.preventDefault(); plStep(-1); } else if (e.key === ']' || e.key === 'PageDown') { e.preventDefault(); plStep(1); } return; }
       if (!S.sel && /^[abc]$/i.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) { setVersion(e.key.toUpperCase()); return; }
       if (!S.sel) return;
       if (e.key === 'ArrowRight' && !e.target.closest('.tabs')) select(NEXT(S.sel.n, 1).n, null, { tab: S.tab, force: true });
       else if (e.key === 'ArrowLeft' && !e.target.closest('.tabs')) select(NEXT(S.sel.n, -1).n, null, { tab: S.tab, force: true });
-      else if (e.key === 'e' || e.key === 'E') { if (!$('#actions').hidden || S.mode === 'exploded') setExplode(S.mode !== 'exploded'); }
+      else if (e.key === 'e' || e.key === 'E') { if ((!$('#actions').hidden && !$('#act-explode').hidden) || S.mode === 'exploded') setExplode(S.mode !== 'exploded'); }
+      else if ((e.key === 's' || e.key === 'S') && !e.metaKey && !e.ctrlKey && !e.altKey) setSolo(!S.solo);
     });
     E.onClick = onClick; E.onHover = onHover; E.afterRender = updateLabels;
     E.onResize = () => { layout(); };

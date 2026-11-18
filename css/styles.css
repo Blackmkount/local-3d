@@ -483,6 +483,11 @@ h3 small { font-weight: 400; color: var(--ink-3); font-size: 12px; margin-left: 
 .is-narrow #modal { padding: 8px; }
 .is-narrow .window { max-height: 100%; }
 .is-narrow #dock { bottom: calc(var(--ub) + 10px); }
+#act-solo .t-sm { display: none; }
+.is-narrow #act-solo .t-lg, .is-narrow #act-spin span { display: none; }   /* cuatro botones en un teléfono */
+.is-narrow #act-solo .t-sm { display: inline; }
+.is-narrow #actions { gap: 2px; padding: 4px; }
+.is-narrow #actions .btn-lg { padding-left: 10px; padding-right: 10px; font-size: 13.5px; gap: 6px; }
 .is-narrow .btn-lg { height: 40px; padding: 0 13px; font-size: 14px; }
 .is-narrow .st-t { font-size: 15px; }
 .is-narrow #toasts { top: auto; bottom: 12px; right: 8px; }

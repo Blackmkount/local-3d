@@ -20,6 +20,8 @@
   'use strict';
   const L = window.L3D, T = THREE, E = L.engine, G = L.geo;
   const AR = (L.armado = {});
+  // lo que agrega el armado (operario, herramientas, chispas) se sigue viendo con «Solo este mueble»
+  const soloAdd = (...o) => { o.forEach((x) => { x.userData.solo = true; }); L.engine.scene.add(...o); };
   const $ = (s, el) => (el || document).querySelector(s);
   const clamp = E.clamp, lerp = E.lerp;
   const V3 = (x, y, z) => new T.Vector3(x, y, z);
@@ -375,7 +377,7 @@
     });
     root.visible = false;
     const w = { root, pelvis, spine, neck, head, mask, resp, arms, legs, dim: D, hipY: D.thigh + D.shin, crouch: 0, lean: 0, walk: 0, walking: false, look: null, stool: 0, facing: 0, tool: null, toolL: null, maskDown: false, sit: null, sway: 0 };
-    E.scene.add(root);
+    soloAdd(root);
     return w;
   }
   /* fusiona las mallas hermanas que comparten material (una por hueso y material): de ~110 piezas a ~30 llamadas de dibujo */
@@ -554,7 +556,7 @@
     g.setAttribute('position', new T.BufferAttribute(pos, 3));
     const pt = new T.Points(g, mat); pt.frustumCulled = false; pt.visible = false; pt.renderOrder = 9; pt.raycast = function () {};
     pt.userData = { vel: new Float32Array(n * 3), life: new Float32Array(n), max: new Float32Array(n), n, live: 0, grav: -6, drag: 0.98 };
-    E.scene.add(pt); E.noReflect.push(pt);
+    soloAdd(pt); E.noReflect.push(pt);
     return pt;
   }
   function emit(pt, at, dir, count, speed, spread, life, grav) {
@@ -590,9 +592,9 @@
     if (FX.sparks) return;
     const M = mats();
     FX.sparks = particles(M.chispa, 140); FX.dust = particles(M.polvo, 60); FX.mist = particles(M.bruma, 160);
-    FX.light = new T.PointLight(0xbfd8ff, 0, 2.6, 2); FX.light.visible = false; E.scene.add(FX.light);
-    FX.flash = new T.Sprite(M.flash); FX.flash.scale.set(0.22, 0.22, 1); FX.flash.visible = false; FX.flash.renderOrder = 10; E.scene.add(FX.flash); E.noReflect.push(FX.flash);
-    for (let i = 0; i < 8; i++) { const s = new T.Sprite(M.humo.clone()); s.visible = false; s.userData = { life: 0 }; E.scene.add(s); E.noReflect.push(s); FX.smoke.push(s); }
+    FX.light = new T.PointLight(0xbfd8ff, 0, 2.6, 2); FX.light.visible = false; soloAdd(FX.light);
+    FX.flash = new T.Sprite(M.flash); FX.flash.scale.set(0.22, 0.22, 1); FX.flash.visible = false; FX.flash.renderOrder = 10; soloAdd(FX.flash); E.noReflect.push(FX.flash);
+    for (let i = 0; i < 8; i++) { const s = new T.Sprite(M.humo.clone()); s.visible = false; s.userData = { life: 0 }; soloAdd(s); E.noReflect.push(s); FX.smoke.push(s); }
     E.hooks.push((dt) => {
       stepParticles(FX.sparks, dt); stepParticles(FX.dust, dt); stepParticles(FX.mist, dt);
       let any = false;
@@ -642,7 +644,7 @@
     }
     g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
     g.userData.r = { soldadora: 0.24, carro: 0.36 }[name] || 0;      // radio en planta (para que el operario los rodee)
-    g.visible = false; E.scene.add(g);
+    g.visible = false; soloAdd(g);
     PROPS[name] = g; return g;
   }
   function showProp(name, pos, ry) { const g = prop(name); g.position.copy(pos); g.rotation.y = ry || 0; g.visible = true; g.scale.setScalar(0.01); track(E.tween(0.5, (k) => { g.scale.setScalar(k); }, { ease: E.ease.outBack })); E.shadowDirty = true; return g; }
