@@ -397,6 +397,7 @@
   PN.fab = (v) => L.data.items.filter((d) => d.origen === 'fabrica' && itemOf(v, d.n));
   PN.sheets = function (v) {
     const out = [{ id: 'g', code: 'G-00', title: 'Índice y convenciones', group: 'General' }, { id: 'a', code: 'A-01', title: 'Planta de distribución y mobiliario', sub: 'Escala 1:50', group: 'General' }];
+    if (L.gtc45 && L.gtc45.has(v)) out.push({ id: 'r', code: 'R-01', title: 'Mapa de riesgos · GTC 45', sub: 'Peligros, valoración y evacuación', group: 'General' });
     PN.fab(v).forEach((d) => {
       const it = itemOf(v, d.n), np = DW.nPiezas(v, d.n), code = v + '-' + nn(d.n), group = d.n + ' · ' + (it.short || d.short);
       KINDS.concat(Array.from({ length: np }, (_, j) => ['piezas:' + (j + 1), 'Piezas' + (np > 1 ? ', hoja ' + (j + 1) : ''), 'Medidas de corte de cada pieza']))
@@ -435,6 +436,7 @@
     };
     s += row('G-00', 'Índice y convenciones', '', '1');
     s += row('A-01', 'Planta de distribución y mobiliario', 'Escala 1:50 · local de 6.00 × 7.00 m', '1');
+    if (L.gtc45 && L.gtc45.has(v)) s += row('R-01', 'Mapa de riesgos · GTC 45', 'Peligros, matriz de valoración, controles y ruta de evacuación', '1');
     PN.fab(v).forEach((d) => {
       const sh = list.filter((x) => x.n === d.n), it = itemOf(v, d.n), np = sh.length - 4;
       s += row(v + '-' + nn(d.n), d.n + ' · ' + (it.name || d.name), '.1 Ensamble · .2 Explosionado · .3 Secuencia · .4 Detalles · ' + (np > 1 ? '.5 a .' + (4 + np) : '.5') + ' Piezas', String(sh.length));

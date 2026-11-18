@@ -297,7 +297,7 @@
       const list = PN.sheets(v);
       list.forEach((sh) => {
         const id = sh.id === 'g' ? 'd3-' + v : sh.id.endsWith('.1') ? 'd3-' + v + '-' + sh.n : null;
-        const svg = sh.id === 'g' ? DW.indice(v) : sh.id === 'a' ? L.plan.svg(v, { cotas: true, nums: true }) : PN.draw(v, sh);
+        const svg = sh.id === 'g' ? DW.indice(v) : sh.id === 'r' ? L.gtc45.svg(v) : sh.id === 'a' ? L.plan.svg(v, { cotas: true, nums: true }) : PN.draw(v, sh);
         s += a3(svg, id);
       });
     });
