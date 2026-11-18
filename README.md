@@ -32,6 +32,8 @@ costos, fabricación, ensamble y la razón de cada material.
   por mueble. Cada ficha de un mueble fabricado tiene además la pestaña *Requisitos*.
 - **Elegir un mueble**: la cámara se acerca y se abre su ficha con sus pestañas: Resumen (con el costo del mueble en las tres versiones), Materiales y costos, Fabricación, Ensamble, Por qué y Requisitos.
 - **Explosionar**: separa el mueble en sus piezas, tal como salen del despiece.
+- **Dónde se compra cada pieza**: en el explosionado, el armado o «Solo este mueble», el clic en una pieza abre en otra
+  pestaña la página de la tienda de su material (o del equipo); en el teléfono, el primer toque muestra la ficha y el segundo abre la tienda.
 - **Solo este mueble** (tecla S): oculta el local, los demás muebles y la gente para ver únicamente el mueble elegido;
   sigue funcionando con el explosionado y el armado. «Ver el local» o Esc lo devuelve. Con «Ocultar la interfaz» (H)
   el mueble se mantiene solo en pantalla completa, con la ficha de cada pieza al pasar el puntero; H o Esc devuelven
