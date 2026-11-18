@@ -444,7 +444,6 @@
   }
   let hoverRaf = 0, lastMove = null;
   function onHover(e) {
-    if (S.bare && S.solo) { if (S.hover) { S.hover = null; refreshEdges(); } return; }   // sin contornos al pasar el puntero
     lastMove = e;
     if (hoverRaf) return;
     hoverRaf = requestAnimationFrame(() => {
@@ -471,8 +470,6 @@
   }
   function onClick(e) {
     if (S.mont) return;
-    if (S.bare && S.solo) return;          // sin interfaz y con un solo mueble: el clic no cambia ni quita la selección
-
     const hit = pickAt(e);
     if (hit && hit.part && S.mode === 'exploded' && S.sel && S.sel.n === hit.n && e.pointerType === 'touch') {
       const pi = pieceInfo(hit.n, hit.part), tip = $('#tip');
@@ -485,6 +482,7 @@
         return;
       }
     }
+    if (S.bare && S.solo) return;          // sin interfaz y con un solo mueble: el clic no cambia ni quita la selección
     if (hit) select(hit.n, hit.inst);
     else if (S.sel && S.mode === 'solid') deselect();
   }
@@ -1273,7 +1271,7 @@
     S.bare = !!on;
     // con «Solo este mueble» activo se conserva el mueble: queda solo él en pantalla, sin interfaz
     const keepSolo = S.bare && S.sel && S.solo;
-    if (S.bare) { if (S.sel && !keepSolo) deselect(); if (S.planOpen) closePlan(); $('#tip').hidden = true; S.hover = null; }
+    if (S.bare) { if (S.sel && !keepSolo) deselect(); if (S.planOpen) closePlan(); $('#tip').hidden = true; }
     app.classList.toggle('is-bare', S.bare);
     const b = $('#z-ui'); b.setAttribute('aria-pressed', S.bare ? 'true' : 'false');
     b.setAttribute('aria-label', S.bare ? 'Mostrar la interfaz' : 'Ocultar la interfaz');
