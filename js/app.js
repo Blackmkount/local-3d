@@ -406,7 +406,8 @@
       let part = null;
       while (m && !(m.userData && m.userData.inst)) m = m.parent;
       if (!m) continue;
-      if (h.object.userData.part) part = h.object; else if (h.object.parent && h.object.parent.userData.part) part = h.object.parent;
+      const top = m.userData.inst.group || m;      // la pieza, aunque el impacto sea en una malla hija (tapa del AMS, cantos…)
+      for (let q = h.object; q; q = q.parent) { if (q.userData.part) { part = q; break; } if (q === top) break; }
       return { n: m.userData.n, inst: m.userData.inst, part };
     }
     return null;
@@ -428,11 +429,33 @@
       else if (P.tipo === 'm2') { pu = (d[0] * d[1] / 1e6) * P.precio; base = cop(P.precio) + ' el m²'; }
       else if (P.tipo === 'barra') { pu = (d[0] / 1000) / P.largo * P.precio; base = cop(P.precio) + ' la barra de ' + P.largo + ' m'; }
       else if (P.tipo === 'm') { pu = (d[0] / 1000) * P.precio; base = cop(P.precio) + ' el metro'; }
-      else if (P.tipo === 'unidad') { pu = P.precio; base = P.pres.toLowerCase(); }
+      else if (P.tipo === 'unidad') { pu = P.precio; base = cop(P.precio) + ' por ' + P.pres.toLowerCase(); }
       else base = VS.precioTxt(P);
     }
     const cant = g.cut ? 1 : g.cant;
-    return { mark: g.mark, name: g.name, mat: g.mat, mm, cant, pu, tot: pu == null ? null : pu * cant, base, origen: g.origen };
+    return { mark: g.mark, mk: g.mk, name: g.name, mat: g.mat, mm, cant, pu, tot: pu == null ? null : pu * cant, base, origen: g.origen };
+  }
+  /* dónde se compra la pieza: el material del despiece (lista de precios) o, si no está, la fila de materiales del mueble */
+  function buyLink(n, part, pi) {
+    const d = byN[n], mk = (pi && pi.mk) || (part && part.userData.mk), P = mk && VS.precios[mk];
+    if (P && P.u) return { u: P.u, prov: P.prov || '' };
+    const rows = (d && d.mats) || [], row = rows.find((m) => m.key === mk) || (d && d.origen !== 'fabrica' ? rows[0] : null);
+    if (!row) return null;
+    if (row.u) return { u: row.u, prov: row.prov || '' };
+    // equipos comprados: el enlace está en el catálogo de compras (data.js), por el nombre del producto
+    let cat = null; (DATA.catalogo || []).some((g) => (cat = (g.filas || []).find((f) => f.u && f.m === row.m)));
+    return cat ? { u: cat.u, prov: cat.prov || row.prov || '' } : null;
+  }
+  /* ¿el puntero está sobre una pieza del mueble elegido, con ficha de pieza? (explosionado, armado o «Solo este mueble») */
+  function pieceMode(hit) { return !!(hit && hit.part && S.sel && S.sel.n === hit.n && (S.mode !== 'solid' || S.solo)); }
+  function openBuy(n, part) {
+    const lk = buyLink(n, part, pieceInfo(n, part)); if (!lk) return false;
+    const w = window.open(lk.u, '_blank', 'noopener,noreferrer');
+    if (w) { try { w.opener = null; } catch (e) { /* */ } }
+    return true;
+  }
+  function buyNote(lk, touch) {
+    return lk ? '<em class="tip-buy">' + (touch ? 'Toca otra vez' : 'Clic') + ' para ver dónde se compra' + (lk.prov ? ' · ' + esc(lk.prov.split(',')[0]) : '') + ' ↗</em>' : '';
   }
   function pieceTip(pi) {
     return '<i>P' + pi.mark + '</i><b>' + esc(pi.name) + '</b><span>' + esc(pi.mat) + '</span>' +
@@ -457,9 +480,9 @@
       if (!prev || prev.n !== hit.n || prev.part !== hit.part) refreshEdges();
       const d = byN[hit.n];
       let html;
-      if (S.sel && S.sel.n === hit.n && hit.part && S.mode !== 'solid') {
-        const u = hit.part.userData, pi = S.mode === 'exploded' ? pieceInfo(hit.n, hit.part) : null, row = d.mats.find((m) => m.key === u.mk);
-        html = pi ? pieceTip(pi) : '<b>' + esc(u.name) + '</b><span>' + esc(row ? row.m : d.name) + '</span>';
+      if (pieceMode(hit)) {
+        const u = hit.part.userData, pi = S.mode !== 'asm' ? pieceInfo(hit.n, hit.part) : null, row = d.mats.find((m) => m.key === u.mk);
+        html = (pi ? pieceTip(pi) : '<b>' + esc(u.name) + '</b><span>' + esc(row ? row.m : d.name) + '</span>') + buyNote(buyLink(hit.n, hit.part, pi));
         tip.classList.toggle('is-piece', !!pi);
       } else { html = '<i>' + d.n + '</i><b>' + esc(d.short) + '</b><span>' + cop(d.total) + ' · ' + (d.origen === 'fabrica' ? 'se fabrica' : 'se compra') + '</span>'; tip.classList.remove('is-piece'); }
       tip.innerHTML = html; tip.hidden = false;
@@ -471,10 +494,14 @@
   function onClick(e) {
     if (S.mont) return;
     const hit = pickAt(e);
-    if (hit && hit.part && S.mode === 'exploded' && S.sel && S.sel.n === hit.n && e.pointerType === 'touch') {
-      const pi = pieceInfo(hit.n, hit.part), tip = $('#tip');
+    // clic en una pieza del mueble elegido: abre en otra pestaña la página donde se compra (en el teléfono, el primer toque muestra la ficha)
+    if (pieceMode(hit) && e.pointerType !== 'touch') { if (openBuy(hit.n, hit.part)) return; }
+    if (pieceMode(hit) && e.pointerType === 'touch') {
+      const tip = $('#tip');
+      if (!tip.hidden && S.hover && S.hover.part === hit.part) { if (openBuy(hit.n, hit.part)) return; }
+      const pi = S.mode !== 'asm' ? pieceInfo(hit.n, hit.part) : null;
       if (pi) {
-        tip.innerHTML = pieceTip(pi); tip.classList.add('is-piece'); tip.hidden = false;
+        tip.innerHTML = pieceTip(pi) + buyNote(buyLink(hit.n, hit.part, pi), true); tip.classList.add('is-piece'); tip.hidden = false;
         const r = $('#stage').getBoundingClientRect();
         const x = Math.max(8, Math.min(e.clientX - r.left - tip.offsetWidth / 2, r.width - tip.offsetWidth - 8)), y = Math.max(8, Math.min(e.clientY - r.top - tip.offsetHeight - 24, r.height - tip.offsetHeight - 8));
         tip.style.transform = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
