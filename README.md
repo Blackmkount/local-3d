@@ -4,6 +4,14 @@ Página web con el modelo 3D del local de exhibición y taller de impresión 3D 
 Se recorre con el ratón o con los dedos y, al elegir un mueble, muestra sus materiales,
 costos, fabricación, ensamble y la razón de cada material.
 
+
+## Unreal Engine (recorrido de la Galería)
+
+La carpeta `unreal/` tiene el script y la guía (`unreal/LEEME.md`) para llevar la versión B a Unreal Engine 5.8 con un
+recorrido en primera persona. El modelo se exporta del visor con `node tools/unreal-export.js unreal`
+(`galeria.glb` con marcadores para luces LED, focos, cámaras, inicio y rótulos, y `muebles.json`); en Unreal,
+`unreal/scripts/preparar_galeria.py` lo importa y arma luces, colisiones, cámaras y postproceso.
+
 ## Qué se puede hacer en la página
 
 - **Recorrer el local**: arrastrar gira, la rueda acerca, el clic derecho desplaza. Hay cuatro vistas listas: Fachada, Interior, Aérea y Planta.
