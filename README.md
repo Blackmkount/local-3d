@@ -107,6 +107,8 @@ con los nombres `render-B-02.jpg` … `render-B-17.jpg`, `render-B-00-vista-gene
 Otros documentos del mismo generador: `A`, `B`, `C` (expediente de cada espacio), `RA`, `RB`, `RC` (requisitos),
 `PA`, `PB`, `PC` (lista de compras con enlaces), `F` (ficha en una página), `N2` (Nota 2), `N3` (Nota 3: proveedores,
 cotizaciones abiertas, costos y hoja de costos de cada mueble) y `G` (guía de sustentación
+`MA`, `MB`, `MC`: un PDF de planos por cada mueble de esa versión (`MA7`: solo el mueble 7), con sus láminas A3 tal cual,
+sin portada, índice ni cabeceras (`planos-A-07-vitrina-de-impresion-hacia-el-pasillo.pdf`).
 de la Galería, para uso del grupo: las razones de cada mueble, lo que hizo la IA y lo que sigue abierto).
 
 Las uniones (`js/uniones.js`) van acotadas en milímetros y salen del despiece de cada mueble: solo aparece la unión que
