@@ -54,8 +54,26 @@
     // la textura de rugosidad ya trae el canal azul en blanco: sirve también de mapa metálico y evita
     // que el exportador cree una imagen combinada por cada material
     if (out && out.roughnessMap && !out.metalnessMap) { if (out === m) out = m.clone(); out.metalnessMap = out.roughnessMap; }
+    // glTF admite rugosidad de 0 a 1 (el visor usa algo más para apagar el brillo)
+    if (out && out.roughness > 1) { if (out === m) out = m.clone(); out.roughness = 1; }
     cache.set(m, out);
     return out;
+  }
+  /* piezas sin coordenadas de textura (herrajes, patas, impresoras) con material texturizado: proyección de caja en metros */
+  const uvCache = new Map();
+  function withUV(geo, mat) {
+    if (geo.attributes.uv || !mat || !(mat.map || mat.roughnessMap || mat.normalMap)) return geo;
+    if (uvCache.has(geo)) return uvCache.get(geo);
+    const g = geo.clone(), P = g.attributes.position, N = g.attributes.normal, uv = new Float32Array(P.count * 2);
+    for (let i = 0; i < P.count; i++) {
+      const nx = N ? Math.abs(N.getX(i)) : 0, ny = N ? Math.abs(N.getY(i)) : 1, nz = N ? Math.abs(N.getZ(i)) : 0;
+      if (ny >= nx && ny >= nz) { uv[i * 2] = P.getX(i); uv[i * 2 + 1] = P.getZ(i); }
+      else if (nx >= nz) { uv[i * 2] = P.getZ(i); uv[i * 2 + 1] = P.getY(i); }
+      else { uv[i * 2] = P.getX(i); uv[i * 2 + 1] = P.getY(i); }
+    }
+    g.setAttribute('uv', new T.BufferAttribute(uv, 2));
+    uvCache.set(geo, g);
+    return g;
   }
 
   const pad = (n) => (n < 10 ? '0' : '') + n;
@@ -63,7 +81,9 @@
   X.buildScene = function (opt) {
     opt = opt || {};
     const R = L.room, F = L.furn, E = L.engine, byN = {};
-    (L.data ? L.data.items : []).forEach((i) => { byN[i.n] = i; });
+    // nombres de la versión a la vista (la Galería llama «Muro de nichos» a lo que en los datos base es «Estantería retroiluminada»)
+    const VS = L.versions, ver = L.api && L.api.state ? L.api.state.ver : null;
+    (L.data ? L.data.items : []).forEach((i) => { const o = ver && VS && VS.items[ver] && VS.items[ver][i.n]; byN[i.n] = o ? Object.assign({}, i, { name: o.name || i.name, short: o.short || i.short }) : i; });
     const scene = new T.Scene(); scene.name = 'Local Impresión 3D';
     const local = new T.Group(); local.name = 'Local'; scene.add(local);
     const mob = new T.Group(); mob.name = 'Mobiliario'; scene.add(mob);
@@ -86,7 +106,7 @@
       if (top === R.cotas || top.userData.verOff) return;          // muebles de las versiones que no están a la vista
       const mat = exportMaterial(o.userData.mat0 || o.material, cache);
       if (!mat) return;
-      const m = new T.Mesh(o.geometry, mat);
+      const m = new T.Mesh(withUV(o.geometry, mat), mat);
       o.matrixWorld.decompose(p, q, s); m.position.copy(p); m.quaternion.copy(q); m.scale.copy(s);
       const ud = o.userData;
       m.name = ud.name || (ud.decor ? 'Piezas impresas en exhibición' : ud.plant ? 'Planta' : ud.child ? (o.parent.userData.name || 'Pieza') + ' · detalle' : o.name || 'Pieza');
@@ -115,6 +135,46 @@
         lg.add(c);
       });
     }
+    // Unreal: marcadores (cubos de 1 cm con nombre) que el script de Unreal convierte en luces, cámaras e inicio del recorrido.
+    // Se leen ya convertidos a las coordenadas de Unreal, así no importa el cambio de ejes del importador.
+    if (opt.unreal) {
+      const mk = new T.Group(); mk.name = 'MARCADORES'; scene.add(mk);
+      const mg = new T.BoxGeometry(0.01, 0.01, 0.01), mm = new T.MeshBasicMaterial({ color: 0xff00ff }); mm.name = 'MARCADOR';
+      const add = (name, v) => { const m = new T.Mesh(mg, mm); m.name = name; m.position.copy(v); mk.add(m); };
+      const box = new T.Box3(), c = new T.Vector3(), sz = new T.Vector3(), info = [];
+      let k = 0;
+      F.order.forEach((n) => F.items[n].insts.forEach((o, ii) => {
+        let top = o.group; while (top.parent && top.parent !== R.root) top = top.parent;
+        if (top.userData.verOff || !o.group.visible) return;
+        o.parts.forEach((p) => {
+          if (!/^(cob|perfilLed)$/.test(p.userData.mk || '') || !p.visible) return;
+          box.setFromObject(p); box.getCenter(c); box.getSize(sz);
+          const ax = sz.x >= sz.y && sz.x >= sz.z ? new T.Vector3(1, 0, 0) : sz.y >= sz.z ? new T.Vector3(0, 1, 0) : new T.Vector3(0, 0, 1);
+          const len = Math.max(sz.x, sz.y, sz.z), id = 'LED_' + pad(n) + '_' + pad(++k);
+          add(id + '_A_L' + Math.round(len * 100), c);
+          add(id + '_C', c.clone().addScaledVector(ax, 0.1));
+        });
+        if (o.box && ii === 0) {
+          const it = byN[n]; o.box.getCenter(c); o.box.getSize(sz);
+          add('INFO_' + pad(n), new T.Vector3(c.x, o.box.max.y, c.z));
+          info.push({ n, nombre: it ? it.name : '', corto: it ? it.short : '', medidas: [sz.x, sz.y, sz.z].map((v) => Math.round(v * 1000)) });
+        }
+      }));
+      E.ledLights.forEach((l, i) => {
+        const id = (l.isSpotLight ? 'LUZ_FOCO_' : 'LUZ_CALIDA_') + pad(i + 1);
+        add(id + '_A_I' + Math.round(l.userData.i * 10), l.position);
+        if (l.isSpotLight) add(id + '_B_G' + Math.round(T.MathUtils.radToDeg(l.angle)), l.target.position);
+      });
+      // inicio del recorrido: afuera, en el pasillo, mirando la vitrina
+      const vw = opt.inicio || { a: [0, 0, 5.4], b: [0, 0, 3.4] };
+      add('INICIO_A', new T.Vector3().fromArray(vw.a)); add('INICIO_B', new T.Vector3().fromArray(vw.b));
+      (opt.cams || []).forEach((v) => {
+        const sp = Math.sin(v.ph);
+        add('CAM_' + v.name + '_A', new T.Vector3(v.t[0] + v.r * sp * Math.sin(v.th), v.t[1] + v.r * Math.cos(v.ph), v.t[2] + v.r * sp * Math.cos(v.th)));
+        add('CAM_' + v.name + '_B', new T.Vector3().fromArray(v.t));
+      });
+      scene.userData.info = info;
+    }
     // las vistas de la página como cámaras
     (opt.views || []).forEach((v) => {
       const c = new T.PerspectiveCamera(36, 16 / 9, 0.05, 200), sp = Math.sin(v.ph);
@@ -129,6 +189,7 @@
   X.glb = async function (opt) {
     const mod = await loadExporter();
     const scene = X.buildScene(opt);
+    X.lastInfo = scene.userData.info || null;
     return new Promise((resolve, reject) => {
       new mod.GLTFExporter().parse(scene, resolve, reject, { binary: true, maxTextureSize: 2048 });
     });
