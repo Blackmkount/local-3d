@@ -34,7 +34,8 @@ costos, fabricación, ensamble y la razón de cada material.
 - **Explosionar**: separa el mueble en sus piezas, tal como salen del despiece.
 - **Solo este mueble** (tecla S): oculta el local, los demás muebles y la gente para ver únicamente el mueble elegido;
   sigue funcionando con el explosionado y el armado. «Ver el local» o Esc lo devuelve. Con «Ocultar la interfaz» (H)
-  el mueble se mantiene solo en pantalla completa; H o Esc devuelven la interfaz con el mueble aún solo.
+  el mueble se mantiene solo en pantalla completa, con la ficha de cada pieza al pasar el puntero; H o Esc devuelven
+  la interfaz con el mueble aún solo.
 - **Ver armado**: reproduce el ensamble paso a paso; cada paso cita el punto del documento del que sale.
 - **Ver un material en el modelo**: al pasar el cursor por una fila de la tabla de materiales se resaltan las piezas hechas con él.
 - **Montaje**: muestra cómo se arma el local completo, del fondo hacia la fachada, en seis pasos.
