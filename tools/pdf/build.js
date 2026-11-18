@@ -14,7 +14,7 @@ const { execFileSync } = require('child_process');
 
 const args = process.argv.slice(2);
 const opt = {}; const nums = [];
-args.forEach((a) => { const m = /^--([a-z]+)(?:=(.*))?$/.exec(a); if (m) opt[m[1]] = m[2] === undefined ? true : m[2]; else nums.push(/^([RP]?[ABC]|F|N[23]|G)$/i.test(a) ? a.toUpperCase() : +a); });
+args.forEach((a) => { const m = /^--([a-z]+)(?:=(.*))?$/.exec(a); if (m) opt[m[1]] = m[2] === undefined ? true : m[2]; else nums.push(/^([RP]?[ABC]|F|N[23]|G|M[ABC]\d*)$/i.test(a) ? a.toUpperCase() : +a); });
 const BASE = opt.base || 'http://localhost:8765', OUT = path.resolve(opt.out || 'entrega'), ROOT = path.resolve(__dirname, '..', '..');
 const POST = path.join(__dirname, 'post.py');
 const DOCS = nums.length ? nums : [1, 2, 3, 4, 5, 6];
@@ -38,6 +38,11 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
   await page.addScriptTag({ url: BASE + '/js/entrega.js?t=' + Date.now() });
   await page.evaluate(() => { L3D.engine.dprMax = 1; if (L3D.vida && L3D.vida.setOn) L3D.vida.setOn(false); });
   log('visor listo');
+  // MA, MB, MC: un PDF de planos por cada mueble de esa versión (MA7: solo el mueble 7)
+  for (let i = DOCS.length - 1; i >= 0; i--) {
+    const m = /^M([ABC])$/.exec(DOCS[i]);
+    if (m) DOCS.splice(i, 1, ...(await page.evaluate((v) => L3D.entrega.muebles(v), m[1])).map((n) => 'M' + m[1] + n));
+  }
 
   const run = (cmd) => JSON.parse(execFileSync('python3', [POST].concat(cmd), { encoding: 'utf8', maxBuffer: 1 << 26 }));
 
@@ -78,6 +83,21 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
     }
     const info = await page.evaluate((a) => L3D.entrega.mount(a.num, a.opt), { num, opt: docOpt });
     const doc = info.doc;
+    if (doc.solo) {
+      // planos de un mueble: las láminas tal cual, sin índice ni cabeceras; marcadores por lámina
+      await page.emulateMedia({ media: 'print' });
+      const p1 = path.join(TMP, 'm-' + num + '.pdf');
+      await page.pdf({ path: p1, preferCSSPageSize: true, printBackground: true, displayHeaderFooter: false, timeout: 0 });
+      const sheets = await page.evaluate((a) => L3D.planos.sheets(a.v).filter((sh) => sh.n === a.n).map((sh) => sh.code + ' · ' + sh.title), { v: doc.ver, n: doc.n });
+      const metaPath = path.join(TMP, 'm-' + num + '-meta.json');
+      fs.writeFileSync(metaPath, JSON.stringify({ title: doc.label + ' · ' + doc.t + ' · Planos · BlackForge 3D', author: 'BlackForge 3D · Diseño VIII, UPTC Duitama', subject: 'Planos del mueble ' + doc.label + ' · ' + doc.t, outline: sheets.map((t, i) => [t, i + 1, 0]) }));
+      const out = path.join(OUT, doc.file + '.pdf');
+      const r = run(['merge', p1, '-', out, metaPath]);
+      await page.emulateMedia({ media: 'screen' });
+      await page.evaluate(() => L3D.entrega.unmount());
+      log('  →', path.relative(process.cwd(), out), r.pages + ' láminas', (fs.statSync(out).size / 1048576).toFixed(1) + ' MB', Math.round((Date.now() - t0) / 1000) + ' s');
+      continue;
+    }
     log('documento', num, doc.t, '· láminas A3:', info.pages);
     await page.emulateMedia({ media: 'print' });
     const pdfOpt = { preferCSSPageSize: true, printBackground: true, displayHeaderFooter: false, timeout: 0 };

@@ -42,10 +42,10 @@ def dests(path):
 def merge(content, overlay, out, metapath):
     meta = json.load(open(metapath))
     r = PdfReader(content)
-    o = PdfReader(overlay)
+    o = PdfReader(overlay) if overlay != '-' else None   # '-': sin capa de cabeceras (planos de un mueble)
     w = PdfWriter()
     for i, p in enumerate(r.pages):
-        if i < len(o.pages):
+        if o and i < len(o.pages):
             p.merge_page(o.pages[i])
         w.add_page(p)
     # los enlaces internos (índice) se conservan al copiar las páginas; los destinos con nombre se vuelven a registrar

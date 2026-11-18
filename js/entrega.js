@@ -1051,7 +1051,18 @@
     return { num, ver: v, id: 'guia-' + v, file: 'guia-de-sustentacion-' + vi.nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-'), t: 'Guía de sustentación · Espacio ' + num + ' · ' + vi.nombre, label: 'Guía de sustentación',
       sub: 'Para el grupo: las razones de cada mueble, lo que hizo la inteligencia artificial y lo que sigue abierto. No va en la carpeta de entrega', kicker: 'Uso interno del grupo · Preparación de la revisión', fecha: REV, req: true, sec2: 'Espacio ' + num + ' · ' + vi.nombre, serie: '' };
   };
+  /* planos de un solo mueble (M + versión + número, p. ej. MA7): solo sus láminas A3, sin portada, índice ni cabeceras */
+  const slug = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  EN.muebleDoc = function (v, n) {
+    const it = itemOf(v, n), name = it.name || it.short;
+    return { num: 'M' + v + n, a3: true, solo: true, ver: v, n, t: name, label: v + '-' + nn(n), file: 'planos-' + v + '-' + nn(n) + '-' + slug(name), fecha: REV };
+  };
+  EN.muebles = (v) => PN.fab(v).map((d) => d.n);
+  function docM(doc) {
+    return PN.sheets(doc.ver).filter((sh) => sh.n === doc.n).map((sh, i) => a3(PN.draw(doc.ver, sh), i ? null : 'm-' + doc.n)).join('');
+  }
   EN.html = function (num, opt) {
+    if (typeof num === 'string' && /^M[ABC]\d+$/.test(num)) { const doc = EN.muebleDoc(num[1], +num.slice(2)); return { doc, html: docM(doc) }; }
     if (num === 'G') { const doc = EN.guiaDoc(); return { doc, html: docG(doc) }; }
     if (num === 'N2') { const doc = EN.n2Doc(); return { doc, html: docN2(doc) }; }
     if (num === 'N3') { const doc = EN.n3Doc(); return { doc, html: docN3(doc) }; }
