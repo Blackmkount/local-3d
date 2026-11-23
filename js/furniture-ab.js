@@ -609,7 +609,8 @@
   // 11 · Panel ranurado de accesorios, lacado, con repisas de acrílico y ganchos
   B[11] = function (tgt) {
     G.reseed(11511);
-    const o = h.inst(11, 0.6, 1.05, 5.5, 0), W = 1.6, H = 1.2, t = 0.015;
+    // apoyado sobre la cara de los listones del muro (2.2 cm delante del fondo en D = 5.50), no dentro de ellos
+    const o = h.inst(11, 0.6, 1.05, 5.5 - 0.0235, 0), W = 1.6, H = 1.2, t = 0.015;
     lq(o, 'Tablero lacado', 0, 0, 0, W, H, t, 0, [0, 0, 0.25]);
     h.chazos(o, [0.15, 0.8, 1.45].flatMap((x) => [[x, 0.1, 0.03], [x, H - 0.1, 0.03]]), 0, [0, 0, 0.35]);
     const ys = []; for (let i = 0; i < 8; i++) ys.push(0.06 + i * 0.15);
