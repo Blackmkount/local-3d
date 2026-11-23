@@ -77,6 +77,19 @@ En Unreal 5.8 con Substrate, una normal en espacio del mundo apaga el color; por
 los nodos de una sola entrada (seno, 1 − x, máscara) se conectan con nombre de entrada vacío. Si se usa otro nombre,
 el material no compila y las piezas salen grises.
 
+## Luminarias y vidrios
+
+- `scripts/luminarias_galeria.py` pone una luz en cada luminaria del modelo y borra las del visor web, que no
+  coincidían con ninguna lámpara:
+  - un foco en cada una de las 10 cabezas de los rieles, apuntando hacia donde mira la cabeza;
+  - un foco hacia abajo en los 2 colgantes;
+  - luz rectangular en la lámpara lineal de la barra, en el panel de la trastienda y en la luz perimetral oculta del cielo raso.
+
+  También adelanta el panel de accesorios para que quede apoyado sobre los listones del muro, no dentro de ellos
+  (en el visor web también se corrigió).
+- `scripts/vidrios_galeria.py` quita Nanite a las mallas con material transparente (vidrio, acrílico). Nanite
+  solo admite materiales opacos y, con él, el vidrio no se ve como vidrio.
+
 `scripts/vista.py` pone la cámara del editor frente a un mueble (`MUEBLE`, `DIST`), para revisar de cerca.
 
 `scripts/diagnostico.py` escribe `diag.json` con los materiales importados, sus parámetros y las luces del nivel.
