@@ -32,6 +32,7 @@ NIVEL = "/Game/Galeria/Mapas/L_Galeria"
 DESTINO = "/Game/Galeria/Modelo"
 REIMPORTAR = False
 ETIQUETAS = True          # nombre de cada mueble sobre él durante el recorrido
+COLISIONES = True         # cajas de colisión para caminar sin atravesar muebles ni muros
 
 LED_LM_POR_METRO = 700.0  # flujo de las tiras (COB y perfil LED de 12 V) en lúmenes por metro
 LED_KELVIN = 3000.0
@@ -275,21 +276,30 @@ def postproceso():
 
 
 def colisiones(M):
-    marcas = set(id(a) for a, _ in M.values())
+    """Colisión de caja en cada malla con la herramienta del editor de mallas, que reconstruye la física.
+    (Cambiar body_setup directamente deja desactualizada la física de Chaos y el editor se cae.)"""
+    sms = unreal.get_editor_subsystem(unreal.StaticMeshEditorSubsystem)
+    marcas = set(a.get_actor_label() for a, _ in M.values())
     mallas = {}
     for a in EAS.get_all_level_actors():
-        if isinstance(a, unreal.StaticMeshActor) and id(a) not in marcas:
-            c = a.static_mesh_component
-            c.set_collision_profile_name("BlockAll")
-            sm = c.get_editor_property("static_mesh")
+        if isinstance(a, unreal.StaticMeshActor) and a.get_actor_label() not in marcas:
+            sm = a.static_mesh_component.get_editor_property("static_mesh")
             if sm:
                 mallas[sm.get_path_name()] = sm
-    for sm in mallas.values():
-        b = sm.get_editor_property("body_setup")
-        if b:
-            ajustar(b, "collision_trace_flag", unreal.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
-        unreal.EditorAssetLibrary.save_loaded_asset(sm)
-    log(len(mallas), "mallas con colisión (la geometría misma)")
+    n = 0
+    with unreal.ScopedSlowTask(len(mallas), "Colisiones de la Galería") as tarea:
+        tarea.make_dialog(True)
+        for sm in mallas.values():
+            if tarea.should_cancel():
+                break
+            tarea.enter_progress_frame(1)
+            try:
+                if sms.get_simple_collision_count(sm) == 0:
+                    sms.add_simple_collisions(sm, unreal.ScriptCollisionShapeType.BOX)
+                    n += 1
+            except Exception as e:  # noqa
+                unreal.log_warning("[Galería] sin colisión para %s: %s" % (sm.get_name(), e))
+    log(n, "mallas con colisión de caja (de", len(mallas), ")")
 
 
 def ocultar_marcadores(M):
@@ -326,6 +336,8 @@ def main():
     if not M:
         raise RuntimeError("No aparecieron los marcadores del modelo. Importa galeria.glb con Archivo > Importar al nivel y vuelve a ejecutar.")
     log(len(M), "marcadores")
+    if COLISIONES:
+        colisiones(M)                    # antes de generar luces y fuera de la transacción: toca los recursos, no el nivel
     with unreal.ScopedEditorTransaction("Preparar recorrido de la Galería"):
         borrar_generado()
         luces_led(M)
@@ -334,7 +346,6 @@ def main():
         inicio_y_camaras(M)
         etiquetas(M)
         postproceso()
-        colisiones(M)
         ocultar_marcadores(M)
         modo_primera_persona()
     LES.save_current_level()
