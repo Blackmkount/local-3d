@@ -49,6 +49,19 @@ Los marcadores son cubos de 1 cm con nombre. El script los convierte en:
 9. **Ejecutable para presentar.** *Plataformas → Windows → Empaquetar proyecto* (en Mac, *Plataformas → Mac*). Sale una carpeta con un `.exe` que
    corre en cualquier PC con Windows y tarjeta gráfica, sin instalar Unreal.
 
+## Ajustes de realismo (`scripts/mejorar_galeria.py`)
+
+Se ejecuta después de `preparar_galeria.py`, desde la consola de Unreal
+(`py "/ruta/galeria-unreal/scripts/mejorar_galeria.py"`) o desde *Herramientas → Ejecutar script de Python…*.
+No reimporta nada y se puede repetir. Hace lo siguiente:
+- Luz general neutra de 4000 K y menos intensa, y focos de 3500 K sobre los productos.
+- Luz ambiente con captura fija; así desaparece el aviso rojo de SkyAtmosphere.
+- Tiras LED y acrílico opal más brillantes.
+- Balance de blancos, contraste, oclusión ambiental y exposición.
+- Rótulos girados. Solo se ven en el editor, no en el recorrido (`ROTULOS_EN_JUEGO`).
+
+`scripts/diagnostico.py` escribe `diag.json` con los materiales importados, sus parámetros y las luces del nivel.
+
 ## Ajustes
 
 Al comienzo de `preparar_galeria.py`:
