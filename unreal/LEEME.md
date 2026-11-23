@@ -60,6 +60,25 @@ No reimporta nada y se puede repetir. Hace lo siguiente:
 - Balance de blancos, contraste, oclusión ambiental y exposición.
 - Rótulos girados. Solo se ven en el editor, no en el recorrido (`ROTULOS_EN_JUEGO`).
 
+## Texturas de lo que está en exhibición (`scripts/texturas_galeria.py`)
+
+Crea dos materiales en `/Game/Galeria/Materiales`:
+- `M_BF_PLA`: PLA impreso con líneas de capa de 0.2 mm, que se marcan en el tono y el brillo y se desvanecen
+  de lejos, más una leve variación de tono.
+- `M_BF_Hoja`: hojas en dos verdes, de dos caras.
+
+Cada mueble muestra una colección de un color: terracota en los nichos, seda dorada en la isla, grafito en los
+pedestales, azul petróleo en el laboratorio, rojo en la repisa de filamentos, cobre en la vitrina, salvia en el nicho
+de bienvenida, cobalto en el panel de accesorios, y otros. Las piezas sobre las camas de las impresoras llevan un
+color por impresora, y la silla lleva tela grafito. Los colores se cambian en `COLECCIONES`, al comienzo del script.
+Solo cambia el material de esos actores; los recursos importados no se tocan.
+
+En Unreal 5.8 con Substrate, una normal en espacio del mundo apaga el color; por eso las líneas van en el tono. Además,
+los nodos de una sola entrada (seno, 1 − x, máscara) se conectan con nombre de entrada vacío. Si se usa otro nombre,
+el material no compila y las piezas salen grises.
+
+`scripts/vista.py` pone la cámara del editor frente a un mueble (`MUEBLE`, `DIST`), para revisar de cerca.
+
 `scripts/diagnostico.py` escribe `diag.json` con los materiales importados, sus parámetros y las luces del nivel.
 
 ## Ajustes
