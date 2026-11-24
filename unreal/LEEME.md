@@ -18,7 +18,7 @@ Los marcadores son cubos de 1 cm con nombre. El script los convierte en:
 - la luz del pasillo del centro comercial y la luz ambiente;
 - el inicio del recorrido, en el pasillo y mirando la fachada;
 - las cámaras `Camara_fachada` y `Camara_interior` (las mismas vistas de la página);
-- el nombre de cada mueble flotando sobre él.
+- el nombre de cada mueble flotando sobre él, solo si `ETIQUETAS = True` (por omisión no se crean).
 
 ## Requisitos
 
@@ -58,7 +58,7 @@ No reimporta nada y se puede repetir. Hace lo siguiente:
 - Luz ambiente con captura fija; así desaparece el aviso rojo de SkyAtmosphere.
 - Tiras LED y acrílico opal más brillantes.
 - Balance de blancos, contraste, oclusión ambiental y exposición.
-- Rótulos girados. Solo se ven en el editor, no en el recorrido (`ROTULOS_EN_JUEGO`).
+- Rótulos girados, si los hay (`ROTULOS_EN_JUEGO`). Para quitarlos del todo: `scripts/quitar_rotulos.py`.
 
 ## Texturas de lo que está en exhibición (`scripts/texturas_galeria.py`)
 
@@ -114,7 +114,7 @@ Al comienzo de `preparar_galeria.py`:
 | `LED_LM_POR_METRO` (700) | Brillo de las tiras LED |
 | `FOCO_LM`, `CALIDA_LM`, `PASILLO_LM` | Brillo de los focos, de la luz general y del pasillo |
 | `EV_MIN`, `EV_MAX` | Rango de la exposición automática; subir los dos si la escena se ve oscura |
-| `ETIQUETAS` | `False` quita los nombres de los muebles (para renders) |
+| `ETIQUETAS` | `True` pone el nombre de cada mueble flotando sobre él (por omisión, `False`) |
 | `COLISIONES` | `False` no agrega cajas de colisión a las piezas |
 | `REIMPORTAR` | `True` vuelve a importar el modelo, después de exportarlo de nuevo |
 
