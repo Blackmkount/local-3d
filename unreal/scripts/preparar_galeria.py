@@ -31,7 +31,7 @@ CARPETA = None            # carpeta del paquete (la que tiene galeria.glb); None
 NIVEL = "/Game/Galeria/Mapas/L_Galeria"
 DESTINO = "/Game/Galeria/Modelo"
 REIMPORTAR = False
-ETIQUETAS = True          # nombre de cada mueble sobre él durante el recorrido
+ETIQUETAS = False         # True: nombre de cada mueble flotando sobre él
 COLISIONES = True         # cajas de colisión para caminar sin atravesar muebles ni muros
 
 LED_LM_POR_METRO = 700.0  # flujo de las tiras (COB y perfil LED de 12 V) en lúmenes por metro
