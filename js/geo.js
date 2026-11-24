@@ -251,9 +251,9 @@
       return G.mat(x + d[0], y + d[1], z + d[2], rot[0], rot[1], rot[2], rad, len, rad);
     };
     list.push({ g: cyl(), m: M(0, r * 0.9, w * 0.78), c: color });
-    list.push({ g: cyl(), m: M(-w / 2 + w * 0.06, r, w * 0.1), c: 0x1c1c1e });
-    list.push({ g: cyl(), m: M(w / 2 - w * 0.06, r, w * 0.1), c: 0x1c1c1e });
-    list.push({ g: cyl(), m: M(0, r * 0.34, w * 1.02), c: 0x3a3a3d });
+    list.push({ g: cyl(), m: M(-w / 2 + w * 0.06, r, w * 0.1), c: 0xb08a5c });
+    list.push({ g: cyl(), m: M(w / 2 - w * 0.06, r, w * 0.1), c: 0xb08a5c });
+    list.push({ g: cyl(), m: M(0, r * 0.34, w * 1.02), c: 0x9c7a52 });
   };
   /* Planta de hojas en punta (como las del render) */
   G.plant = function (list, x, y, z, h, n) {
