@@ -204,7 +204,8 @@ def pasillo(M):
     cielo = generar(unreal.SkyLight, unreal.Vector(p.x, p.y, p.z + 250.0), None, "Galeria/Luces/General", "Luz_ambiente")
     sc = cielo.get_component_by_class(unreal.SkyLightComponent)
     sc.set_mobility(unreal.ComponentMobility.MOVABLE)
-    ajustar(sc, "real_time_capture", True)
+    ajustar(sc, "real_time_capture", False)   # en tiempo real, Unreal muestra un aviso rojo en pantalla (también en el recorrido)
+    ajustar(sc, "source_type", unreal.SkyLightSourceType.SLS_CAPTURED_SCENE)
     ajustar(sc, "intensity", 0.6)
 
 

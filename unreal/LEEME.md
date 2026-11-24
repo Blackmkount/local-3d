@@ -133,6 +133,9 @@ El script se puede ejecutar varias veces: borra lo que generó antes y lo crea o
   Outliner, seleccionarlas todas y rotar en Z.
 - **El vidrio o el acrílico opal no se ven bien.** Abrir su material en `/Game/Galeria/Modelo` (`vidrio`,
   `vidrioPuerta`, `opal`) y bajar la opacidad o la rugosidad.
+- **Sale un aviso rojo en pantalla** («luz cenital con captura en tiempo real… SkyAtmosphere»), también en el
+  recorrido. Ejecutar `scripts/sin_avisos.py`: deja la luz ambiente con captura fija y guarda el nivel.
+  `preparar_galeria.py` ya la crea así.
 - **Se ve oscuro o quemado.** Ajustar `EV_MIN` y `EV_MAX`, o mover la exposición en `Postproceso_Galeria`.
 
 ## Siguientes pasos posibles
