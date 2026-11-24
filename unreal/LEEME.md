@@ -90,6 +90,17 @@ el material no compila y las piezas salen grises.
 - `scripts/vidrios_galeria.py` quita Nanite a las mallas con material transparente (vidrio, acrílico). Nanite
   solo admite materiales opacos y, con él, el vidrio no se ve como vidrio.
 
+## Carretes de filamento (`scripts/carretes_galeria.py`)
+
+Crea `M_BF_Carrete` y lo pone en los carretes de la repisa de filamentos, el laboratorio, la bodega, el panel de
+accesorios y las unidades AMS. Cada carrete queda en dos colores, como los reales:
+- las tapas y el centro son de cartón kraft, mate y con fibra (color en `CARTON`);
+- el filamento conserva el color de cada carrete, con brillo de plástico y las vueltas del hilo de 1.75 mm.
+
+El material reconoce el cartón tanto en exportaciones viejas (tapas oscuras) como en las nuevas, donde el visor web
+ya pinta las tapas de cartón. `scripts/vista_carretes.py` pone la cámara frente a los carretes de un mueble
+(`MUEBLE`, `DIST`).
+
 `scripts/vista.py` pone la cámara del editor frente a un mueble (`MUEBLE`, `DIST`), para revisar de cerca.
 
 `scripts/diagnostico.py` escribe `diag.json` con los materiales importados, sus parámetros y las luces del nivel.
