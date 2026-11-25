@@ -1407,7 +1407,7 @@
     $('#btn-search').title = 'Buscar muebles, vistas y acciones (' + (U.isMac ? '⌘K' : 'Ctrl+K') + ')';
     winDrag = U.windowDrag($('.modal-card'), $('.modal-head'), zoomModal);
     bindSpot(); bindSheet();
-    $('#views').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) goView(b.dataset.view); });
+    $('#views').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.nota) { const n = $('#btn-nota'); if (n) n.click(); return; } goView(b.dataset.view); });
     $('#brand').addEventListener('click', (e) => { e.preventDefault(); goView('fachada'); });
     $('#btn-inv').addEventListener('click', () => toggleInv());
     $('#btn-budget').addEventListener('click', openBudget);
