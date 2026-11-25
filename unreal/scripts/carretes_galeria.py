@@ -6,8 +6,8 @@ M_BF_Carrete usa el color de vértice que trae el modelo (cada carrete con su co
   · las tapas y el centro del carrete (oscuros en exportaciones viejas, cartón en las nuevas) pasan a cartón
     kraft, mate y con fibra
   · el resto queda del color del filamento, con brillo de plástico y las vueltas del hilo
-Se aplica a lo que tiene carretes: repisa de filamentos (09), laboratorio (07), panel de accesorios (11),
-bodega (16) y unidades AMS. Se puede ejecutar varias veces.
+Se aplica a lo que tiene carretes: repisa de filamentos (09), laboratorio (07), panel de accesorios (11)
+y bodega (16). Las unidades AMS conservan su material. Se puede ejecutar varias veces.
 """
 import re
 import unreal
@@ -136,7 +136,7 @@ def main():
             if not isinstance(a, unreal.StaticMeshActor):
                 continue
             lb, num = a.get_actor_label(), mueble_de(a)
-            es = (lb.startswith("Piezas_impresas") and num in ("07", "09", "16")) or lb.startswith("Ganchos_y") or lb.startswith("Unidad_AMS")
+            es = (lb.startswith("Piezas_impresas") and num in ("07", "09", "16")) or lb.startswith("Ganchos_y")
             if es:
                 c = a.static_mesh_component
                 for i in range(c.get_num_materials()):

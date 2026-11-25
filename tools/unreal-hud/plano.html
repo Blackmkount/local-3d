@@ -1,0 +1,36 @@
+<!doctype html><html><body style="margin:0;background:transparent">
+<script type="importmap">{"imports":{"three":"/three/build/three.module.js","three/addons/":"/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+const X0=-3.6,X1=3.6,Z0=-4.0,Z1=6.8, W=1600, H=Math.round(W*(Z1-Z0)/(X1-X0));
+const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true}); r.setSize(W,H); r.setClearColor(0x000000,0);
+r.localClippingEnabled=true; document.body.appendChild(r.domElement);
+const s=new THREE.Scene();
+const corte=new THREE.Plane(new THREE.Vector3(0,-1,0),1.25);
+const muroM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.92,side:THREE.DoubleSide,clippingPlanes:[corte],depthWrite:false});
+const fillM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.07,side:THREE.DoubleSide,clippingPlanes:[corte],depthWrite:false});
+const lineM=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.95,clippingPlanes:[corte]});
+new GLTFLoader().load('galeria.glb',(g)=>{
+  g.scene.updateMatrixWorld(true);
+  const meshes=[]; g.scene.traverse(o=>{ if(o.isMesh) meshes.push(o); });
+  let n=0;
+  for(const o of meshes){
+    const b=new THREE.Box3().setFromObject(o);
+    if(b.min.y>1.25) continue;
+    const sz=b.getSize(new THREE.Vector3());
+    if(sz.y<0.03 && b.min.y<0.03) continue;              // pisos
+    if(b.max.x<X0-0.5||b.min.x>X1+0.5||b.max.z<Z0-0.5||b.min.z>Z1+0.5) continue;
+    const ms=Array.isArray(o.material)?o.material:[o.material];
+    const nom=ms.map(m=>m.name).join(',');
+    if(/MARCADOR|led|opal/i.test(nom)) continue;
+    const muro=/^(muro|fachada)/.test(nom);
+    const m=new THREE.Mesh(o.geometry, muro?muroM:fillM); m.matrixAutoUpdate=false; m.matrix.copy(o.matrixWorld); s.add(m);
+    if(!muro){ const e=new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry,40),lineM); e.matrixAutoUpdate=false; e.matrix.copy(o.matrixWorld); s.add(e); }
+    n++;
+  }
+  const cam=new THREE.OrthographicCamera((X0-X1)/2,(X1-X0)/2,(Z1-Z0)/2,(Z0-Z1)/2,0.1,100);
+  cam.position.set((X0+X1)/2,20,(Z0+Z1)/2); cam.up.set(0,0,-1); cam.lookAt((X0+X1)/2,0,(Z0+Z1)/2);
+  r.render(s,cam); window.__n=n; window.__wh=[W,H];
+});
+</script></body></html>

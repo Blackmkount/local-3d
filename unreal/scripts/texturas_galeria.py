@@ -18,7 +18,7 @@ PROF_CAPA = 0.6         # cuánto se marcan las líneas de capa
 
 # color sRGB 0-255, rugosidad, metálico — una colección por mueble
 COLECCIONES = {
-    "02": ("Terracota mate", (176, 92, 62), 0.62, 0.0),
+    "02": ("Piedra", (186, 178, 166), 0.62, 0.0),       # tono neutro: el muro es grande y manda en la imagen
     "03": ("Seda dorada", (214, 160, 72), 0.30, 0.65),
     "04": ("Grafito mate", (46, 46, 50), 0.55, 0.0),
     "07": ("Azul petróleo", (24, 84, 100), 0.45, 0.0),
