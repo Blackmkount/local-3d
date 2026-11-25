@@ -120,6 +120,34 @@ Al comienzo de `preparar_galeria.py`:
 
 El script se puede ejecutar varias veces: borra lo que generó antes y lo crea otra vez.
 
+## Fotorrealismo: estilo recorrido de arquitectura
+
+Para mostrar en un auditorio: imagen clara y neutra, materiales con textura real, el centro comercial alrededor
+del local, pantallas encendidas y la interfaz de los recorridos profesionales (brújula y minimapa).
+Se ejecutan en este orden, desde la consola de Unreal (`py "/ruta/galeria-unreal/scripts/…"`), después de los
+scripts anteriores. Todos se pueden repetir.
+
+| Script | Qué hace |
+|---|---|
+| `fotorrealismo_luz.py` | Luminarias en blanco neutro (4000 K), relleno suave de la luz perimetral, exposición fija (EV 6.6), balance de blancos, Lumen en calidad alta, reflejos, viñeta y aberración leves, nitidez. Las variables de consola quedan en `Config/DefaultEngine.ini`. |
+| `materiales_fotorrealistas.py` | Importa las texturas de `texturas/` y crea `M_BF_Superficie`, que las proyecta según la posición en el mundo (no depende de las coordenadas de textura del modelo). Pone roble en el piso, enchape de roble en listones y tapas, pintura en muros y cielo raso, laca y melamina blancas, concreto, pintura negra electrostática, aluminio y acero cepillados, y porcelanato en el pasillo. |
+| `piedra_nichos.py` | Piezas del muro de nichos en tono piedra (el muro es grande y el naranja dominaba la imagen). |
+| `entorno_pasillo.py` | El pasillo del centro comercial: cielo raso con dos líneas de luz, piso hasta los extremos, cuatro locales vecinos enfrente y uno a cada lado, con vitrina, aviso de luz sin marca e interior iluminado. |
+| `pantallas_avisos.py` | Pantallas del local y de los pilares encendidas (la imagen emite luz) y brillo de avisos y líneas de luz. |
+| `hud_recorrido.py` | Brújula arriba y minimapa con la posición y la dirección del visitante, como material de posproceso. Con `VISIBLE = False` se apaga (para renders). |
+| `camara_jugador.py` | Lente de 90° del visitante (la plantilla ya la traía). |
+| `capturas.py` | Capturas de revisión en 1920 × 1080 desde vistas fijas (pasillo, entrada, fondo y seis muebles), en `galeria-unreal/capturas/`. |
+
+Las texturas se generan con el repositorio (son propias, sin licencias de terceros):
+
+```
+python3 tools/texturas_unreal.py unreal/texturas      # 10 superficies × color, normal y rugosidad, 2048 px
+python3 tools/unreal-hud/brujula.py                   # tira de la brújula
+node tools/unreal-hud/plano.js                         # plano del minimapa (ver el encabezado del archivo)
+```
+
+y se copian a `galeria-unreal/texturas/` junto con `tamanos.json`, que dice cuántos centímetros cubre cada una.
+
 ## Si algo falla
 
 - **El editor se cierra al ejecutar el script.** Volver a abrir el proyecto y ejecutar el script otra vez: retoma
