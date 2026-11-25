@@ -24,6 +24,7 @@
     { id: 'K', t: 'Volumen, plazo y ritmo', d: 'Volumen, plazo, jornada y ritmo requerido (K, L y M)', st: 'ok' },
     { id: 'N', t: 'Fabricar o comprar', d: 'Fabricar, comprar o encargar, pieza por pieza (N)', st: 'ok' },
     { id: 'O', t: 'Tipo de producción', d: 'Tipo de producción y patrón de flujo (O · ítem 4)', st: 'ok' },
+    { id: 'MC', t: 'Madecentro', d: 'Fabricación en Madecentro: empresa, volumen, proceso, métodos, tiempos, capacidad y planta completa', st: 'ok' },
     { id: '2', t: 'Hipótesis', d: 'Hipótesis de producción, escrita antes de calcular (ítem 2)', st: 'ok' },
     { id: '3', t: 'Localización', d: 'Localización de la planta (ítem 3)', st: 'ok' },
     { id: '5', t: 'Distribución', d: 'Distribución en planta (ítem 5)', st: 'ok' },
@@ -134,6 +135,111 @@
       '<h3>Pieza por pieza</h3>' + tbl(['Mueble', 'Pieza', 'Material', '.Cant.', 'Decisión'], piezas) +
       '<p class="n1-note">Los herrajes, la tornillería, las fuentes y el empaque se compran. Con esto, la planta conserva el corte, el curvado, el lacado, el armado, la integración de la luz y la inspección: la parte del proceso que hay que diseñar.</p>';
   }
+  /* ------------------------------------------------ Madecentro: la empresa que fabrica la mayor parte del juego
+     Datos de la empresa: Portafolio (13 oct. 2026) y madecentro.com (servicios y despiece en línea), consultados el
+     25 nov. 2026. Los tiempos de Madecentro son estimados: se confirman con la sede en el primer pedido. */
+  const MC_FUENTES = [
+    ['Portafolio (13 oct. 2026). Madecentro llega a 250 tiendas en Colombia y espera superar este año el billón de pesos en ventas.', 'https://www.portafolio.co/negocios/comercio/madecentro-llega-a-250-tiendas-en-colombia-y-espera-superar-este-ano-el-billon-de-pesos-en-ventas-504357'],
+    ['Madecentro. Servicios (corte, cantos y servicios especiales), consultado el 25 nov. 2026.', 'https://madecentro.com/pages/servicios'],
+    ['Madecentro. Haz tu despiece en línea, consultado el 25 nov. 2026.', 'https://madecentro.com/pages/haz-tu-despiece-en-linea']
+  ];
+  const MC_EST = ['SIE', 'FRE', 'ROV'];   // estaciones del ítem 11 que pasan a Madecentro
+  const MC_PROC = [
+    ['Corte de MDF 15 y 5.5 mm y de melamina Rovere', 'mc', 'Corte a medida en seccionadora', 'Corte recto y en escuadra de fábrica; el taller ya no necesita sierra de mesa ni colector de polvo.'],
+    ['Cantos de las tapas Rovere', 'mc', 'Enchape de cantos (canteadora)', 'Canto pegado y refilado a máquina, más parejo que con la enchapadora manual.'],
+    ['Tapas de 30 mm', 'mc', 'Engrosado de frontal', 'El borde de 30 mm sale encolado de Madecentro.'],
+    ['Ranuras de fondos y canal del perfil LED', 'mc', 'Ranura para fondo de muebles · ranura para perfil de aluminio', 'Las mismas ranuras del plano, hechas a máquina.'],
+    ['Discos y costillas de la isla y los pedestales', 'mc', 'Corte circular interno y externo · curvas', 'Los radios salen exactos; antes se hacían con caladora.'],
+    ['Pasos de cables de la luz', 'mc', 'Hueco para pasacables', 'Se piden en las piezas que llevan fuente o tira LED.'],
+    ['Colgado del panel de accesorios', 'mc', 'Chaflán a 45° tipo cuchilla', 'Listón de colgar del panel 11.'],
+    ['Piezas agrupadas por mueble', 'mc', 'Zunchado de piezas', 'Llegan en paquetes por mueble: menos búsqueda y menos golpes en el viaje.'],
+    ['Pieles curvas de MDF 5.5 mm', 'taller', 'Curvado y encolado', 'Madecentro no curva: se encolan sobre las costillas que sí corta Madecentro.'],
+    ['Sellador, lijado y laca catalizada', 'taller', 'Lijado y lacado', 'Madecentro no laca, y es el acabado que define el producto.'],
+    ['Perforación de bisagras, rieles y herrajes', 'taller', 'Armado (con plantilla)', 'Madecentro no la publica entre sus servicios; se hace al armar.'],
+    ['Corte, soldadura y prueba de la luz LED', 'taller', 'Banco eléctrico', 'Igual que en el plan de la planta propia.'],
+    ['Armado, inspección y empaque', 'taller', 'Armado · inspección · empaque', 'El taller arma en premontaje, revisa con la hoja de verificación y empaca.'],
+    ['Vidrio templado y reposapiés', 'tercero', 'Vidriería y ornamentador', 'Igual que en el ítem N: necesitan horno y soldadura.']
+  ];
+  function secMC() {
+    const t = tiempos(), R = t.R, pl = CO.plan(V), npz = CO.piezas(V).length;
+    const tab = pl.reduce((s, m) => s + m.boards.length, 0), J = N2.volumen.juegos;
+    const hMad = MC_EST.reduce((s, e) => s + (t.est[e] || 0) / 60, 0), hTaller = t.trabajo - hMad;
+    const resto = t.lista.filter((x) => MC_EST.indexOf(x.e) < 0), cuello = resto[0];
+    const mes = R.horas / 12, efic = 0.85, pers = 1.5;
+    const capAntes = mes * pers * efic / t.trabajo, capAhora = mes * pers * efic / hTaller;
+    const operarios = hTaller / (R.ritmo * efic);
+    const minSecc = tab * 12, minCanto = 30 * 0.5 + 20, minMec = 60, hMaq = (minSecc + minCanto + minMec) / 60;
+    const maqLib = N2.maquinas.filter((m) => /^(Sierra de mesa|Sierra circular|Colector|Enchapadora|Rebordeadora)/.test(m.t));
+    const ahorroMaq = maqLib.reduce((s, m) => s + (m.p || 0) * (m.n || 1), 0);
+    const lbl = { mc: 'Madecentro', taller: 'Taller BlackForge', tercero: 'Tercero' }, cls = { mc: 'compra', taller: 'fabrica', tercero: 'encarga' };
+    const row = (a, b) => '<div><dt>' + esc(a) + '</dt><dd>' + b + '</dd></div>';
+    const caja = (tit, txt) => '<div style="flex:1 1 150px;border:1px solid rgba(127,127,127,.35);border-radius:10px;padding:10px 12px"><b>' + esc(tit) + '</b><br><small>' + esc(txt) + '</small></div>';
+    const flecha = '<div style="align-self:center;opacity:.6">→</div>';
+    return head('MC') +
+      '<p class="n1-lead">La mayor parte del juego la fabrica <b>Madecentro</b>: corta los tableros, pega los cantos y hace las ranuras, los cortes circulares y los demás mecanizados en sus máquinas. El taller de BlackForge en Villanueva hace lo que Madecentro no ofrece: el curvado de las pieles, el lacado, la luz, el armado, la inspección y el empaque. Los tiempos y el despiece son los de los ítems 7 y 11.</p>' +
+
+      '<h3>1 · La empresa, el volumen y el proceso</h3>' +
+      '<dl class="n1-dl">' +
+      row('Empresa', 'Madecentro Colombia S.A.S. Fundada en Medellín por Dimas Tobón, su gerente general; cumple 25 años de operación. ' + tipo('fuente')) +
+      row('Tamaño', '250 tiendas en Colombia, más de 4.000 colaboradores y ventas cercanas a $950.000 millones en 2025; espera superar el billón de pesos en 2026 y abre un centro de servicios de 6.000 m² en Bogotá. ' + tipo('fuente')) +
+      row('Sede que atiende el pedido', 'Madecentro Villavicencio (Cra 38 # 26C-50), a 115 km de Villanueva. Alterna: Madecentro Yopal (Carrera 20 # 16-55), a 148 km. ' + tipo('secundaria') + ' Distancias del ítem 3.') +
+      row('Qué le vende a BlackForge', 'Los tableros (MDF y melamina Rovere), los cantos y el servicio de corte, enchape y mecanizado, en la misma tienda.') +
+      row('Cómo se pide', 'Con el despiece en línea de Madecentro: se cargan las piezas, la herramienta optimiza el tablero, se agregan los servicios de cada pieza y se paga en línea. ' + tipo('fuente')) +
+      '</dl>' +
+      '<div class="n2-kpi"><div><span>Volumen</span><b>' + J + ' juegos</b><small>uno por mes en 2027</small></div><div><span>Piezas por juego</span><b>' + npz + '</b><small>' + (npz * J) + ' en el año</small></div><div><span>Tableros por juego</span><b>' + tab + '</b><small>' + (tab * J) + ' en el año: MDF 15 y 5.5 mm y melamina (ítem 7)</small></div><div class="is-key"><span>Lo hace Madecentro</span><b>' + nf(hMad / t.trabajo * 100, 0) + ' %</b><small>del trabajo de un juego (corte, fresado y tapas)</small></div></div>' +
+      '<h3>Proceso: quién hace cada operación</h3>' +
+      tbl(['Operación', 'Dónde', 'Servicio o estación', 'Por qué'], MC_PROC.map((p) => '<tr><td><b>' + esc(p[0]) + '</b></td><td><span class="n2-fc f-' + cls[p[1]] + '">' + lbl[p[1]] + '</span></td><td>' + esc(p[2]) + '</td><td>' + esc(p[3]) + '</td></tr>')) +
+      '<p class="n1-note">Los servicios son los que Madecentro publica en su página. Antes del primer pedido se confirma con la sede que hace el engrosado de frontal, los cortes circulares y las curvas con las medidas del juego. ' + tipo('estimado') + '</p>' +
+
+      '<h3>2 · Métodos, tiempos y capacidad de fabricación</h3>' +
+      '<h4 class="n1-h4">Método</h4><ol class="n1-ol">' +
+      '<li><b>Despiece.</b> La lista de piezas sale del modelo (ítem 7) y se carga una vez en el despiece en línea de Madecentro; el mismo pedido se repite cada mes.</li>' +
+      '<li><b>Pedido.</b> Se agregan los servicios de cada pieza (corte, canto, ranura, circular, pasacables, chaflán, zunchado) y se paga en línea, dos semanas antes de la entrega del juego.</li>' +
+      '<li><b>Fabricación en Madecentro.</b> Corte en seccionadora, canteado, mecanizados y zunchado por mueble, con el número de mueble en cada paquete.</li>' +
+      '<li><b>Transporte.</b> Camión de Villavicencio a Villanueva, 115 km.</li>' +
+      '<li><b>Recepción.</b> Se cuentan los paquetes, se mide la primera pieza de cada medida y se revisan los cantos con la lista del pedido (inspección del ítem 16).</li>' +
+      '<li><b>Taller.</b> Curvado, lijado, sellador y laca en una sola tanda por juego, luz LED, armado en premontaje, inspección final y empaque.</li></ol>' +
+      '<h4 class="n1-h4">Tiempos de un juego</h4>' +
+      tbl(['Etapa', 'Dónde', '.Tiempo', 'Dato'], [
+        '<tr><td><b>Despiece y pedido en línea</b></td><td>BlackForge</td><td class="r mono">1 h</td><td>' + tipo('estimado') + ' El plan se guarda y se repite cada mes.</td></tr>',
+        '<tr><td><b>Corte en seccionadora</b></td><td>Madecentro</td><td class="r mono">' + nf(minSecc / 60, 1) + ' h</td><td>' + tipo('estimado') + ' 12 min por tablero (cargar, cortar y descargar) × ' + tab + ' tableros. La seccionadora avanza de 18 a 30 m/min en MDF (European Panel Federation).</td></tr>',
+        '<tr><td><b>Canteado y mecanizados</b></td><td>Madecentro</td><td class="r mono">' + nf((minCanto + minMec) / 60, 1) + ' h</td><td>' + tipo('estimado') + ' 30 m de canto de las tapas y alistamiento de la canteadora; 1 h de ranuras, circulares y pasacables.</td></tr>',
+        '<tr><td><b>Plazo de entrega de Madecentro</b></td><td>Madecentro</td><td class="r mono">3 a 5 días</td><td>' + tipo('estimado') + ' Días hábiles desde el pago; se confirma con la sede.</td></tr>',
+        '<tr><td><b>Transporte a Villanueva</b></td><td>Carretera</td><td class="r mono">2,5 h</td><td>' + tipo('estimado') + ' 115 km por la Ruta 65.</td></tr>',
+        '<tr><td><b>Trabajo en el taller</b></td><td>Taller BlackForge</td><td class="r mono">' + nf(hTaller, 1) + ' h</td><td>Ítem 11 sin las estaciones de corte, fresado y tapas, que hace Madecentro (' + nf(hMad, 1) + ' h menos).</td></tr>',
+        '<tr><td><b>Secado del lacado</b></td><td>Taller BlackForge</td><td class="r mono">5 h</td><td>' + tipo('fuente') + ' Sellador, dos manos y secado para manipular en una tanda (Pintuco Madetec, ítem 11). No ocupa a nadie.</td></tr>'
+      ]) +
+      '<h4 class="n1-h4">Capacidad</h4>' +
+      '<div class="n2-kpi"><div><span>Trabajo en el taller</span><b>' + nf(hTaller, 1) + ' h</b><small>antes ' + nf(t.trabajo, 1) + ' h por juego</small></div><div><span>Estación más cargada</span><b>' + esc(ESTN()[cuello.e]) + '</b><small>' + nf(cuello.h, 1) + ' h por juego</small></div><div><span>Ritmo requerido</span><b>' + nf(R.ritmo, 1) + ' h</b><small>un juego por ciclo</small></div><div class="is-key"><span>Capacidad del taller</span><b>' + nf(capAhora, 1) + ' juegos/mes</b><small>antes ' + nf(capAntes, 1) + ' · con 1,5 personas al 85 %</small></div></div>' +
+      '<p class="n2-formula">Capacidad = horas del mes × personas × eficiencia ÷ trabajo por juego = ' + nf(mes, 0) + ' h × 1,5 × 0,85 ÷ ' + nf(hTaller, 1) + ' h = <b>' + nf(capAhora, 1) + ' juegos por mes</b></p>' +
+      '<p class="n1-box">Madecentro no es el límite: un juego son ' + tab + ' tableros y unas ' + nf(hMaq, 1) + ' h de máquina, poco para una empresa de 250 tiendas. Lo que manda es su <b>plazo de entrega</b>, por eso el pedido se hace dos semanas antes. En el taller, la estación más cargada es ' + esc(ESTN()[cuello.e]).toLowerCase() + ', muy por debajo del ritmo: con el trabajo que queda bastan ' + nf(operarios, 2) + ' personas, y el plan de un ebanista y un auxiliar de medio tiempo deja capacidad para crecer sin contratar.</p>' +
+
+      '<h3>3 · La planta completa de fabricación</h3>' +
+      '<p class="n1-lead">La planta ya no es un solo edificio: es una cadena de dos sitios, Madecentro y el taller de Villanueva, unidos por el transporte.</p>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0">' +
+      caja('Madecentro Villavicencio', 'Tableros y cantos · corte en seccionadora · canteado · ranuras, circulares, pasacables, chaflán · zunchado') + flecha +
+      caja('Transporte', '115 km · paquetes por mueble') + flecha +
+      caja('Recepción', 'Conteo, medida de muestra y revisión de cantos') + flecha +
+      caja('Curvado', 'Pieles de MDF 5.5 sobre costillas') + flecha +
+      caja('Acabado', 'Lijado · cabina de lacado · racks de secado') + flecha +
+      caja('Luz y armado', 'Banco eléctrico · premontaje · herrajes') + flecha +
+      caja('Inspección y empaque', 'Hoja de verificación · bultos por mueble') + flecha +
+      caja('Local', 'Instalación en el centro comercial') +
+      '</div>' +
+      tbl(['Área del taller (ítem 5)', 'Con la planta propia', 'Con Madecentro'], [
+        '<tr><td><b>Almacén de materia prima</b></td><td>Tableros enteros de 1.83 × 2.44 m</td><td>Piezas cortadas y zunchadas, en racks por mueble</td></tr>',
+        '<tr><td><b>Sierra de corte</b></td><td>Sierra de mesa, sierra circular y colector de polvo</td><td>Sale de la planta: el espacio pasa a recepción e inspección</td></tr>',
+        '<tr><td><b>Fresado</b></td><td>Ranuras, canal de la luz y muescas</td><td>Solo ajustes y cazoletas de bisagra (taladro de banco)</td></tr>',
+        '<tr><td><b>Tapas de Rovere</b></td><td>Encolado de tapas y enchapadora manual</td><td>Sale de la planta: las tapas llegan con el canto puesto</td></tr>',
+        '<tr><td><b>Curvado y encolado</b></td><td>Igual</td><td>Igual</td></tr>',
+        '<tr><td><b>Lijado y lacado</b></td><td>Cabina y racks de secado</td><td>Igual: es el centro del taller</td></tr>',
+        '<tr><td><b>Banco eléctrico, armado, inspección, empaque y producto terminado</b></td><td>Igual</td><td>Igual</td></tr>'
+      ]) +
+      '<p class="n1-note">Máquinas que ya no se compran: ' + maqLib.map((m) => esc(m.t)).join(', ') + '. Ahorran ' + cop(ahorroMaq) + ' de inversión (precios del ítem 6' + (maqLib.some((m) => !m.p) ? '; la enchapadora está por cotizar' : '') + '). También sale de la planta el peligro más alto del corte: la sierra de mesa (ítem 14).</p>' +
+      '<div class="n1-box"><b>Lo que hay que confirmar con Madecentro</b><ul><li>Plazo real de entrega y si despacha a Villanueva o hay que recoger.</li><li>Que la sede haga el engrosado de 30 mm, los cortes circulares y las curvas con las medidas del juego.</li><li>Tolerancia del corte y del canto, para la inspección de recepción.</li><li>Precio por juego con los servicios de cada pieza (la página publica precios por servicio).</li></ul></div>' +
+      '<h4 class="n1-h4">Fuentes</h4><ul class="n1-ol">' + MC_FUENTES.map((f) => '<li>' + esc(f[0]) + ' <a href="' + f[1] + '" target="_blank" rel="noopener">' + esc(f[1].replace(/^https:\/\//, '')) + '</a></li>').join('') + '</ul>';
+  }
+
   function secO() {
     const R = ritmo(), cur = 'lotes';
     return head('O') +
@@ -487,6 +593,7 @@
       case 'K': return secK();
       case 'N': return secN();
       case 'O': return secO();
+      case 'MC': return secMC();
       case '2': return sec2();
       case '7': return sec7();
       case '8': return sec8();
