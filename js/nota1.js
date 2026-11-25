@@ -16,6 +16,11 @@
   const FABN = DATA.items.filter((i) => i.origen === 'fabrica').map((i) => i.n);
   const base = {}; DATA.items.forEach((i) => { base[i.n] = i; });
   const VER = ['A', 'B', 'C'];
+  /* En el visor, las notas muestran solo el diseño final: la versión B · Galería. Los PDF de entrega (secHTML) siguen
+     pudiendo generar las tres versiones. */
+  let SOLO = true;
+  const VV = () => (SOLO ? ['B'] : VER);
+  const SECSV = () => (SOLO ? SECS.filter((x) => x.id !== 'D') : SECS);
   const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
   const ST = { open: false, sec: 'A', ver: 'A', n: 2, from: null, nota: 1, secs: { 1: 'A', 2: 'J', 3: 'P' } };
   /* otras notas (nota2.js…) se registran aquí: { titulo, sub, secs, render(id), click(e) } */
@@ -98,6 +103,7 @@
     return '<div class="n1-pick" role="group" aria-label="Mueble">' + FABN.map((k) => '<button type="button" data-n1n="' + k + '" class="' + (k === sel ? 'is-on' : '') + '" title="' + esc(k + ' · ' + ROLE[k]) + '"><b>' + k + '</b><span>' + esc(ROLE[k]) + '</span></button>').join('') + '</div>';
   }
   function pickV() {
+    if (SOLO) return '<span class="n1-chip">B · Galería</span>';
     return '<div class="seg seg-sm n1-pv" role="radiogroup" aria-label="Versión">' + VER.map((v) => '<button type="button" role="radio" data-n1v="' + v + '" class="' + (v === ST.ver ? 'is-on' : '') + '" aria-checked="' + (v === ST.ver) + '">' + v + ' · ' + esc(vinfo(v).corto) + '</button>').join('') + '</div>';
   }
   const fuenteRef = (id) => (id && N.fuentes[id] ? '<a href="#n1-f-' + id + '" class="n1-fref">' + esc(SHORT[id] || id) + '</a>' : '<span class="n1-fref">Estimado</span>');
@@ -112,7 +118,7 @@
       row('Áreas', esc(F.area)) + row('Fachada', esc(F.fachada)) + row('Fuente del plano', esc(F.fuentePlano)) + row('Fecha de consulta', esc(F.consulta)) +
       row('Enlace del modelo', '<a href="' + esc(F.enlace) + '" target="_blank" rel="noopener">' + esc(F.enlace) + '</a>') + row('Repositorio', '<a href="' + esc(F.repositorio) + '" target="_blank" rel="noopener">' + esc(F.repositorio) + '</a>') +
       '</dl>' +
-      '<h3>Espacios y muebles</h3><p class="n1-note">La guía pide tres espacios con un mueble cada uno; este proyecto diseña los doce muebles fabricados del local, repartidos en cuatro espacios, y cada uno en tres versiones.</p>' +
+      '<h3>Espacios y muebles</h3><p class="n1-note">La guía pide tres espacios con un mueble cada uno; este proyecto diseña los doce muebles fabricados del local, repartidos en cuatro espacios' + (SOLO ? ', en el diseño final de la versión B · Galería.' : ', y cada uno en tres versiones.') + '</p>' +
       '<div class="n1-tbl"><table><thead><tr><th>Espacio</th><th>Qué pasa ahí</th><th>Muebles</th></tr></thead><tbody>' +
       F.espacios.map((e) => '<tr><td><b>' + esc(e.t) + '</b></td><td>' + esc(e.d) + '</td><td>' + e.n.map((k) => '<span class="n1-chip">' + k + ' · ' + esc(ROLE[k]) + '</span>').join(' ') + '</td></tr>').join('') +
       '</tbody></table></div>' +
@@ -126,7 +132,7 @@
       E.refs.map((r) => '<tr><td><b>' + esc(r.t) + '</b></td><td>' + esc(r.d) + '</td><td>' + tipoTag(r.tipo) + ' ' + fuenteRef(r.f) + '</td></tr>').join('') + '</tbody></table></div>' +
       '<p class="n1-note">' + esc(E.nota) + '</p>' +
       '<div class="n1-sheet" data-sheet="plan">' + L.plan.svg(ST.ver, { cotas: true, nums: true }) + '</div>' +
-      '<p class="n1-note">Lámina A3 a escala 1:50 de la versión ' + ST.ver + '. Las tres versiones usan las mismas medidas del local; cambia la distribución. <button type="button" class="link" data-n1plan="1">Abrir el plano interactivo</button></p>';
+      '<p class="n1-note">Lámina A3 a escala 1:50 de la versión ' + ST.ver + (SOLO ? ' · Galería. ' : '. Las tres versiones usan las mismas medidas del local; cambia la distribución. ') + '<button type="button" class="link" data-n1plan="1">Abrir el plano interactivo</button></p>';
   }
   function antro() {
     const A = N.antro;
@@ -135,17 +141,17 @@
       '</tbody></table></div><p class="n1-note">Centímetros, sin ropa ni calzado. ' + tipoTag('fuente') + ' ' + fuenteRef('acopla') + '. Se diseña para los dos extremos: lo que debe alcanzar la persona más baja (P5 de mujeres) y lo que debe dejar pasar a la más grande (P95 de hombres).</p>';
   }
   function normas() {
-    return '<div class="n1-tbl"><table><thead><tr><th>Requisito</th><th>Fuente</th>' + VER.map((v) => '<th>' + vtag(v) + ' ' + esc(vinfo(v).corto) + '</th>').join('') + '</tr></thead><tbody>' +
-      N.normas.map((r) => '<tr><td><b>' + esc(r.t) + '</b><small>' + esc(r.d) + '</small></td><td>' + tipoTag(N.fuentes[r.f].tipo) + ' ' + fuenteRef(r.f) + '</td>' + VER.map((v) => '<td class="rq-' + r.v[v][0] + '">' + stIcon(r.v[v][0]) + esc(r.v[v][1]) + '</td>').join('') + '</tr>').join('') +
-      '</tbody></table></div><p class="n1-note">Estos requisitos no estaban en el documento del proyecto: salieron de revisar las normas. Donde una versión no cumple, el mueble se corrige y el cambio se anota en la tabla de rastreo.</p>';
+    return '<div class="n1-tbl"><table><thead><tr><th>Requisito</th><th>Fuente</th>' + VV().map((v) => '<th>' + vtag(v) + ' ' + esc(vinfo(v).corto) + '</th>').join('') + '</tr></thead><tbody>' +
+      N.normas.map((r) => '<tr><td><b>' + esc(r.t) + '</b><small>' + esc(r.d) + '</small></td><td>' + tipoTag(N.fuentes[r.f].tipo) + ' ' + fuenteRef(r.f) + '</td>' + VV().map((v) => '<td class="rq-' + r.v[v][0] + '">' + stIcon(r.v[v][0]) + esc(r.v[v][1]) + '</td>').join('') + '</tr>').join('') +
+      '</tbody></table></div><p class="n1-note">Estos requisitos no estaban en el documento del proyecto: salieron de revisar las normas. Donde ' + (SOLO ? 'el diseño' : 'una versión') + ' no cumple, el mueble se corrige y el cambio se anota en la tabla de rastreo.</p>';
   }
   function reqCard(n) {
     const A = N.antro, M = N.muebles[n], reqs = VS.req[n];
     return '<article class="n1-card"><header><span class="n1-num">' + n + '</span><div><h4>' + esc(ROLE[n]) + '</h4><small>' + esc(N.ficha.espacios.find((e) => e.id === M.espacio).t) + '</small></div></header>' +
       '<dl class="n1-dl sm"><div><dt>Quién lo usa</dt><dd>' + esc(M.usuario) + '</dd></div><div><dt>Para qué</dt><dd>' + esc(M.uso) + '</dd></div><div><dt>Espacio alrededor</dt><dd>' + esc(M.entorno) + '</dd></div></dl>' +
       '<h5>Medidas del cuerpo que lo condicionan</h5><ul class="n1-meds">' + M.medidas.map((m) => { const a = A[m[0]]; return '<li><b>' + esc(a.t) + '</b> <span class="mono">P5 ' + f1(a.p5) + ' · P95 ' + f1(a.p95) + ' cm</span><p>' + esc(m[1]) + '</p></li>'; }).join('') + '</ul>' +
-      '<h5>Requisitos y cómo los cumple cada alternativa</h5><div class="n1-tbl"><table class="n1-rq"><thead><tr><th>Requisito</th><th>Fuente o dato</th>' + VER.map((v) => '<th>' + vtag(v) + ' ' + esc(itemOf(v, n).short) + '</th>').join('') + '</tr></thead><tbody>' +
-      reqs.map((r, i) => { const s = M.src[i] || { tipo: 'no', d: '' }; return '<tr><td><b>' + esc(r) + '</b></td><td>' + tipoTag(s.tipo) + ' ' + fuenteRef(s.f) + '<small>' + esc(s.d) + '</small></td>' + VER.map((v) => { const c = VS.cumple(n, v)[i] || ['si', '']; return '<td class="rq-' + c[0] + '">' + stIcon(c[0]) + esc(c[1]) + '</td>'; }).join('') + '</tr>'; }).join('') +
+      '<h5>' + (SOLO ? 'Requisitos y cómo los cumple la Galería' : 'Requisitos y cómo los cumple cada alternativa') + '</h5><div class="n1-tbl"><table class="n1-rq"><thead><tr><th>Requisito</th><th>Fuente o dato</th>' + VV().map((v) => '<th>' + vtag(v) + ' ' + esc(itemOf(v, n).short) + '</th>').join('') + '</tr></thead><tbody>' +
+      reqs.map((r, i) => { const s = M.src[i] || { tipo: 'no', d: '' }; return '<tr><td><b>' + esc(r) + '</b></td><td>' + tipoTag(s.tipo) + ' ' + fuenteRef(s.f) + '<small>' + esc(s.d) + '</small></td>' + VV().map((v) => { const c = VS.cumple(n, v)[i] || ['si', '']; return '<td class="rq-' + c[0] + '">' + stIcon(c[0]) + esc(c[1]) + '</td>'; }).join('') + '</tr>'; }).join('') +
       '</tbody></table></div></article>';
   }
   function fuentes() {
@@ -457,26 +463,26 @@
   }
   function rastreo() {
     const rows = [];
-    N.cambios.forEach((c) => rows.push('<tr><td>' + vtag(c.v) + ' <b>' + c.n + '</b> ' + esc(itemOf(c.v, c.n).short) + '</td><td>' + esc(c.causa) + '</td><td>' + esc(c.antes) + ' → ' + esc(c.despues) + '</td><td class="rq-si">' + stIcon('si') + 'Corregido</td></tr>'));
-    N.normas.forEach((r) => VER.forEach((v) => { const st = r.v[v][0]; if (st !== 'si') rows.push('<tr><td>' + vtag(v) + ' ' + esc(r.t) + '</td><td>' + esc(r.v[v][1]) + ' (' + esc(SHORT[r.f]) + ')</td><td>Por decidir con el grupo</td><td class="rq-' + st + '">' + stIcon(st) + 'Pendiente</td></tr>'); }));
-    VER.forEach((v) => { const im = N.impresoras[v]; if (im.est !== 'si') rows.push('<tr><td>' + vtag(v) + ' <b>7</b> ' + esc(itemOf(v, 7).short) + '</td><td>' + esc(im[im.pend || 'sobre']) + '</td><td>Por decidir con el grupo</td><td class="rq-' + im.est + '">' + stIcon(im.est) + 'Pendiente</td></tr>'); });
+    N.cambios.filter((c) => !SOLO || c.v === 'B').forEach((c) => rows.push('<tr><td>' + vtag(c.v) + ' <b>' + c.n + '</b> ' + esc(itemOf(c.v, c.n).short) + '</td><td>' + esc(c.causa) + '</td><td>' + esc(c.antes) + ' → ' + esc(c.despues) + '</td><td class="rq-si">' + stIcon('si') + 'Corregido</td></tr>'));
+    N.normas.forEach((r) => VV().forEach((v) => { const st = r.v[v][0]; if (st !== 'si') rows.push('<tr><td>' + vtag(v) + ' ' + esc(r.t) + '</td><td>' + esc(r.v[v][1]) + ' (' + esc(SHORT[r.f]) + ')</td><td>Por decidir con el grupo</td><td class="rq-' + st + '">' + stIcon(st) + 'Pendiente</td></tr>'); }));
+    VV().forEach((v) => { const im = N.impresoras[v]; if (im.est !== 'si') rows.push('<tr><td>' + vtag(v) + ' <b>7</b> ' + esc(itemOf(v, 7).short) + '</td><td>' + esc(im[im.pend || 'sobre']) + '</td><td>Por decidir con el grupo</td><td class="rq-' + im.est + '">' + stIcon(im.est) + 'Pendiente</td></tr>'); });
     return '<div class="n1-tbl"><table><thead><tr><th>Mueble</th><th>Causa</th><th>Cambio</th><th>Estado</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
   }
   function secK() {
     const st = (s) => SECS.find((x) => x.id === s).st;
     return secHead('K') +
       '<p class="n1-lead">Lista de chequeo de la Nota 1 (guía, numeral 10). Cada punto se marca cuando la evidencia está en la carpeta del grupo; aquí se marca cuando está en el visor.</p>' +
-      '<ul class="n1-check">' + N.check.map((c) => '<li class="c-' + st(c.s) + '"><i></i><span>' + esc(c.t) + '</span><button type="button" class="link" data-n1sec="' + c.s + '">' + c.s + ' · ' + esc(SECS.find((x) => x.id === c.s).t) + '</button><em>' + ST_TXT[st(c.s)] + '</em></li>').join('') + '</ul>' +
+      '<ul class="n1-check">' + N.check.filter((c) => !SOLO || c.s !== 'D').map((c) => '<li class="c-' + st(c.s) + '"><i></i><span>' + esc(c.t) + '</span><button type="button" class="link" data-n1sec="' + c.s + '">' + c.s + ' · ' + esc(SECS.find((x) => x.id === c.s).t) + '</button><em>' + ST_TXT[st(c.s)] + '</em></li>').join('') + '</ul>' +
       '<h3>Tabla de rastreo <small>lo que la revisión le cambió al mueble y lo que queda por corregir</small></h3>' + rastreo() +
       '<h3>Hitos de la guía</h3><div class="n1-tbl"><table><thead><tr><th>Hito</th><th>Fecha</th><th>Qué debe estar listo</th></tr></thead><tbody>' +
-      [['H0', 'mié 21 oct.', 'Proyecto y espacios escogidos; plano empezado (A)'], ['H1', 'vie 23 oct.', 'Plano a escala, requisitos y tres alternativas por mueble (B a D)'], ['H2', 'mié 28 oct.', 'Planos, despiece, uniones e integración, en avance (E a I)'], ['H3', 'vie 30 oct.', 'Diseño completo del mobiliario (A a I) · Nota 1']].map((r) => '<tr><td><b>' + r[0] + '</b></td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody></table></div>';
+      [['H0', 'mié 21 oct.', 'Proyecto y espacios escogidos; plano empezado (A)'], ['H1', 'vie 23 oct.', SOLO ? 'Plano a escala y requisitos (B y C)' : 'Plano a escala, requisitos y tres alternativas por mueble (B a D)'], ['H2', 'mié 28 oct.', 'Planos, despiece, uniones e integración, en avance (E a I)'], ['H3', 'vie 30 oct.', 'Diseño completo del mobiliario (A a I) · Nota 1']].map((r) => '<tr><td><b>' + r[0] + '</b></td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('') + '</tbody></table></div>';
   }
   function navHTML() {
-    const secs = ST.nota === 1 ? SECS : MODS[ST.nota].secs;
+    const secs = ST.nota === 1 ? SECSV() : MODS[ST.nota].secs;
     return secs.map((s) => '<button type="button" data-n1sec="' + s.id + '"><span class="n1-letter">' + (s.id === 'K' && ST.nota === 1 || s.id === 'X' ? '✓' : s.id) + '</span><span class="n1-nt">' + esc(s.t) + '</span>' + (s.st ? '<i class="n1-dot d-' + s.st + '" title="' + ST_TXT[s.st] + '"></i>' : '') + '</button>').join('');
   }
   function syncBar() {
-    const M = ST.nota === 1 ? { titulo: 'Nota 1 · Diseño del mobiliario', sub: 'Diseño VIII · Producción · guía «Del mueble a la planta» · entrega del 30 de octubre' } : MODS[ST.nota];
+    const M = ST.nota === 1 ? { titulo: 'Nota 1 · Diseño del mobiliario', sub: (SOLO ? 'Versión B · Galería · ' : '') + 'Diseño VIII · Producción · guía «Del mueble a la planta» · entrega del 30 de octubre' } : MODS[ST.nota];
     $('#n1-tt').textContent = M.titulo; $('#n1-st').textContent = M.sub;
     $$('#n1-notas [data-nota]').forEach((b) => { const on = +b.dataset.nota === ST.nota; b.classList.toggle('is-on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
     $('#n1-nav').innerHTML = navHTML(); $('#n1-nav').setAttribute('aria-label', 'Elementos de la ' + M.titulo.split(' · ')[0]);
@@ -566,7 +572,8 @@
   function open(sec, nota) {
     build();
     if (L.api.state.planOpen) L.api.closePlan(true);
-    ST.ver = L.api.state.ver || 'A';
+    ST.ver = SOLO ? 'B' : (L.api.state.ver || 'A');
+    if (SOLO && sec === 'D') sec = 'C';
     if (nota && (nota === 1 || MODS[nota])) ST.nota = nota;
     if (sec) ST.secs[ST.nota] = sec;
     syncBar();
@@ -591,8 +598,8 @@
   }
   /* html de una sección con otro estado (para la entrega en PDF, entrega.js) */
   function secHTML(id, ver, n) {
-    const o = { ver: ST.ver, n: ST.n }; if (ver) ST.ver = ver; if (n) ST.n = n;
-    try { return { A: secA, B: secB, C: secC, D: secD, E: secE, F: secF, G: secG, H: secH, I: secI, K: secK }[id](); } finally { ST.ver = o.ver; ST.n = o.n; }
+    const o = { ver: ST.ver, n: ST.n, solo: SOLO }; SOLO = false; if (ver) ST.ver = ver; if (n) ST.n = n;
+    try { return { A: secA, B: secB, C: secC, D: secD, E: secE, F: secF, G: secG, H: secH, I: secI, K: secK }[id](); } finally { ST.ver = o.ver; ST.n = o.n; SOLO = o.solo; }
   }
   L.n1 = { open, close, matrix, state: ST, render, capture: captureAll, captureView, sec: secHTML, SECS,
     h: { esc, cop, f1, vtag, tipoTag, stIcon, pickN, pickV, itemOf, vinfo, ROLE, FABN, VER, base, ST_TXT, TIPO, SHORT, EST, inFrame, fuenteRef, antro, normas, reqCard, fuentes, sumTable, resumen, altBlock, duraTable, despiece, regla, mats, uniones, fichas, luzDe, luzData, luzCalc, cambios, impresoras, rastreo } };
